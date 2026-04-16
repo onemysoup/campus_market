@@ -1,0 +1,6 @@
+# Improve GitHub Linguist classification for WeChat Mini Program files
+*.wxml linguist-language=HTML
+*.wxss linguist-language=CSS
+
+# Treat lock files as generated metadata
+server/package-lock.json linguist-generated=true
