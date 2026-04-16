@@ -1,0 +1,7 @@
+.title { font-size: 30rpx; font-weight: 700; margin-bottom: 12rpx; }
+.row { padding: 12rpx 0; border-bottom: 1px solid #e2e8f0; }
+.msg { font-size: 24rpx; color: #64748b; margin-top: 4rpx; }
+.msg-item { max-width: 70%; margin-bottom: 10rpx; padding: 10rpx 16rpx; background: #f1f5f9; border-radius: 12rpx; }
+.msg-item.mine { margin-left: auto; background: #ccfbf1; }
+.send-row { display: flex; gap: 10rpx; align-items: center; margin-top: 10rpx; }
+.send-row .input { flex: 1; margin-bottom: 0; }

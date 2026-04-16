@@ -1,0 +1,37 @@
+<view class="container">
+  <view class="hero card">
+    <view class="hero-title">校园闲置循环计划</view>
+    <view class="hero-sub">买卖二手好物，省钱更环保</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">分类导航</view>
+    <view class="grid">
+      <view class="grid-item" wx:for="{{categories}}" wx:key="id" bindtap="goGoods" data-id="{{item.id}}">
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">热门商品</view>
+    <view class="goods-item" wx:for="{{hotGoods}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <image class="thumb" src="{{item.images[0] || defaultImage}}" mode="aspectFill" />
+      <view class="meta">
+        <view>{{item.title}}</view>
+        <view class="price">¥{{item.price}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">最新发布</view>
+    <view class="goods-item" wx:for="{{latestGoods}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <image class="thumb" src="{{item.images[0] || defaultImage}}" mode="aspectFill" />
+      <view class="meta">
+        <view>{{item.title}}</view>
+        <view class="price">¥{{item.price}}</view>
+      </view>
+    </view>
+  </view>
+</view>

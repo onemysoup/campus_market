@@ -1,0 +1,4 @@
+.container { padding: 24rpx; }
+.switcher { display: flex; margin-bottom: 20rpx; background: #e2e8f0; border-radius: 14rpx; overflow: hidden; }
+.switcher view { flex: 1; text-align: center; padding: 18rpx 0; color: #334155; }
+.switcher .active { background: #0f766e; color: #fff; font-weight: 600; }

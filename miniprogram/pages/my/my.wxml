@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="card profile" wx:if="{{user.id}}">
+    <image class="avatar" src="{{user.avatar || fallback}}" mode="aspectFill" />
+    <view class="name">{{user.nickname}}</view>
+    <view class="meta">{{user.college || '未填写学院'}} · {{roleLabel}}</view>
+  </view>
+
+  <view class="card" wx:if="{{user.id}}">
+    <button bindtap="goOrders">我的订单</button>
+    <button bindtap="goMyGoods">我发布的商品</button>
+    <button bindtap="goFavorites">我的收藏</button>
+    <button wx:if="{{user.role==='admin'}}" bindtap="goAdmin">管理员后台</button>
+    <button bindtap="onEditProfile">编辑资料</button>
+    <button bindtap="logout">退出登录</button>
+  </view>
+
+  <view class="card" wx:if="{{!user.id}}">
+    <view style="margin-bottom: 16rpx;">登录后可查看订单、收藏和发布管理</view>
+    <button class="btn-primary" bindtap="goLogin">去登录</button>
+  </view>
+</view>

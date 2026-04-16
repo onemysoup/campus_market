@@ -1,0 +1,5 @@
+.profile { text-align: center; }
+.avatar { width: 132rpx; height: 132rpx; border-radius: 50%; background: #dbeafe; margin: 0 auto; }
+.name { font-size: 36rpx; font-weight: 700; margin-top: 12rpx; }
+.meta { margin-top: 6rpx; color: #475569; }
+button { margin-bottom: 12rpx; }

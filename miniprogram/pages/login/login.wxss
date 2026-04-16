@@ -1,0 +1,3 @@
+.container { padding: 40rpx 26rpx; }
+.title { font-size: 42rpx; font-weight: 700; margin-bottom: 24rpx; color: #115e59; }
+.row-links { margin-top: 20rpx; display: flex; justify-content: space-between; color: #0f766e; font-size: 26rpx; }

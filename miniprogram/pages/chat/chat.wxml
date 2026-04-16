@@ -1,0 +1,18 @@
+<view class="container">
+  <view class="card" wx:if="{{!conversationId}}">
+    <view class="title">会话列表</view>
+    <view class="row" wx:for="{{conversations}}" wx:key="conversationId" bindtap="openConversation" data-id="{{item.conversationId}}">
+      <view>{{item.otherUser.nickname}}</view>
+      <view class="msg">{{item.lastMessage}}</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{conversationId}}">
+    <view class="title">聊天记录</view>
+    <view class="msg-item {{item.sender_id===userId?'mine':''}}" wx:for="{{messages}}" wx:key="id">{{item.content}}</view>
+    <view class="send-row">
+      <input class="input" value="{{content}}" bindinput="onContentInput" placeholder="输入消息" />
+      <button size="mini" class="btn-primary" bindtap="send">发送</button>
+    </view>
+  </view>
+</view>

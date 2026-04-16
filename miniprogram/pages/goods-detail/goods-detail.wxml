@@ -1,0 +1,20 @@
+<view class="container" wx:if="{{goods.id}}">
+  <view class="card">
+    <swiper indicator-dots autoplay circular>
+      <swiper-item wx:for="{{goods.images}}" wx:key="index">
+        <image class="banner" src="{{item}}" mode="aspectFill" />
+      </swiper-item>
+    </swiper>
+    <view class="title">{{goods.title}}</view>
+    <view class="price">¥{{goods.price}}</view>
+    <view class="tag">{{categoryName}} · {{conditionName}}</view>
+    <view class="desc">{{goods.description}}</view>
+    <view class="seller">卖家：{{goods.seller.nickname}}（{{goods.seller.college}}）</view>
+  </view>
+
+  <view class="actions">
+    <button bindtap="onFavor">收藏</button>
+    <button bindtap="goChat">联系卖家</button>
+    <button class="btn-primary" bindtap="onBuy">立即购买</button>
+  </view>
+</view>

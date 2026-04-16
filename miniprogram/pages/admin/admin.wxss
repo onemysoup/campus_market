@@ -1,0 +1,4 @@
+.title { font-size: 30rpx; font-weight: 700; margin-bottom: 12rpx; }
+.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10rpx; }
+.goods-row { margin-bottom: 12rpx; }
+.actions { margin-top: 8rpx; display: flex; gap: 10rpx; }

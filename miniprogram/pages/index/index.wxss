@@ -1,0 +1,10 @@
+.hero { background: linear-gradient(135deg, #0f766e, #14b8a6); color: #fff; }
+.hero-title { font-size: 42rpx; font-weight: 700; }
+.hero-sub { margin-top: 10rpx; opacity: 0.95; }
+.section-title { font-size: 30rpx; font-weight: 700; margin-bottom: 14rpx; color: #0f172a; }
+.grid { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.grid-item { width: 23%; text-align: center; background: #f0fdfa; border-radius: 12rpx; padding: 16rpx 0; color: #0f766e; font-size: 24rpx; }
+.goods-item { display: flex; margin-bottom: 16rpx; }
+.thumb { width: 140rpx; height: 140rpx; border-radius: 12rpx; background: #f1f5f9; }
+.meta { flex: 1; margin-left: 16rpx; display: flex; flex-direction: column; justify-content: center; }
+.price { color: #dc2626; font-size: 30rpx; font-weight: 700; margin-top: 8rpx; }

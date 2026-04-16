@@ -1,0 +1,37 @@
+<view class="container" wx:if="{{isAdmin}}">
+  <view class="card">
+    <view class="title">数据统计</view>
+    <picker mode="selector" range="{{types}}" range-key="label" bindchange="onTypeChange">
+      <view class="input">统计范围：{{statsTypeLabel}}</view>
+    </picker>
+    <view>用户数：{{stats.userCount || 0}}</view>
+    <view>商品数：{{stats.goodsCount || 0}}</view>
+    <view>订单数：{{stats.orderCount || 0}}</view>
+    <view>完成单：{{stats.doneCount || 0}}</view>
+    <view>成交额：¥{{stats.totalAmount || 0}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title">用户管理</view>
+    <view wx:for="{{users}}" wx:key="id" class="row">
+      <text>{{item.nickname}}({{item.phone}})</text>
+      <button size="mini" data-id="{{item.id}}" bindtap="toggleUser">{{item.is_banned ? '解封' : '封禁'}}</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">商品审核</view>
+    <view wx:for="{{pendingGoods}}" wx:key="id" class="goods-row">
+      <view>{{item.title}}</view>
+      <view class="actions">
+        <button size="mini" data-id="{{item.id}}" data-action="approve" bindtap="review">通过</button>
+        <button size="mini" data-id="{{item.id}}" data-action="reject" bindtap="review">驳回</button>
+        <button size="mini" data-id="{{item.id}}" data-action="delete" bindtap="review">删除</button>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view class="container" wx:if="{{!isAdmin}}">
+  <view class="card">仅管理员可访问</view>
+</view>

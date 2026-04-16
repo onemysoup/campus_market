@@ -1,0 +1,12 @@
+.filters { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.chip { background: #f0fdfa; color: #0f766e; border-radius: 999rpx; padding: 10rpx 20rpx; font-size: 24rpx; }
+.price-row { display: flex; align-items: center; gap: 10rpx; }
+.mini { flex: 1; margin-bottom: 0; }
+.goods { display: flex; }
+.thumb { width: 168rpx; height: 168rpx; border-radius: 12rpx; background: #e2e8f0; }
+.meta { flex: 1; margin-left: 16rpx; }
+.title { font-weight: 700; }
+.desc { margin-top: 8rpx; color: #475569; font-size: 24rpx; }
+.bottom { margin-top: 12rpx; display: flex; justify-content: space-between; align-items: center; }
+.price { color: #dc2626; font-size: 34rpx; font-weight: 700; }
+.empty, .more { text-align: center; color: #64748b; font-size: 24rpx; padding: 18rpx 0; }

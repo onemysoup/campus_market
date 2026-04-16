@@ -1,0 +1,42 @@
+<view class="container">
+  <view class="tabs">
+    <view class="tab {{tab==='buyer'?'active':''}}" data-tab="buyer" bindtap="switchTab">买到的</view>
+    <view class="tab {{tab==='seller'?'active':''}}" data-tab="seller" bindtap="switchTab">卖出的</view>
+    <view class="tab {{tab==='publish'?'active':''}}" data-tab="publish" bindtap="switchTab">我发布的</view>
+    <view class="tab {{tab==='favor'?'active':''}}" data-tab="favor" bindtap="switchTab">收藏</view>
+  </view>
+
+  <block wx:if="{{tab==='buyer' || tab==='seller'}}">
+    <view class="card" wx:for="{{orders}}" wx:key="id">
+      <view>订单 #{{item.id}} · {{statusMap[item.status]}}</view>
+      <view>商品：{{item.goods.title}}</view>
+      <view>价格：¥{{item.goods.price}}</view>
+      <view class="actions">
+        <button size="mini" wx:if="{{tab==='seller' && item.status==='pending'}}" data-id="{{item.id}}" bindtap="confirmOrder">确认</button>
+        <button size="mini" wx:if="{{item.status==='pending' || item.status==='confirmed'}}" data-id="{{item.id}}" bindtap="cancelOrder">取消</button>
+        <button size="mini" wx:if="{{tab==='buyer' && item.status==='confirmed'}}" data-id="{{item.id}}" bindtap="completeOrder">确认收货</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{tab==='publish'}}">
+    <view class="card" wx:for="{{goodsList}}" wx:key="id">
+      <view>{{item.title}}</view>
+      <view>¥{{item.price}} · {{item.status}}</view>
+      <view class="actions">
+        <button size="mini" data-id="{{item.id}}" bindtap="editGoods">编辑</button>
+        <button size="mini" data-id="{{item.id}}" bindtap="offlineGoods">下架</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{tab==='favor'}}">
+    <view class="card" wx:for="{{favorList}}" wx:key="id">
+      <view>{{item.goods.title}}</view>
+      <view>¥{{item.goods.price}}</view>
+      <button size="mini" data-id="{{item.goods.id}}" bindtap="cancelFavor">取消收藏</button>
+    </view>
+  </block>
+
+  <view class="empty" wx:if="{{!orders.length && !goodsList.length && !favorList.length}}">暂无数据</view>
+</view>

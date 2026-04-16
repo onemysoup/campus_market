@@ -1,0 +1,36 @@
+<view class="container">
+  <view class="card">
+    <input class="input" placeholder="搜索商品关键词" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="onSearch" />
+    <view class="filters">
+      <picker mode="selector" range="{{categories}}" range-key="name" bindchange="onCategoryChange">
+        <view class="chip">分类：{{categoryLabel}}</view>
+      </picker>
+      <picker mode="selector" range="{{conditions}}" range-key="name" bindchange="onConditionChange">
+        <view class="chip">成色：{{conditionLabel}}</view>
+      </picker>
+      <picker mode="selector" range="{{sortOptions}}" range-key="label" bindchange="onSortChange">
+        <view class="chip">排序：{{sortLabel}}</view>
+      </picker>
+    </view>
+    <view class="price-row">
+      <input class="input mini" placeholder="最低价" type="digit" value="{{priceMin}}" bindinput="onPriceMinInput" />
+      <input class="input mini" placeholder="最高价" type="digit" value="{{priceMax}}" bindinput="onPriceMaxInput" />
+      <button size="mini" class="btn-primary" bindtap="onSearch">筛选</button>
+    </view>
+  </view>
+
+  <view class="card goods" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+    <image class="thumb" src="{{item.images[0] || fallback}}" mode="aspectFill" />
+    <view class="meta">
+      <view class="title">{{item.title}}</view>
+      <view class="desc">{{item.description}}</view>
+      <view class="bottom">
+        <text class="price">¥{{item.price}}</text>
+        <text class="tag">{{item.seller.nickname}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!list.length && !loading}}">暂无商品</view>
+  <view class="more">{{hasMore ? '上拉加载更多' : '没有更多了'}}</view>
+</view>
