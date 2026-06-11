@@ -1,0 +1,6 @@
+@CAUSecondHand_HostAddress = http://localhost:5242
+
+GET {{CAUSecondHand_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
