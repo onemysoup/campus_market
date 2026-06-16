@@ -1,51 +1,48 @@
 # 校园二手交易平台
 
-ASP.NET Core 10 + EF Core + SignalR 实现的校园二手交易平台。
-
 ```
-├── api/              # .NET 后端（Clean Architecture）
+├── src/              # .NET 后端（Clean Architecture）
 └── miniprogram/      # 微信小程序前端
 ```
 
-## 前置依赖
+## 启动后端（供前端开发）
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- Docker Desktop + WSL2（或 Linux 环境）
-- 微信小程序 AppId（用于微信登录）
+### 方式一：Docker Compose（推荐）
 
-## 快速启动（推荐 — Docker Compose）
+只需 Docker，无需安装 .NET SDK。
 
 ```bash
 # 1. 配置微信凭证
 cp .env.example .env
 # 编辑 .env 填入 WECHAT_APPID / WECHAT_APPSECRET
 
-# 2. 一键启动全部服务
+# 2. 一键启动 MySQL + Redis + API
 docker compose up --build
 
-# 3. 访问
+# 3. 后端就绪
 # API:      http://localhost:8080/api/v1/...
 # Swagger:  http://localhost:8080/swagger
 ```
 
-## 本地开发（无 Docker）
+### 方式二：本地运行
+
+需要安装 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)，并自行启动 MySQL 和 Redis。
 
 ```bash
-# 1. 确保 MySQL + Redis 已启动
-
-# 2. 应用数据库迁移
 cd src
+
+# 应用数据库迁移
 dotnet ef database update
 
-# 3. 启动 API
+# 启动 API
 cd WebAPI
 ASPNETCORE_ENVIRONMENT=Development dotnet run
 
-# 默认地址: http://localhost:5242
+# 后端地址: http://localhost:5242
 # Swagger:   http://localhost:5242/swagger
 ```
 
-## 项目结构
+## 后端项目结构
 
 ```
 src/
