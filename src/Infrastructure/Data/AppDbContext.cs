@@ -19,10 +19,10 @@ public class AppDbContext : DbContext
     public DbSet<Request> Requests => Set<Request>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
 
-    protected override void OnModelCreating(ModelBuilder builder)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        base.OnModelCreating(builder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

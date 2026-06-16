@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace CAUSecondHand.WebAPI.Middleware;
@@ -6,7 +5,7 @@ namespace CAUSecondHand.WebAPI.Middleware;
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
-        HttpContext context, Exception exception, CancellationToken ct)
+        HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         var (statusCode, code, message) = exception switch
         {
@@ -16,18 +15,18 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             _ => (StatusCodes.Status500InternalServerError, 5000, "系统内部错误")
         };
 
-        context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "application/json";
+        httpContext.Response.StatusCode = statusCode;
+        httpContext.Response.ContentType = "application/json";
 
         var response = new
         {
             code,
             message,
             data = (object?)null,
-            traceId = Activity.Current?.Id ?? context.TraceIdentifier
+            traceId = httpContext.TraceIdentifier
         };
 
-        await context.Response.WriteAsJsonAsync(response, ct);
+        await httpContext.Response.WriteAsJsonAsync(response, cancellationToken);
         return true;
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,7 +16,7 @@ public sealed class TokenService(string hmacKey)
             Encoding.UTF8.GetBytes(hmacKey),
             Encoding.UTF8.GetBytes(data));
         var code = Math.Abs(BitConverter.ToInt32(hash, 0)) % 10000;
-        return code.ToString("D4");
+        return code.ToString("D4", CultureInfo.InvariantCulture);
     }
 
     public string GenerateReturnCode(Guid transactionId, Guid sellerId)

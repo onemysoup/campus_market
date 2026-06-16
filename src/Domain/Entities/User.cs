@@ -1,3 +1,4 @@
+using System.Globalization;
 using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Domain.ValueObjects;
 
@@ -94,7 +95,7 @@ public sealed class User
 
     public bool IsGraduated(int currentYear) => !IsStaff
         && GraduationYear != null
-        && int.Parse(GraduationYear) <= currentYear;
+        && int.Parse(GraduationYear, CultureInfo.InvariantCulture) <= currentYear;
 
     public void DegradeToL0()
     {
