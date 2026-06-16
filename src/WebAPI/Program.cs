@@ -1,3 +1,4 @@
+using CAUSecondHand.Infrastructure.BackgroundJobs;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.Infrastructure.Services;
 using CAUSecondHand.WebAPI.Middleware;
@@ -5,6 +6,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 using Serilog;
 using System.Threading.RateLimiting;
 
@@ -64,6 +66,22 @@ builder.Services.Configure<SmtpOptions>(
 builder.Services.AddHttpClient<IWeChatApiClient, WeChatApiClient>();
 builder.Services.Configure<WeChatOptions>(
     builder.Configuration.GetSection(WeChatOptions.SectionName));
+
+builder.Services.AddQuartz(options =>
+{
+    options.AddJob<ExpiredItemJob>(j => j.WithIdentity("ExpiredItemJob"))
+        .AddTrigger(t => t.ForJob("ExpiredItemJob")
+            .WithCronSchedule("0 0 2 * * ?"));
+
+    options.AddJob<GraduationDegradationJob>(j => j.WithIdentity("GraduationDegradationJob"))
+        .AddTrigger(t => t.ForJob("GraduationDegradationJob")
+            .WithCronSchedule("0 0 0 1 7 ?"));
+
+    options.AddJob<DailyEtlJob>(j => j.WithIdentity("DailyEtlJob"))
+        .AddTrigger(t => t.ForJob("DailyEtlJob")
+            .WithCronSchedule("0 0 1 * * ?"));
+});
+builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApiDocument(options =>
