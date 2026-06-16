@@ -24,6 +24,7 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
         builder.Property(i => i.Images).HasColumnType("json");
         builder.Property(i => i.ViewCount).HasDefaultValue(0);
         builder.Property(i => i.IsNegotiable).HasDefaultValue(true);
+        builder.HasOne(i => i.Seller).WithMany().HasForeignKey(i => i.SellerId);
         builder.HasIndex(i => i.SellerId);
         builder.HasIndex(i => new { i.Status, i.CampusArea, i.CreatedAt });
     }

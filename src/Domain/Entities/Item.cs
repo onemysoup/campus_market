@@ -31,6 +31,7 @@ public sealed class Item
 
     public Guid Id { get; private set; }
     public Guid SellerId { get; private set; }
+    public User? Seller { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
