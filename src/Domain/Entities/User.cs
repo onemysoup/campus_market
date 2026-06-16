@@ -48,9 +48,8 @@ public sealed class User
         _ => Enums.CreditTier.Blacklisted
     };
 
-    public CreditLog RecordCreditChange(int delta, string reason)
+    public CreditLog RecordCreditChange(int delta, string reason, Guid? adminId = null)
     {
-        var oldScore = CreditScore;
         CreditScore = Math.Clamp(CreditScore + delta, 0, 100);
 
         return new CreditLog
@@ -60,6 +59,7 @@ public sealed class User
             ChangeAmount = delta,
             Reason = reason,
             ScoreAfter = CreditScore,
+            AdminId = adminId,
             CreatedAt = DateTime.UtcNow
         };
     }
