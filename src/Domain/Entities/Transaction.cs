@@ -23,6 +23,7 @@ public sealed class Transaction
 
     public Guid Id { get; private set; }
     public Guid ItemId { get; private set; }
+    public Item? Item { get; private set; }
     public Guid BuyerId { get; private set; }
     public Guid SellerId { get; private set; }
     public TransactionType TransactionType { get; private set; }

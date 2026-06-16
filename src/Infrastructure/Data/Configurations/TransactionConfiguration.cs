@@ -18,6 +18,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.TransactionType).HasConversion<int>();
         builder.Property(t => t.TokenStatus).HasConversion<int>();
         builder.Property(t => t.RentalStatus).HasConversion<int>();
+        builder.HasOne(t => t.Item).WithMany().HasForeignKey(t => t.ItemId);
         builder.HasIndex(t => t.BuyerId);
         builder.HasIndex(t => t.SellerId);
         builder.HasIndex(t => t.ItemId);
