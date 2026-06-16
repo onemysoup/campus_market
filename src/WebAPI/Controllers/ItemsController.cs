@@ -62,6 +62,30 @@ public class ItemsController(AppDbContext db) : ControllerBase
 
         var seller = SellerBriefVO.FromEntity(item.Seller!);
         var detail = ItemDetailVO.FromEntity(item, seller, isFavorited, canBuy);
+
+        if (userId != Guid.Empty)
+        {
+            var history = await db.BrowseHistories
+                .FirstOrDefaultAsync(h => h.UserId == userId && h.ItemId == id);
+            if (history is null)
+            {
+                db.BrowseHistories.Add(new BrowseHistory(userId, id));
+                var count = await db.BrowseHistories.CountAsync(h => h.UserId == userId);
+                if (count > 20)
+                {
+                    var oldest = await db.BrowseHistories
+                        .Where(h => h.UserId == userId)
+                        .OrderBy(h => h.BrowsedAt)
+                        .FirstAsync();
+                    db.BrowseHistories.Remove(oldest);
+                }
+            }
+            else
+            {
+                history.Refresh();
+            }
+        }
+
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, data = detail });
