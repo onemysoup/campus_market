@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 
 namespace CAUSecondHand.Infrastructure.Services;
@@ -22,11 +23,11 @@ public sealed class WeChatApiClient(HttpClient http, IOptions<WeChatOptions> opt
 }
 
 internal sealed record WeChatSessionResponse(
-    string? OpenId,
-    string? SessionKey,
-    string? UnionId,
-    int Errcode,
-    string? Errmsg);
+    [property: JsonPropertyName("openid")] string? OpenId,
+    [property: JsonPropertyName("session_key")] string? SessionKey,
+    [property: JsonPropertyName("unionid")] string? UnionId,
+    [property: JsonPropertyName("errcode")] int Errcode,
+    [property: JsonPropertyName("errmsg")] string? Errmsg);
 
 public sealed class WeChatOptions
 {
