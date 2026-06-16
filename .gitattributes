@@ -5,5 +5,9 @@
 # Treat lock files as generated metadata
 server/package-lock.json linguist-generated=true
 
+# Treat EF Core migrations as auto-generated
+src/Infrastructure/Migrations/*.Designer.cs linguist-generated=true
+src/Infrastructure/Migrations/AppDbContextModelSnapshot.cs linguist-generated=true
+
 # Shell scripts must use LF line endings
 .githooks/** text eol=lf
