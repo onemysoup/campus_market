@@ -18,7 +18,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
     {
         var itemsQuery = db.Items
             .Include(i => i.Seller)
-            .Where(i => i.Status == ItemStatus.Active && !i.IsExpired());
+            .Where(i => i.Status == ItemStatus.Active && i.ExpiryDate > DateOnly.FromDateTime(DateTime.UtcNow));
 
         if (!string.IsNullOrWhiteSpace(query.Keyword))
             itemsQuery = itemsQuery.Where(i => i.Title.Contains(query.Keyword));

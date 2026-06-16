@@ -2,11 +2,15 @@ using Microsoft.AspNetCore.Diagnostics;
 
 namespace CAUSecondHand.WebAPI.Middleware;
 
-public sealed class GlobalExceptionHandler : IExceptionHandler
+public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+#pragma warning disable CA1848
+        logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+#pragma warning restore CA1848
+
         var (statusCode, code, message) = exception switch
         {
             BadHttpRequestException e => (StatusCodes.Status400BadRequest, 4000, e.Message),

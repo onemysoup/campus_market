@@ -16,7 +16,7 @@ public class RequestsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> GetRequests([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var query = db.Requests
-            .Where(r => !r.IsExpired())
+            .Where(r => r.ExpiryDate >= DateOnly.FromDateTime(DateTime.UtcNow))
             .OrderByDescending(r => r.IsUrgent)
             .ThenByDescending(r => r.CreatedAt);
 
