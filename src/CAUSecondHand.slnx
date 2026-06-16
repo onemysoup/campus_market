@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Domain/">
+    <Project Path="Domain/CAUSecondHand.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Infrastructure/CAUSecondHand.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/WebAPI/">
+    <Project Path="WebAPI/CAUSecondHand.WebAPI.csproj" />
+  </Folder>
+</Solution>
