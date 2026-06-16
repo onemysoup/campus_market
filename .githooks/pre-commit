@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+echo "Running dotnet format analyzers..."
+cd "$(git rev-parse --show-toplevel)/src"
+
+dotnet format --verify-no-changes --verbosity quiet 2>&1 || {
+    echo "ERROR: Code style issues detected. Run 'dotnet format' to fix."
+    exit 1
+}
+
+echo "Lint passed."
