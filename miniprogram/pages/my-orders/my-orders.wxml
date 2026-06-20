@@ -1,42 +1,134 @@
 <view class="container">
-  <view class="tabs">
-    <view class="tab {{tab==='buyer'?'active':''}}" data-tab="buyer" bindtap="switchTab">买到的</view>
-    <view class="tab {{tab==='seller'?'active':''}}" data-tab="seller" bindtap="switchTab">卖出的</view>
-    <view class="tab {{tab==='publish'?'active':''}}" data-tab="publish" bindtap="switchTab">我发布的</view>
-    <view class="tab {{tab==='favor'?'active':''}}" data-tab="favor" bindtap="switchTab">收藏</view>
+  <!-- 主 Tab：买入/卖出 -->
+  <view class="main-tabs">
+    <view
+      class="main-tab {{mainTab === item.key ? 'active' : ''}}"
+      wx:for="{{mainTabs}}"
+      wx:key="key"
+      data-tab="{{item.key}}"
+      bindtap="onMainTabChange"
+    >
+      <text class="tab-text">{{item.label}}</text>
+    </view>
   </view>
 
-  <block wx:if="{{tab==='buyer' || tab==='seller'}}">
-    <view class="card" wx:for="{{orders}}" wx:key="id">
-      <view>订单 #{{item.id}} · {{statusMap[item.status]}}</view>
-      <view>商品：{{item.goods.title}}</view>
-      <view>价格：¥{{item.goods.price}}</view>
-      <view class="actions">
-        <button size="mini" wx:if="{{tab==='seller' && item.status==='pending'}}" data-id="{{item.id}}" bindtap="confirmOrder">确认</button>
-        <button size="mini" wx:if="{{item.status==='pending' || item.status==='confirmed'}}" data-id="{{item.id}}" bindtap="cancelOrder">取消</button>
-        <button size="mini" wx:if="{{tab==='buyer' && item.status==='confirmed'}}" data-id="{{item.id}}" bindtap="completeOrder">确认收货</button>
+  <!-- 状态筛选 Tab -->
+  <view class="status-tabs">
+    <view
+      class="status-tab {{statusTab === item.key ? 'active' : ''}}"
+      wx:for="{{statusTabs}}"
+      wx:key="key"
+      data-status="{{item.key}}"
+      bindtap="onStatusTabChange"
+    >
+      <text>{{item.label}}</text>
+      <text class="badge" wx:if="{{item.key === 0 && stats.trading > 0}}">{{stats.trading}}</text>
+    </view>
+  </view>
+
+  <!-- 订单列表 -->
+  <view class="order-list">
+    <!-- 骨架屏 -->
+    <view class="skeleton-list" wx:if="{{loading && list.length === 0}}">
+      <view class="skeleton-item" wx:for="{{[1,2,3]}}" wx:key="*this">
+        <view class="skeleton-header"></view>
+        <view class="skeleton-body">
+          <view class="skeleton-thumb"></view>
+          <view class="skeleton-meta">
+            <view class="skeleton-title"></view>
+            <view class="skeleton-price"></view>
+          </view>
+        </view>
       </view>
     </view>
-  </block>
 
-  <block wx:if="{{tab==='publish'}}">
-    <view class="card" wx:for="{{goodsList}}" wx:key="id">
-      <view>{{item.title}}</view>
-      <view>¥{{item.price}} · {{item.status}}</view>
-      <view class="actions">
-        <button size="mini" data-id="{{item.id}}" bindtap="editGoods">编辑</button>
-        <button size="mini" data-id="{{item.id}}" bindtap="offlineGoods">下架</button>
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{!loading && list.length === 0}}">
+      <image class="empty-icon" src="https://via.placeholder.com/200x200/e2e8f0/64748b?text=Empty" mode="aspectFit" />
+      <text class="empty-text">暂无{{mainTab === 'buyer' ? '买入' : '卖出'}}订单</text>
+    </view>
+
+    <!-- 订单卡片 -->
+    <view
+      class="order-card"
+      wx:for="{{list}}"
+      wx:key="transactionId"
+      data-transactionid="{{item.transactionId}}"
+      data-itemid="{{item.itemId}}"
+      bindtap="onTapOrder"
+    >
+      <!-- 卡片头部：状态 + 时间 -->
+      <view class="order-header">
+        <view class="order-status" style="background: {{item.statusBg}}; color: {{item.statusColor}};">
+          {{item.statusText}}
+        </view>
+        <text class="order-time">{{item.timeText}}</text>
+      </view>
+
+      <!-- 卡片主体：商品信息 -->
+      <view class="order-body">
+        <image class="order-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <view class="order-meta">
+          <view class="order-title">{{item.title}}</view>
+          <view class="order-info">
+            <text class="order-price">¥{{item.priceText}}</text>
+            <text class="order-type">{{item.transactionType === 1 ? '租赁' : '出售'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 卡片底部：操作按钮 -->
+      <view class="order-footer">
+        <view class="order-other">
+          <text class="other-label">{{mainTab === 'buyer' ? '卖家' : '买家'}}：</text>
+          <text class="other-name">{{item.otherNickname}}</text>
+        </view>
+        <view class="order-actions">
+          <!-- 交易中：可取消、可联系 -->
+          <block wx:if="{{item.status === 0}}">
+            <button
+              class="btn-action btn-cancel"
+              size="mini"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onCancelTransaction"
+            >取消</button>
+            <button
+              class="btn-action btn-contact"
+              size="mini"
+              data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
+              catchtap="onContact"
+            >联系</button>
+            <!-- 买家可确认收货 -->
+            <button
+              class="btn-action btn-confirm"
+              size="mini"
+              wx:if="{{mainTab === 'buyer'}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onConfirmReceive"
+            >确认收货</button>
+          </block>
+          <!-- 已完成/已取消：可联系 -->
+          <block wx:if="{{item.status !== 0}}">
+            <button
+              class="btn-action btn-contact"
+              size="mini"
+              data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
+              catchtap="onContact"
+            >联系对方</button>
+          </block>
+        </view>
       </view>
     </view>
-  </block>
 
-  <block wx:if="{{tab==='favor'}}">
-    <view class="card" wx:for="{{favorList}}" wx:key="id">
-      <view>{{item.goods.title}}</view>
-      <view>¥{{item.goods.price}}</view>
-      <button size="mini" data-id="{{item.goods.id}}" bindtap="cancelFavor">取消收藏</button>
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loadingMore}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
     </view>
-  </block>
 
-  <view class="empty" wx:if="{{!orders.length && !goodsList.length && !favorList.length}}">暂无数据</view>
+    <!-- 没有更多数据 -->
+    <view class="no-more" wx:if="{{!hasMore && list.length > 0 && !loadingMore}}">
+      <text>— 已经到底了 —</text>
+    </view>
+  </view>
 </view>
