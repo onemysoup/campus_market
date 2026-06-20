@@ -55,6 +55,16 @@ const authApi = {
    */
   setCampus(campusArea) {
     return put('/api/v1/auth/campus', { campusArea });
+  },
+
+  /**
+   * 更新用户资料（昵称、头像）
+   * @param {Object} data
+   * @param {string} data.nickname - 昵称
+   * @param {string} data.avatarUrl - 头像 URL
+   */
+  updateProfile(data) {
+    return put('/api/v1/auth/profile', data);
   }
 };
 

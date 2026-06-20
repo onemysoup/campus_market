@@ -3,7 +3,7 @@
  * 对应后端: TransactionsController (/api/v1/transactions)
  */
 
-const { post } = require('../utils/request');
+const { get, post } = require('../utils/request');
 
 const transactionsApi = {
   /**
@@ -50,6 +50,17 @@ const transactionsApi = {
    */
   completeReturn(id) {
     return post(`/api/v1/transactions/${id}/rent-return`);
+  },
+
+  /**
+   * 获取交易列表
+   * @param {Object} params
+   * @param {string} params.role - 角色：buyer/seller
+   * @param {number} params.page - 页码
+   * @param {number} params.pageSize - 每页数量
+   */
+  getTransactions(params = {}) {
+    return get('/api/v1/transactions', params);
   }
 };
 

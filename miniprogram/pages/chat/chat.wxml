@@ -19,7 +19,7 @@
 
     <!-- 空状态 -->
     <view class="empty-state" wx:elif="{{sessions.length === 0}}">
-      <image class="empty-icon" src="https://via.placeholder.com/200x200/e2e8f0/64748b?text=Chat" mode="aspectFit" />
+      <image class="empty-icon" src="" mode="aspectFit" />
       <text class="empty-text">暂无消息</text>
       <text class="empty-hint">浏览商品时可联系卖家</text>
     </view>
@@ -35,7 +35,7 @@
       <view class="session-avatar-wrap">
         <image
           class="session-avatar"
-          src="{{item.otherUserAvatar || 'https://via.placeholder.com/80x80/e2e8f0/64748b?text=U'}}"
+          src="{{item.otherUserAvatar || ''}}"
           mode="aspectFill"
         />
       </view>
@@ -90,7 +90,7 @@
         <block wx:if="{{!item.isMine}}">
           <image
             class="msg-avatar"
-            src="{{currentSession.otherUserAvatar || 'https://via.placeholder.com/80x80/e2e8f0/64748b?text=U'}}"
+            src="{{currentSession.otherUserAvatar || ''}}"
             mode="aspectFill"
           />
           <view class="msg-content-wrap">
@@ -117,23 +117,20 @@
     </scroll-view>
 
     <!-- 输入区域 -->
-    <view class="input-area" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : 'env(safe-area-inset-bottom)'}}px;">
+    <view class="input-area">
       <view class="input-wrap">
         <input
           class="msg-input"
           placeholder="输入消息..."
           value="{{inputContent}}"
           bindinput="onInputChange"
-          bindfocus="onInputFocus"
-          bindblur="onInputBlur"
-          confirm-type="send"
           bindconfirm="onSend"
-          adjust-position="{{false}}"
+          adjust-position
         />
       </view>
       <button
-        class="btn-send {{inputContent.trim() ? 'active' : ''}}"
-        disabled="{{!inputContent.trim()}}"
+        class="btn-send {{canSend ? 'active' : ''}}"
+        disabled="{{!canSend}}"
         bindtap="onSend"
       >
         发送

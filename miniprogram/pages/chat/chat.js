@@ -32,9 +32,7 @@ Page({
     messages: [],
     // 输入框
     inputContent: '',
-    inputFocus: false,
-    // 键盘高度
-    keyboardHeight: 0,
+    canSend: false,
     // 滚动位置
     scrollToView: '',
     scrollToBottom: '',
@@ -69,13 +67,6 @@ Page({
       // 显示会话列表
       this.loadSessions();
     }
-
-    // 监听键盘高度变化
-    wx.onKeyboardHeightChange(this.onKeyboardHeightChange.bind(this));
-  },
-
-  onUnload() {
-    wx.offKeyboardHeightChange();
   },
 
   // ==================== 会话列表 ====================
@@ -178,16 +169,11 @@ Page({
   // ==================== 消息发送 ====================
 
   onInputChange(e) {
-    this.setData({ inputContent: e.detail.value });
-  },
-
-  onInputFocus() {
-    this.setData({ inputFocus: true });
-    setTimeout(() => this.scrollToBottom(), 100);
-  },
-
-  onInputBlur() {
-    this.setData({ inputFocus: false });
+    const value = e.detail.value;
+    this.setData({
+      inputContent: value,
+      canSend: value.trim().length > 0
+    });
   },
 
   /**
@@ -197,8 +183,8 @@ Page({
     const content = this.data.inputContent.trim();
     if (!content) return;
 
-    // 清空输入框
-    this.setData({ inputContent: '' });
+    // 清空输入框并禁用发送按钮
+    this.setData({ inputContent: '', canSend: false });
 
     // 乐观更新：立即显示消息
     const newMsg = {
@@ -259,18 +245,7 @@ Page({
     return replies[Math.floor(Math.random() * replies.length)];
   },
 
-  // ==================== 键盘与滚动 ====================
-
-  /**
-   * 键盘高度变化
-   */
-  onKeyboardHeightChange(res) {
-    const keyboardHeight = res.height || 0;
-    this.setData({ keyboardHeight });
-    if (keyboardHeight > 0) {
-      setTimeout(() => this.scrollToBottom(), 50);
-    }
-  },
+  // ==================== 滚动 ====================
 
   /**
    * 滚动到底部

@@ -77,6 +77,20 @@ const itemsApi = {
    */
   removeFavorite(id) {
     return del(`/api/v1/items/${id}/favor`);
+  },
+
+  /**
+   * 获取收藏列表
+   */
+  getFavorites() {
+    return get('/api/v1/items/favorites');
+  },
+
+  /**
+   * 获取我的商品列表
+   */
+  getMyItems() {
+    return get('/api/v1/items/my');
   }
 };
 

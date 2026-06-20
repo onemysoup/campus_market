@@ -1,8 +1,10 @@
 .container {
+  width: 100%;
   height: 100vh;
   background: #f8fafc;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 /* ==================== 会话列表 ==================== */
@@ -91,10 +93,12 @@
 
 /* ==================== 对话详情 ==================== */
 .chat-detail {
+  width: 100%;
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100vh;
+  box-sizing: border-box;
 }
 
 .chat-header {
@@ -103,9 +107,8 @@
   padding: 16rpx 24rpx;
   background: #fff;
   border-bottom: 1rpx solid #f1f5f9;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -129,16 +132,21 @@
 
 /* ==================== 消息列表 ==================== */
 .message-list {
+  width: 100%;
   flex: 1;
-  padding: 24rpx;
+  padding: 24rpx 0;
+  padding-bottom: 160rpx;
   overflow-y: auto;
   background: #f8fafc;
+  box-sizing: border-box;
 }
 
 .message-item {
   display: flex;
   margin-bottom: 24rpx;
+  padding: 0 24rpx;
   align-items: flex-start;
+  box-sizing: border-box;
 }
 
 .message-item.mine {
@@ -154,15 +162,15 @@
 }
 
 .msg-content-wrap {
-  max-width: 65%;
+  max-width: 60%;
   margin-left: 16rpx;
+  display: flex;
+  flex-direction: column;
 }
 
 .mine-wrap {
   margin-left: 0;
   margin-right: 0;
-  display: flex;
-  flex-direction: column;
   align-items: flex-end;
 }
 
@@ -201,11 +209,19 @@
 /* ==================== 输入区域 ==================== */
 .input-area {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 16rpx;
-  padding: 16rpx 24rpx;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   background: #fff;
   border-top: 1rpx solid #f1f5f9;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;
+  box-sizing: border-box;
 }
 
 .input-wrap {
@@ -217,8 +233,8 @@
 
 .msg-input {
   font-size: 28rpx;
-  min-height: 40rpx;
-  max-height: 200rpx;
+  height: 44rpx;
+  width: 100%;
 }
 
 .btn-send {
