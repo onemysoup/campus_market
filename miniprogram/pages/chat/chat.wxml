@@ -1,25 +1,29 @@
 <view class="container">
-  <!-- ==================== 会话列表模式 ==================== -->
-  <view class="session-list" wx:if="{{mode === 'list'}}">
-    <!-- 顶部标题 -->
-    <view class="list-header">
-      <text class="list-title">消息</text>
+  <!-- 顶部标题 -->
+  <view class="header">
+    <text class="header-title">消息</text>
+    <view class="header-action" bindtap="onClearAll" wx:if="{{sessions.length > 0}}">
+      <text>清空</text>
     </view>
+  </view>
 
-    <!-- 加载中 -->
-    <view class="loading-state" wx:if="{{loadingSessions}}">
-      <view class="skeleton-session" wx:for="{{[1,2,3]}}" wx:key="*this">
+  <!-- 会话列表 -->
+  <view class="session-list">
+    <!-- 骨架屏 -->
+    <view class="skeleton-list" wx:if="{{loading && sessions.length === 0}}">
+      <view class="skeleton-item" wx:for="{{[1,2,3,4]}}" wx:key="*this">
         <view class="skeleton-avatar"></view>
-        <view class="skeleton-info">
-          <view class="skeleton-name"></view>
-          <view class="skeleton-msg"></view>
+        <view class="skeleton-content">
+          <view class="skeleton-line short"></view>
+          <view class="skeleton-line long"></view>
         </view>
+        <view class="skeleton-thumb"></view>
       </view>
     </view>
 
     <!-- 空状态 -->
-    <view class="empty-state" wx:elif="{{sessions.length === 0}}">
-      <image class="empty-icon" src="" mode="aspectFit" />
+    <view class="empty-state" wx:elif="{{!loading && sessions.length === 0}}">
+      <text class="empty-icon">💬</text>
       <text class="empty-text">暂无消息</text>
       <text class="empty-hint">浏览商品时可联系卖家</text>
     </view>
@@ -32,109 +36,54 @@
       data-session="{{item}}"
       bindtap="onTapSession"
     >
-      <view class="session-avatar-wrap">
-        <image
-          class="session-avatar"
-          src="{{item.otherUserAvatar || ''}}"
-          mode="aspectFill"
-        />
-      </view>
-      <view class="session-info">
-        <view class="session-top">
-          <text class="session-name">{{item.otherUserNickname}}</text>
-          <text class="session-time">{{item.lastMessageTime}}</text>
-        </view>
-        <view class="session-bottom">
-          <text class="session-preview">{{item.lastMessagePreview || '暂无消息'}}</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- ==================== 对话详情模式 ==================== -->
-  <view class="chat-detail" wx:if="{{mode === 'chat'}}">
-    <!-- 顶部导航 -->
-    <view class="chat-header">
-      <view class="back-btn" bindtap="onBackToList">
-        <text>‹</text>
-      </view>
-      <view class="chat-title">
-        <text>{{currentSession.otherUserNickname || '聊天'}}</text>
-      </view>
-      <view class="header-right"></view>
-    </view>
-
-    <!-- 消息列表 -->
-    <scroll-view
-      class="message-list"
-      scroll-y
-      scroll-into-view="{{scrollToView}}"
-      scroll-with-animation
-      enhanced
-      show-scrollbar="{{false}}"
-    >
-      <!-- 加载更多 -->
-      <view class="loading-more" wx:if="{{loadingMessages}}">
-        <view class="loading-spinner"></view>
-        <text>加载中...</text>
-      </view>
-
-      <!-- 消息流 -->
-      <view
-        class="message-item {{item.isMine ? 'mine' : 'other'}}"
-        wx:for="{{messages}}"
-        wx:key="messageId"
-        id="{{item.messageId}}"
-      >
-        <!-- 对方消息：头像在左 -->
-        <block wx:if="{{!item.isMine}}">
+      <!-- 左侧：头像 + 未读角标 -->
+      <view class="session-left">
+        <view class="avatar-wrap">
           <image
-            class="msg-avatar"
-            src="{{currentSession.otherUserAvatar || ''}}"
+            class="avatar"
+            src="{{item.displayAvatar}}"
             mode="aspectFill"
           />
-          <view class="msg-content-wrap">
-            <view class="msg-bubble other-bubble">
-              <text>{{item.content}}</text>
-            </view>
-            <text class="msg-time">{{item.timeText}}</text>
+          <view class="unread-badge" wx:if="{{item.unreadCount > 0}}">
+            {{item.unreadCount > 99 ? '99+' : item.unreadCount}}
           </view>
-        </block>
-
-        <!-- 我的消息：头像在右 -->
-        <block wx:if="{{item.isMine}}">
-          <view class="msg-content-wrap mine-wrap">
-            <view class="msg-bubble mine-bubble">
-              <text>{{item.content}}</text>
-            </view>
-            <text class="msg-time mine-time">{{item.timeText}}</text>
-          </view>
-        </block>
+        </view>
       </view>
 
-      <!-- 底部锚点 -->
-      <view id="msg_bottom"></view>
-    </scroll-view>
+      <!-- 中间：主内容 -->
+      <view class="session-center">
+        <view class="session-top">
+          <text class="nickname">{{item.displayNickname}}</text>
+          <view class="role-tag {{item.userRole === 1 ? 'buyer' : 'seller'}}">
+            {{item.userRoleText}}
+          </view>
+          <text class="time">{{item.updateTimeText}}</text>
+        </view>
+        <view class="session-bottom">
+          <text class="last-message">{{item.lastMessage}}</text>
+        </view>
+      </view>
 
-    <!-- 输入区域 -->
-    <view class="input-area">
-      <view class="input-wrap">
-        <input
-          class="msg-input"
-          placeholder="输入消息..."
-          value="{{inputContent}}"
-          bindinput="onInputChange"
-          bindconfirm="onSend"
-          adjust-position
+      <!-- 右侧：商品缩略图 -->
+      <view class="session-right">
+        <image
+          class="item-thumb"
+          src="{{item.itemImage}}"
+          mode="aspectFill"
         />
+        <text class="item-price">¥{{item.itemPrice}}</text>
       </view>
-      <button
-        class="btn-send {{canSend ? 'active' : ''}}"
-        disabled="{{!canSend}}"
-        bindtap="onSend"
-      >
-        发送
-      </button>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loadingMore}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view class="no-more" wx:if="{{!hasMore && sessions.length > 0 && !loadingMore}}">
+      <text>— 没有更多了 —</text>
     </view>
   </view>
 </view>
