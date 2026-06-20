@@ -14,7 +14,31 @@
 .subtitle {
   font-size: 28rpx;
   color: #64748b;
-  margin-bottom: 48rpx;
+  margin-bottom: 32rpx;
+}
+
+/* 登录模式切换 */
+.mode-tabs {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 12rpx;
+  margin-bottom: 32rpx;
+  overflow: hidden;
+}
+
+.mode-tab {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+  color: #64748b;
+  transition: all 0.3s;
+}
+
+.mode-tab.active {
+  background: #0f766e;
+  color: #fff;
+  font-weight: 600;
 }
 
 /* 微信登录按钮 */
@@ -60,15 +84,24 @@
   color: #94a3b8;
 }
 
+/* 邮箱登录表单 */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
 /* 链接 */
 .row-links {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  margin-top: 24rpx;
 }
 
 .link {
   color: #0f766e;
-  font-size: 28rpx;
-  padding: 12rpx 24rpx;
+  font-size: 26rpx;
 }
 
 /* 提示 */

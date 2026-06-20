@@ -1,6 +1,6 @@
 /**
  * 登录页
- * 支持：微信一键登录（含新用户引导完善资料）
+ * 支持：微信一键登录、邮箱+密码登录
  */
 
 const authApi = require('../../api/auth');
@@ -8,7 +8,12 @@ const { CAMPUS_AREA_MAP } = require('../../utils/constants');
 
 Page({
   data: {
+    // 登录模式：wx=微信登录, email=邮箱登录
+    loginMode: 'wx',
     loading: false,
+    // 邮箱登录表单
+    email: '',
+    password: '',
     // 新用户引导弹窗相关
     showGuide: false,
     guideNickname: '',
@@ -27,6 +32,52 @@ Page({
     const token = wx.getStorageSync('token');
     if (token) {
       wx.switchTab({ url: '/pages/index/index' });
+    }
+  },
+
+  // ==================== 模式切换 ====================
+
+  switchLoginMode(e) {
+    const mode = e.currentTarget.dataset.mode;
+    this.setData({ loginMode: mode });
+  },
+
+  // ==================== 邮箱登录 ====================
+
+  onEmailInput(e) {
+    this.setData({ email: e.detail.value.trim() });
+  },
+
+  onPasswordInput(e) {
+    this.setData({ password: e.detail.value });
+  },
+
+  async onEmailLogin() {
+    const { email, password } = this.data;
+
+    if (!email) {
+      wx.showToast({ title: '请输入邮箱', icon: 'none' });
+      return;
+    }
+
+    if (!email.endsWith('@cau.edu.cn')) {
+      wx.showToast({ title: '请使用 @cau.edu.cn 邮箱', icon: 'none' });
+      return;
+    }
+
+    if (!password) {
+      wx.showToast({ title: '请输入密码', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ loading: true });
+      const result = await authApi.emailLogin(email, password);
+      this.handleLoginSuccess(result);
+    } catch (error) {
+      console.error('[Login] emailLogin error:', error);
+    } finally {
+      this.setData({ loading: false });
     }
   },
 
@@ -84,7 +135,7 @@ Page({
   },
 
   /**
-   * 处理登录成功（老用户 + 新用户完成引导后）
+   * 处理登录成功（通用）
    */
   handleLoginSuccess(loginData) {
     const app = getApp();

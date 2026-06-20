@@ -15,6 +15,15 @@ const authApi = {
   },
 
   /**
+   * 邮箱密码登录
+   * @param {string} email - 邮箱地址
+   * @param {string} password - 密码
+   */
+  emailLogin(email, password) {
+    return post('/api/v1/auth/login', { email, password });
+  },
+
+  /**
    * 发送邮箱验证码
    * @param {string} email - CAU 邮箱地址
    */
