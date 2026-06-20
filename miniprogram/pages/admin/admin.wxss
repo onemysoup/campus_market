@@ -1,4 +1,412 @@
-.title { font-size: 30rpx; font-weight: 700; margin-bottom: 12rpx; }
-.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10rpx; }
-.goods-row { margin-bottom: 12rpx; }
-.actions { margin-top: 8rpx; display: flex; gap: 10rpx; }
+.container {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* ==================== 无权限 ==================== */
+.no-permission {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+}
+
+.lock-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.no-perm-text {
+  font-size: 30rpx;
+  color: #64748b;
+}
+
+/* ==================== Tab 栏 ==================== */
+.admin-tabs {
+  display: flex;
+  background: #fff;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.admin-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  color: #64748b;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.admin-tab.active {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.admin-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 4rpx;
+  background: #0f766e;
+  border-radius: 999rpx;
+}
+
+.tab-icon {
+  font-size: 32rpx;
+}
+
+/* ==================== 仪表盘 ==================== */
+.dashboard {
+  padding: 24rpx;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.stat-card.highlight {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.stat-value {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 20rpx;
+}
+
+.today-stats {
+  display: flex;
+  justify-content: space-around;
+}
+
+.today-item {
+  text-align: center;
+}
+
+.today-value {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #0f766e;
+  margin-bottom: 8rpx;
+}
+
+.today-label {
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+/* ==================== 举报列表 ==================== */
+.reports-section {
+  padding: 16rpx 24rpx;
+}
+
+.report-card {
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  background: #fffbeb;
+  border-bottom: 1rpx solid #fef3c7;
+}
+
+.report-reason {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.reason-tag {
+  font-size: 20rpx;
+  padding: 4rpx 10rpx;
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 6rpx;
+}
+
+.reason-text {
+  font-size: 26rpx;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.report-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.report-body {
+  padding: 16rpx 20rpx;
+}
+
+.report-info {
+  display: flex;
+  margin-bottom: 8rpx;
+  font-size: 26rpx;
+}
+
+.report-label {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.report-value {
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-desc {
+  font-size: 26rpx;
+  color: #475569;
+  line-height: 1.5;
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.report-footer {
+  display: flex;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.btn-action {
+  flex: 1;
+  font-size: 24rpx;
+  padding: 12rpx 0;
+  border-radius: 8rpx;
+  line-height: 1.5;
+  min-height: 0;
+}
+
+.btn-action::after {
+  border: none;
+}
+
+.btn-dismiss {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.btn-accept {
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.btn-ban {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ==================== 弹窗 ==================== */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 85%;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 32rpx 24rpx 16rpx;
+  text-align: center;
+}
+
+.modal-subtitle {
+  font-size: 26rpx;
+  color: #64748b;
+  text-align: center;
+  padding-bottom: 16rpx;
+}
+
+.modal-body {
+  padding: 16rpx 24rpx;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.form-item {
+  margin-bottom: 24rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  color: #475569;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 20rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 120rpx;
+  padding: 16rpx 20rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.credit-hint {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-bottom: 12rpx;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.btn-modal {
+  flex: 1;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+}
+
+.btn-modal::after {
+  border: none;
+}
+
+.btn-cancel {
+  color: #64748b;
+  border-right: 1rpx solid #f1f5f9;
+}
+
+.btn-confirm {
+  color: #0f766e;
+  background: #f0fdfa;
+}
+
+/* ==================== 加载状态 ==================== */
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 32rpx 0;
+  color: #64748b;
+  font-size: 26rpx;
+}
+
+.loading-spinner {
+  width: 32rpx;
+  height: 32rpx;
+  border: 4rpx solid #e2e8f0;
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.no-more {
+  text-align: center;
+  padding: 32rpx 0;
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #94a3b8;
+}

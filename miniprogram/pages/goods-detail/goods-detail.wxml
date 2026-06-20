@@ -1,20 +1,141 @@
-<view class="container" wx:if="{{goods.id}}">
-  <view class="card">
-    <swiper indicator-dots autoplay circular>
-      <swiper-item wx:for="{{goods.images}}" wx:key="index">
-        <image class="banner" src="{{item}}" mode="aspectFill" />
-      </swiper-item>
-    </swiper>
-    <view class="title">{{goods.title}}</view>
-    <view class="price">¥{{goods.price}}</view>
-    <view class="tag">{{categoryName}} · {{conditionName}}</view>
-    <view class="desc">{{goods.description}}</view>
-    <view class="seller">卖家：{{goods.seller.nickname}}（{{goods.seller.college}}）</view>
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="skeleton-image"></view>
+    <view class="skeleton-content">
+      <view class="skeleton-title"></view>
+      <view class="skeleton-price"></view>
+      <view class="skeleton-info"></view>
+    </view>
   </view>
 
-  <view class="actions">
-    <button bindtap="onFavor">收藏</button>
-    <button bindtap="goChat">联系卖家</button>
-    <button class="btn-primary" bindtap="onBuy">立即购买</button>
+  <!-- 商品详情 -->
+  <block wx:if="{{goods && !loading}}">
+    <!-- 图片轮播 -->
+    <view class="image-section">
+      <swiper
+        class="image-swiper"
+        indicator-dots="{{goods.images.length > 1}}"
+        indicator-color="rgba(255,255,255,0.5)"
+        indicator-active-color="#fff"
+        current="{{currentImageIndex}}"
+        bindchange="onSwiperChange"
+      >
+        <swiper-item wx:for="{{goods.images}}" wx:key="*this">
+          <image
+            class="swiper-image"
+            src="{{item}}"
+            mode="aspectFill"
+            bindtap="onPreviewImage"
+            data-src="{{item}}"
+          />
+        </swiper-item>
+      </swiper>
+      <!-- 状态角标 -->
+      <view class="status-badge" style="background: {{statusColor}};" wx:if="{{statusText}}">
+        {{statusText}}
+      </view>
+      <!-- 图片计数 -->
+      <view class="image-count" wx:if="{{goods.images.length > 1}}">
+        {{currentImageIndex + 1}}/{{goods.images.length}}
+      </view>
+    </view>
+
+    <!-- 价格与标题 -->
+    <view class="info-card">
+      <view class="price-row">
+        <text class="price">¥{{priceText}}</text>
+        <view class="price-tags">
+          <text class="tag" wx:if="{{goods.isNegotiable}}">可议价</text>
+          <text class="tag" wx:if="{{goods.isRental}}">可租赁</text>
+        </view>
+      </view>
+      <view class="title">{{goods.title}}</view>
+      <view class="meta-row">
+        <text class="meta-item">👁 {{goods.viewCount}} 次浏览</text>
+        <text class="meta-item">📅 {{timeText}}</text>
+      </view>
+    </view>
+
+    <!-- 商品属性 -->
+    <view class="info-card">
+      <view class="section-title">商品信息</view>
+      <view class="attr-list">
+        <view class="attr-item">
+          <text class="attr-label">分类</text>
+          <text class="attr-value">{{categoryText}}</text>
+        </view>
+        <view class="attr-item">
+          <text class="attr-label">成色</text>
+          <text class="attr-value">{{conditionText}}</text>
+        </view>
+        <view class="attr-item">
+          <text class="attr-label">校区</text>
+          <text class="attr-value">{{campusText}}</text>
+        </view>
+        <view class="attr-item" wx:if="{{goods.deliveryPoint}}">
+          <text class="attr-label">交易地点</text>
+          <text class="attr-value">{{goods.deliveryPoint}}</text>
+        </view>
+        <view class="attr-item" wx:if="{{goods.isRental && goods.rentalRate}}">
+          <text class="attr-label">租金</text>
+          <text class="attr-value">{{goods.rentalRate}}</text>
+        </view>
+        <view class="attr-item" wx:if="{{goods.deposit}}">
+          <text class="attr-label">押金</text>
+          <text class="attr-value">¥{{goods.deposit}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 商品描述 -->
+    <view class="info-card">
+      <view class="section-title">商品描述</view>
+      <view class="description">{{goods.description || '卖家很懒，没有填写商品描述~'}}</view>
+    </view>
+
+    <!-- 卖家信息 -->
+    <view class="info-card seller-card">
+      <view class="section-title">卖家信息</view>
+      <view class="seller-info">
+        <image
+          class="seller-avatar"
+          src="{{goods.seller.avatarUrl || defaultAvatar}}"
+          mode="aspectFill"
+        />
+        <view class="seller-meta">
+          <view class="seller-name">{{goods.seller.nickname || '匿名用户'}}</view>
+          <view class="seller-auth" wx:if="{{goods.seller.authLevel > 0}}">
+            <text class="auth-badge">✅ 已认证</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部安全区 -->
+    <view class="bottom-safe"></view>
+  </block>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{goods && !loading}}">
+    <view class="action-left">
+      <view class="action-item" bindtap="onToggleFavorite">
+        <text class="action-icon {{isFavorited ? 'favorited' : ''}}">{{isFavorited ? '❤️' : '🤍'}}</text>
+        <text class="action-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
+      </view>
+      <view class="action-item" bindtap="onContactSeller">
+        <text class="action-icon">💬</text>
+        <text class="action-text">联系</text>
+      </view>
+    </view>
+    <view class="action-right">
+      <button
+        class="btn-buy {{canBuy ? '' : 'disabled'}}"
+        bindtap="onBuy"
+        disabled="{{!canBuy}}"
+      >
+        {{canBuy ? '立即购买' : '暂不可购买'}}
+      </button>
+    </view>
   </view>
 </view>

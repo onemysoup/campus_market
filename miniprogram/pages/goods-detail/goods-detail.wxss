@@ -1,7 +1,306 @@
-.banner { width: 100%; height: 420rpx; border-radius: 16rpx; background: #e2e8f0; }
-.title { font-size: 36rpx; font-weight: 700; margin-top: 18rpx; }
-.price { color: #dc2626; font-size: 42rpx; font-weight: 700; margin-top: 8rpx; }
-.desc { margin-top: 14rpx; color: #334155; line-height: 1.7; }
-.seller { margin-top: 12rpx; color: #0f766e; }
-.actions { display: flex; gap: 10rpx; }
-.actions button { flex: 1; }
+.container {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding-bottom: 120rpx;
+}
+
+/* ==================== 图片轮播 ==================== */
+.image-section {
+  position: relative;
+}
+
+.image-swiper {
+  width: 100%;
+  height: 500rpx;
+}
+
+.swiper-image {
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+}
+
+.status-badge {
+  position: absolute;
+  top: 24rpx;
+  left: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.image-count {
+  position: absolute;
+  bottom: 24rpx;
+  right: 24rpx;
+  padding: 6rpx 16rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 22rpx;
+  border-radius: 999rpx;
+}
+
+/* ==================== 信息卡片 ==================== */
+.info-card {
+  margin: 16rpx 24rpx;
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.price {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.price-tags {
+  display: flex;
+  gap: 8rpx;
+}
+
+.tag {
+  font-size: 22rpx;
+  padding: 6rpx 14rpx;
+  background: #f0fdfa;
+  color: #0f766e;
+  border-radius: 8rpx;
+}
+
+.title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.5;
+  margin-bottom: 12rpx;
+}
+
+.meta-row {
+  display: flex;
+  gap: 24rpx;
+}
+
+.meta-item {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+/* ==================== 属性列表 ==================== */
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.attr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.attr-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attr-label {
+  font-size: 26rpx;
+  color: #64748b;
+}
+
+.attr-value {
+  font-size: 26rpx;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* ==================== 商品描述 ==================== */
+.description {
+  font-size: 28rpx;
+  color: #475569;
+  line-height: 1.8;
+  word-break: break-all;
+}
+
+/* ==================== 卖家信息 ==================== */
+.seller-info {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.seller-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 2rpx solid #e2e8f0;
+}
+
+.seller-meta {
+  flex: 1;
+}
+
+.seller-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.seller-auth {
+  margin-top: 6rpx;
+}
+
+.auth-badge {
+  font-size: 22rpx;
+  color: #0f766e;
+}
+
+/* ==================== 底部操作栏 ==================== */
+.bottom-safe {
+  height: 20rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1rpx solid #f1f5f9;
+  box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05);
+  z-index: 100;
+}
+
+.action-left {
+  display: flex;
+  gap: 32rpx;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.action-icon {
+  font-size: 40rpx;
+}
+
+.action-icon.favorited {
+  animation: heartbeat 0.3s ease;
+}
+
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.action-text {
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+.action-right {
+  flex: 1;
+  margin-left: 32rpx;
+}
+
+.btn-buy {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+}
+
+.btn-buy::after {
+  border: none;
+}
+
+.btn-buy.disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+}
+
+.btn-buy:active:not(.disabled) {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* ==================== 骨架屏 ==================== */
+.loading-state {
+  background: #fff;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 500rpx;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.skeleton-title {
+  height: 48rpx;
+  width: 80%;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+.skeleton-price {
+  height: 60rpx;
+  width: 40%;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+.skeleton-info {
+  height: 200rpx;
+  width: 100%;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8rpx;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,12 +1,99 @@
 <view class="container">
-  <view class="card">
+  <!-- 登录卡片 -->
+  <view class="card" wx:if="{{!showGuide}}">
     <view class="title">欢迎来到校园二手</view>
-    <input class="input" placeholder="手机号" maxlength="11" value="{{phone}}" bindinput="onPhoneInput" />
-    <input class="input" placeholder="密码" password value="{{password}}" bindinput="onPasswordInput" />
-    <button class="btn-primary" loading="{{loading}}" bindtap="onSubmit">登录</button>
-    <view class="row-links">
-      <text bindtap="goRegister">注册 / 修改密码</text>
-      <text bindtap="onWxLogin">微信登录</text>
+    <view class="subtitle">中国农业大学校内二手交易平台</view>
+
+    <!-- 登录模式切换 -->
+    <view class="mode-tabs">
+      <view class="mode-tab {{loginMode === 'wx' ? 'active' : ''}}" data-mode="wx" bindtap="switchLoginMode">微信登录</view>
+      <view class="mode-tab {{loginMode === 'email' ? 'active' : ''}}" data-mode="email" bindtap="switchLoginMode">邮箱密码</view>
+    </view>
+
+    <!-- 微信登录 -->
+    <block wx:if="{{loginMode === 'wx'}}">
+      <button class="btn-wx" loading="{{loading}}" bindtap="onWxLogin">
+        <image class="wx-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTkuNSA0QzUuMzYgNCAyIDYuNjkgMiAxMGMwIDEuODkgMS4wOCAzLjU2IDIuNzggNC42N0wyLjA2IDE3LjRjLS4wNi4yMi4wNC40NS4yNC41MWwuOTIuMjRjLjIuMDUuNDEtLjA1LjQ3LS4yNWwxLjA4LTMuNTJjLjUuMTIgMS4wMi4xOSAxLjU2LjE5LjI2IDAgLjUxLS4wMi43Ni0uMDVhNi44IDYuOCAwIDAgMS0uMjMtMS43NGMwLTMuODcgMy41NS03IDcuOTUtN0MxOC40NCA5Ljg0IDIyIDEyLjkzIDIyIDE2Ljc0YzAgLjM4LS4wMy43NS0uMDkgMS4xMi4yLjA2LjM5LjE4LjUyLjM2bC44NSAxLjQyYy4wOC4xNC4wMy4zMi0uMTEuNGwtLjYuMzhjLS4xMi4wOC0uMjguMDQtLjM2LS4wN2wtLjkxLTEuMzVhNC41IDQuNSAwIDAgMC0uNjItLjZDMTkuOCAxNy42NCAxOCAxNi44OCAxNiAxNi44OGMtMi4yMiAwLTQtMS43OC00LTRzMS43OC00IDQtNGMuMzcgMCAuNzMuMDUgMS4wOC4xNGEuNTguNTggMCAwIDAgLjYyLS4yM2wuMTItLjIyYy4wNi0uMTEuMDItLjI1LS4wOC0uMzFsLS43OC0uNDhDMTYuNDIgNi45IDEzLjQ0IDUuNjggMTAuNSA1LjY4Yy0uNDIgMCAuODMuMDMgMS4yMy4wOUM5LjkgNC45NyA5LjcxIDQgOS41IDR6Ii8+PC9zdmc+" />
+        微信一键登录
+      </button>
+
+      <view class="tips">
+        <text class="tips-icon">💡</text>
+        <text class="tips-text">首次登录将自动注册，需完成邮箱认证后方可发布商品</text>
+      </view>
+    </block>
+
+    <!-- 邮箱密码登录 -->
+    <block wx:if="{{loginMode === 'email'}}">
+      <view class="form-group">
+        <input
+          class="input"
+          placeholder="请输入 @cau.edu.cn 邮箱"
+          value="{{email}}"
+          bindinput="onEmailInput"
+        />
+        <input
+          class="input"
+          placeholder="请输入密码"
+          password
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+        <button class="btn-primary" loading="{{loading}}" bindtap="onEmailLogin">登录</button>
+      </view>
+
+      <view class="row-links">
+        <text class="link" bindtap="goRegister">忘记密码？</text>
+        <text class="link" bindtap="goRegister">注册账号</text>
+      </view>
+    </block>
+  </view>
+
+  <!-- 新用户引导弹窗 -->
+  <view class="guide-mask" wx:if="{{showGuide}}">
+    <view class="guide-card">
+      <view class="guide-title">完善个人资料</view>
+      <view class="guide-subtitle">首次登录，请设置您的基本信息</view>
+
+      <!-- 头像选择 -->
+      <view class="guide-avatar-wrap">
+        <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <image
+            class="guide-avatar"
+            src="{{guideAvatar || ''}}"
+            mode="aspectFill"
+          />
+          <view class="avatar-edit">📷</view>
+        </button>
+      </view>
+
+      <!-- 昵称输入 -->
+      <view class="guide-field">
+        <text class="guide-label">昵称</text>
+        <input
+          class="guide-input"
+          type="nickname"
+          placeholder="请输入昵称（2-12个字符）"
+          value="{{guideNickname}}"
+          maxlength="12"
+          bindinput="onGuideNicknameInput"
+        />
+      </view>
+
+      <!-- 校区选择 -->
+      <view class="guide-field">
+        <text class="guide-label">校区</text>
+        <picker mode="selector" range="{{campusOptions}}" range-key="label" value="{{campusIndex}}" bindchange="onCampusChange">
+          <view class="guide-picker">
+            {{campusOptions[campusIndex].label}}
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- 操作按钮 -->
+      <button class="btn-primary" loading="{{guideLoading}}" bindtap="onGuideSubmit">完成注册</button>
+      <view class="guide-skip" bindtap="onGuideSkip">暂时跳过</view>
     </view>
   </view>
 </view>

@@ -1,18 +1,89 @@
 <view class="container">
-  <view class="card" wx:if="{{!conversationId}}">
-    <view class="title">会话列表</view>
-    <view class="row" wx:for="{{conversations}}" wx:key="conversationId" bindtap="openConversation" data-id="{{item.conversationId}}">
-      <view>{{item.otherUser.nickname}}</view>
-      <view class="msg">{{item.lastMessage}}</view>
+  <!-- 顶部标题 -->
+  <view class="header">
+    <text class="header-title">消息</text>
+    <view class="header-action" bindtap="onClearAll" wx:if="{{sessions.length > 0}}">
+      <text>清空</text>
     </view>
   </view>
 
-  <view class="card" wx:if="{{conversationId}}">
-    <view class="title">聊天记录</view>
-    <view class="msg-item {{item.sender_id===userId?'mine':''}}" wx:for="{{messages}}" wx:key="id">{{item.content}}</view>
-    <view class="send-row">
-      <input class="input" value="{{content}}" bindinput="onContentInput" placeholder="输入消息" />
-      <button size="mini" class="btn-primary" bindtap="send">发送</button>
+  <!-- 会话列表 -->
+  <view class="session-list">
+    <!-- 骨架屏 -->
+    <view class="skeleton-list" wx:if="{{loading && sessions.length === 0}}">
+      <view class="skeleton-item" wx:for="{{[1,2,3,4]}}" wx:key="*this">
+        <view class="skeleton-avatar"></view>
+        <view class="skeleton-content">
+          <view class="skeleton-line short"></view>
+          <view class="skeleton-line long"></view>
+        </view>
+        <view class="skeleton-thumb"></view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{!loading && sessions.length === 0}}">
+      <text class="empty-icon">💬</text>
+      <text class="empty-text">暂无消息</text>
+      <text class="empty-hint">浏览商品时可联系卖家</text>
+    </view>
+
+    <!-- 会话列表 -->
+    <view
+      class="session-item"
+      wx:for="{{sessions}}"
+      wx:key="sessionId"
+      data-session="{{item}}"
+      bindtap="onTapSession"
+    >
+      <!-- 左侧：头像 + 未读角标 -->
+      <view class="session-left">
+        <view class="avatar-wrap">
+          <image
+            class="avatar"
+            src="{{item.displayAvatar}}"
+            mode="aspectFill"
+          />
+          <view class="unread-badge" wx:if="{{item.unreadCount > 0}}">
+            {{item.unreadCount > 99 ? '99+' : item.unreadCount}}
+          </view>
+        </view>
+      </view>
+
+      <!-- 中间：主内容 -->
+      <view class="session-center">
+        <view class="session-top">
+          <text class="nickname">{{item.displayNickname}}</text>
+          <view class="role-tag {{item.userRole === 1 ? 'buyer' : 'seller'}}">
+            {{item.userRoleText}}
+          </view>
+          <text class="time">{{item.updateTimeText}}</text>
+        </view>
+        <view class="session-bottom">
+          <text class="last-message">{{item.lastMessage}}</text>
+        </view>
+      </view>
+
+      <!-- 右侧：商品缩略图 -->
+      <view class="session-right">
+        <image
+          class="item-thumb"
+          src="{{item.itemImage}}"
+          mode="aspectFill"
+        />
+        <text class="item-price">¥{{item.itemPrice}}</text>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loadingMore}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view class="no-more" wx:if="{{!hasMore && sessions.length > 0 && !loadingMore}}">
+      <text>— 没有更多了 —</text>
     </view>
   </view>
 </view>
