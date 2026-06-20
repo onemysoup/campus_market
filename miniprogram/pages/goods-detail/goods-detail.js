@@ -36,7 +36,7 @@ Page({
     // 图片预览
     currentImageIndex: 0,
     // 默认头像
-    defaultAvatar: 'https://via.placeholder.com/80x80/e2e8f0/64748b?text=U'
+    defaultAvatar: ''
   },
 
   onLoad(options) {

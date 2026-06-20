@@ -47,7 +47,7 @@ Page({
     categoryLabel: '全部分类',
     campusLabel: '全部校区',
     // UI
-    defaultImage: 'https://via.placeholder.com/240x240/e2e8f0/64748b?text=Goods'
+    defaultImage: ''
   },
 
   filterTimer: null,

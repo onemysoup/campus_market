@@ -176,10 +176,22 @@ Page({
       this.setData({ loading: true });
       const result = await authApi.verifyEmail(email, emailCode);
 
-      // 更新本地认证等级
+      // 更新本地认证等级和 Token
       const userInfo = wx.getStorageSync('userInfo') || {};
       userInfo.authLevel = result.authLevel || 1;
       wx.setStorageSync('userInfo', userInfo);
+
+      // 更新 Token（包含新的 authLevel）
+      if (result.token) {
+        wx.setStorageSync('token', result.token);
+        // 同步到全局状态
+        const app = getApp();
+        if (app.globalData) {
+          app.globalData.token = result.token;
+          app.globalData.authLevel = result.authLevel || 1;
+          app.globalData.userInfo = userInfo;  // 同步 userInfo
+        }
+      }
 
       wx.showToast({ title: '邮箱验证成功', icon: 'success' });
 

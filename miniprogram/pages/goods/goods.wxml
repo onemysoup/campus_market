@@ -99,7 +99,7 @@
 
     <!-- 空状态 -->
     <view class="empty-state" wx:elif="{{!loading && list.length === 0}}">
-      <image class="empty-icon" src="https://via.placeholder.com/200x200/e2e8f0/64748b?text=Empty" mode="aspectFit" />
+      <image class="empty-icon" src="" mode="aspectFit" />
       <text class="empty-text">暂无符合条件的商品</text>
       <button class="btn-empty-reset" bindtap="onResetFilter">重置筛选条件</button>
     </view>

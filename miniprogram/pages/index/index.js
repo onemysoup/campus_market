@@ -15,7 +15,7 @@ Page({
     latestGoods: [],
     // 状态
     loading: true,
-    defaultImage: 'https://via.placeholder.com/240x240/e2e8f0/64748b?text=Goods'
+    defaultImage: ''
   },
 
   onLoad() {
@@ -62,6 +62,15 @@ Page({
       timeText: formatTime(item.createdAt),
       categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || ''
     };
+  },
+
+  // ==================== 图片处理 ====================
+
+  /**
+   * 图片加载失败时设置为空（显示默认样式）
+   */
+  onImageError(e) {
+    // 图片加载失败，不做处理，让 image 组件显示默认背景
   },
 
   // ==================== 页面跳转 ====================

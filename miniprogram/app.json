@@ -8,6 +8,8 @@
     "pages/publish/publish",
     "pages/my/my",
     "pages/my-orders/my-orders",
+    "pages/my-goods/my-goods",
+    "pages/my-favorites/my-favorites",
     "pages/admin/admin",
     "pages/chat/chat"
   ],

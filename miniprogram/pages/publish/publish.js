@@ -52,16 +52,50 @@ Page({
       wx.navigateBack();
       return;
     }
+  },
 
-    // 编辑模式
-    if (options.id) {
+  onShow() {
+    const app = getApp();
+
+    // 检查是否从"我的商品"页面跳转过来编辑
+    if (app.globalData.editItemId) {
+      const editId = app.globalData.editItemId;
+      app.globalData.editItemId = null;  // 清除，避免重复编辑
+
       this.setData({
         editMode: true,
-        itemId: options.id
+        itemId: editId
       });
       wx.setNavigationBarTitle({ title: '编辑商品' });
-      this.loadGoodsDetail(options.id);
+      this.loadGoodsDetail(editId);
+    } else if (this.data.editMode) {
+      // 从编辑页面返回时，重置为发布模式
+      this.resetForm();
     }
+  },
+
+  /**
+   * 重置表单为发布模式
+   */
+  resetForm() {
+    this.setData({
+      editMode: false,
+      itemId: null,
+      form: {
+        title: '',
+        description: '',
+        price: '',
+        category: 0,
+        conditionLevel: 0,
+        campusArea: 0,
+        images: [],
+        isNegotiable: true
+      },
+      categoryIndex: 0,
+      conditionIndex: 0,
+      campusIndex: 0
+    });
+    wx.setNavigationBarTitle({ title: '发布商品' });
   },
 
   /**
@@ -171,26 +205,37 @@ Page({
   },
 
   /**
-   * 上传图片（Mock 方案：模拟网络延迟返回 placeholder URL）
+   * 上传图片（Mock 方案：保存为本地持久化文件）
    */
   async uploadImages(tempFiles) {
     wx.showLoading({ title: '上传中...', mask: true });
 
     try {
-      const mockUrls = [];
+      const savedUrls = [];
 
       for (let i = 0; i < tempFiles.length; i++) {
         // TODO: 替换为真实上传接口
         // const url = await uploadApi.uploadFile(tempFiles[i]);
 
-        // Mock: 模拟 500ms 上传延迟
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const mockUrl = `https://via.placeholder.com/400x400/e2e8f0/64748b?text=Goods+${this.data.form.images.length + i + 1}`;
-        mockUrls.push(mockUrl);
+        // Mock: 将临时文件保存为本地持久化文件
+        try {
+          const saved = await new Promise((resolve, reject) => {
+            wx.saveFile({
+              tempFilePath: tempFiles[i],
+              success: (res) => resolve(res.savedFilePath),
+              fail: (err) => reject(err)
+            });
+          });
+          savedUrls.push(saved);
+        } catch (e) {
+          // 保存失败则使用原路径
+          console.warn('[Publish] saveFile failed, using temp path:', e);
+          savedUrls.push(tempFiles[i]);
+        }
       }
 
       this.setData({
-        'form.images': [...this.data.form.images, ...mockUrls]
+        'form.images': [...this.data.form.images, ...savedUrls]
       });
 
       wx.showToast({ title: '上传成功', icon: 'success' });
@@ -295,7 +340,8 @@ Page({
 
       // 延迟返回，让用户看到提示
       setTimeout(() => {
-        wx.navigateBack();
+        // 发布页是 TabBar 页面，使用 switchTab 返回首页
+        wx.switchTab({ url: '/pages/index/index' });
       }, 1500);
     } catch (error) {
       console.error('[Publish] onSubmit error:', error);

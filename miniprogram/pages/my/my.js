@@ -3,6 +3,7 @@
  * onShow 动态刷新用户信息、信用分、认证等级
  */
 
+const authApi = require('../../api/auth');
 const profileApi = require('../../api/profile');
 const { AUTH_LEVEL_MAP, CAMPUS_AREA_MAP } = require('../../utils/constants');
 
@@ -43,7 +44,7 @@ Page({
    */
   async refreshUserData() {
     const app = getApp();
-    const { isLoggedIn, userInfo, authLevel } = app.globalData;
+    const { isLoggedIn, userInfo } = app.globalData;
 
     if (!isLoggedIn || !userInfo) {
       this.setData({
@@ -58,6 +59,9 @@ Page({
       });
       return;
     }
+
+    // 从 userInfo 中获取 authLevel（优先使用本地存储的最新值）
+    const authLevel = userInfo.authLevel || app.globalData.authLevel || 0;
 
     // 先用本地缓存快速渲染
     this.setData({
@@ -107,11 +111,11 @@ Page({
   },
 
   goMyGoods() {
-    wx.navigateTo({ url: '/pages/my-orders/my-orders?tab=publish' });
+    wx.navigateTo({ url: '/pages/my-goods/my-goods' });
   },
 
   goFavorites() {
-    wx.navigateTo({ url: '/pages/my-orders/my-orders?tab=favor' });
+    wx.navigateTo({ url: '/pages/my-favorites/my-favorites' });
   },
 
   goAdmin() {
@@ -127,22 +131,83 @@ Page({
   },
 
   /**
-   * 编辑资料（跳转注册页的邮箱验证/密码设置）
+   * 编辑资料
    */
   onEditProfile() {
     wx.showActionSheet({
-      itemList: ['绑定邮箱认证', '设置安全密码', '修改昵称头像'],
+      itemList: ['修改昵称', '修改头像', '绑定邮箱认证', '设置安全密码'],
       success: (res) => {
         switch (res.tapIndex) {
           case 0:
-            wx.navigateTo({ url: '/pages/register/register?step=email' });
-            break;
-          case 1:
-            wx.navigateTo({ url: '/pages/register/register?step=password' });
-            break;
-          case 2:
             this.updateNicknameFlow();
             break;
+          case 1:
+            this.updateAvatarFlow();
+            break;
+          case 2:
+            wx.navigateTo({ url: '/pages/register/register?step=email' });
+            break;
+          case 3:
+            wx.navigateTo({ url: '/pages/register/register?step=password' });
+            break;
+        }
+      }
+    });
+  },
+
+  /**
+   * 修改头像流程
+   */
+  updateAvatarFlow() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      success: async (chooseRes) => {
+        const tempFilePath = chooseRes.tempFiles[0].tempFilePath;
+
+        wx.showLoading({ title: '上传中...', mask: true });
+        try {
+          // 保存为本地持久化文件（Mock 方案）
+          let avatarUrl = tempFilePath;
+          try {
+            avatarUrl = await new Promise((resolve, reject) => {
+              wx.saveFile({
+                tempFilePath,
+                success: (res) => resolve(res.savedFilePath),
+                fail: (err) => reject(err)
+              });
+            });
+          } catch (e) {
+            console.warn('[My] saveFile failed, using temp path:', e);
+          }
+
+          // 调用后端接口更新头像
+          const result = await authApi.updateProfile({ avatarUrl });
+
+          const newAvatarUrl = result.avatarUrl || avatarUrl;
+
+          // 更新本地存储
+          const userInfo = wx.getStorageSync('userInfo') || {};
+          userInfo.avatarUrl = newAvatarUrl;
+          wx.setStorageSync('userInfo', userInfo);
+
+          // 更新全局状态
+          const app = getApp();
+          if (app.globalData.userInfo) {
+            app.globalData.userInfo.avatarUrl = newAvatarUrl;
+          }
+
+          // 更新页面显示（使用整个 user 对象更新）
+          this.setData({
+            user: { ...this.data.user, avatarUrl: newAvatarUrl }
+          });
+          wx.showToast({ title: '头像已更新', icon: 'success' });
+        } catch (error) {
+          console.error('[My] updateAvatar error:', error);
+          wx.showToast({ title: '更新失败', icon: 'none' });
+        } finally {
+          wx.hideLoading();
         }
       }
     });
@@ -163,12 +228,27 @@ Page({
           wx.showToast({ title: '昵称不能为空', icon: 'none' });
           return;
         }
-        // 后端暂无更新昵称接口，先更新本地
-        const userInfo = wx.getStorageSync('userInfo') || {};
-        userInfo.nickname = nickname;
-        wx.setStorageSync('userInfo', userInfo);
-        this.setData({ 'user.nickname': nickname });
-        wx.showToast({ title: '昵称已更新', icon: 'success' });
+
+        try {
+          // 调用后端接口更新昵称
+          const result = await authApi.updateProfile({ nickname });
+
+          // 更新本地存储
+          const userInfo = wx.getStorageSync('userInfo') || {};
+          userInfo.nickname = result.nickname || nickname;
+          wx.setStorageSync('userInfo', userInfo);
+
+          // 更新全局状态
+          const app = getApp();
+          if (app.globalData.userInfo) {
+            app.globalData.userInfo.nickname = result.nickname || nickname;
+          }
+
+          this.setData({ 'user.nickname': result.nickname || nickname });
+          wx.showToast({ title: '昵称已更新', icon: 'success' });
+        } catch (error) {
+          console.error('[My] updateNickname error:', error);
+        }
       }
     });
   },

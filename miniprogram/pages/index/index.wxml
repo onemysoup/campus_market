@@ -40,7 +40,7 @@
       bindtap="goDetail"
       data-id="{{item.itemId}}"
     >
-      <image class="thumb" src="{{item.firstImage || defaultImage}}" mode="aspectFill" />
+      <image class="thumb" src="{{item.firstImage}}" mode="aspectFill" binderror="onImageError" />
       <view class="meta">
         <view class="goods-title">{{item.title}}</view>
         <view class="goods-info">
@@ -71,7 +71,7 @@
       bindtap="goDetail"
       data-id="{{item.itemId}}"
     >
-      <image class="thumb" src="{{item.firstImage || defaultImage}}" mode="aspectFill" />
+      <image class="thumb" src="{{item.firstImage}}" mode="aspectFill" binderror="onImageError" />
       <view class="meta">
         <view class="goods-title">{{item.title}}</view>
         <view class="goods-info">
