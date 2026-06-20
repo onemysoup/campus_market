@@ -1,26 +1,131 @@
 <view class="container">
-  <view class="card">
-    <input class="input" placeholder="标题" value="{{form.title}}" data-key="title" bindinput="onInput" />
-    <input class="input" placeholder="价格" type="digit" value="{{form.price}}" data-key="price" bindinput="onInput" />
+  <!-- 基本信息 -->
+  <view class="section">
+    <view class="section-title">基本信息</view>
 
-    <picker mode="selector" range="{{categories}}" range-key="name" bindchange="onCategoryChange">
-      <view class="input">分类：{{categoryLabel}}</view>
-    </picker>
-
-    <picker mode="selector" range="{{conditions}}" range-key="name" bindchange="onConditionChange">
-      <view class="input">成色：{{conditionLabel}}</view>
-    </picker>
-
-    <textarea class="input" placeholder="商品描述" value="{{form.description}}" data-key="description" bindinput="onInput" />
-
-    <view class="img-row">
-      <button size="mini" bindtap="chooseImages">选择图片(最多6张)</button>
-      <text>{{form.images.length}} / 6</text>
-    </view>
-    <view class="img-list">
-      <image wx:for="{{form.images}}" wx:key="index" src="{{item}}" class="img" mode="aspectFill" />
+    <!-- 标题 -->
+    <view class="form-item">
+      <text class="label">标题 <text class="required">*</text></text>
+      <input
+        class="input"
+        placeholder="请输入商品标题（2-50字）"
+        maxlength="50"
+        value="{{form.title}}"
+        bindinput="onTitleInput"
+      />
     </view>
 
-    <button class="btn-primary" loading="{{loading}}" bindtap="onSubmit">{{goodsId ? '保存编辑' : '立即发布'}}</button>
+    <!-- 价格 -->
+    <view class="form-item">
+      <text class="label">价格 <text class="required">*</text></text>
+      <view class="price-input-wrap">
+        <text class="price-symbol">¥</text>
+        <input
+          class="input price-input"
+          type="digit"
+          placeholder="0.00"
+          value="{{form.price}}"
+          bindinput="onPriceInput"
+        />
+      </view>
+    </view>
+
+    <!-- 可议价 -->
+    <view class="form-item switch-item">
+      <text class="label">可议价</text>
+      <switch checked="{{form.isNegotiable}}" bindchange="onNegotiableChange" color="#0f766e" />
+    </view>
+  </view>
+
+  <!-- 商品属性 -->
+  <view class="section">
+    <view class="section-title">商品属性</view>
+
+    <!-- 分类 -->
+    <view class="form-item">
+      <text class="label">分类</text>
+      <picker mode="selector" range="{{categories}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="picker-value">
+          {{categories[categoryIndex].name}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 成色 -->
+    <view class="form-item">
+      <text class="label">成色</text>
+      <picker mode="selector" range="{{conditions}}" range-key="name" value="{{conditionIndex}}" bindchange="onConditionChange">
+        <view class="picker-value">
+          {{conditions[conditionIndex].name}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 校区 -->
+    <view class="form-item">
+      <text class="label">校区</text>
+      <picker mode="selector" range="{{campusOptions}}" range-key="label" value="{{campusIndex}}" bindchange="onCampusChange">
+        <view class="picker-value">
+          {{campusOptions[campusIndex].label}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 商品描述 -->
+  <view class="section">
+    <view class="section-title">商品描述</view>
+    <textarea
+      class="textarea"
+      placeholder="请详细描述商品的成色、使用情况、交易方式等..."
+      maxlength="500"
+      value="{{form.description}}"
+      bindinput="onDescInput"
+    />
+    <view class="textarea-count">{{form.description.length}}/500</view>
+  </view>
+
+  <!-- 商品图片 -->
+  <view class="section">
+    <view class="section-title">
+      商品图片
+      <text class="required">*</text>
+      <text class="image-count">{{form.images.length}}/{{maxImages}}</text>
+    </view>
+
+    <view class="image-grid">
+      <!-- 已上传图片 -->
+      <view class="image-item" wx:for="{{form.images}}" wx:key="*this">
+        <image
+          class="image-thumb"
+          src="{{item}}"
+          mode="aspectFill"
+          bindtap="onPreviewImage"
+          data-src="{{item}}"
+        />
+        <view class="image-delete" catchtap="onDeleteImage" data-index="{{index}}">✕</view>
+      </view>
+
+      <!-- 添加图片按钮 -->
+      <view class="image-add" wx:if="{{form.images.length < maxImages}}" bindtap="onChooseImage">
+        <text class="add-icon">+</text>
+        <text class="add-text">添加图片</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-section">
+    <button
+      class="btn-submit {{submitting ? 'disabled' : ''}}"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="onSubmit"
+    >
+      {{editMode ? '保存修改' : '立即发布'}}
+    </button>
   </view>
 </view>
