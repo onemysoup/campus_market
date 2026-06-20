@@ -1,3 +1,248 @@
-.img-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
-.img-list { display: flex; flex-wrap: wrap; gap: 12rpx; margin-bottom: 16rpx; }
-.img { width: 150rpx; height: 150rpx; border-radius: 12rpx; background: #e2e8f0; }
+.container {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding-bottom: 120rpx;
+}
+
+/* ==================== 区块 ==================== */
+.section {
+  margin: 24rpx;
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.required {
+  color: #ef4444;
+  font-size: 28rpx;
+}
+
+.image-count {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* ==================== 表单项 ==================== */
+.form-item {
+  margin-bottom: 24rpx;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  font-size: 26rpx;
+  color: #475569;
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 20rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #334155;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: #0f766e;
+  background: #fff;
+}
+
+/* 价格输入 */
+.price-input-wrap {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+}
+
+.price-symbol {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #dc2626;
+  margin-right: 8rpx;
+}
+
+.price-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  height: 88rpx;
+}
+
+/* Picker */
+.picker-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 20rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #334155;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #94a3b8;
+}
+
+/* Switch */
+.switch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.switch-item .label {
+  margin-bottom: 0;
+}
+
+/* 文本域 */
+.textarea {
+  width: 100%;
+  min-height: 200rpx;
+  padding: 20rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #334155;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.textarea-count {
+  text-align: right;
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 8rpx;
+}
+
+/* ==================== 图片网格 ==================== */
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.image-item {
+  position: relative;
+  width: 180rpx;
+  height: 180rpx;
+}
+
+.image-thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+}
+
+.image-delete {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: #ef4444;
+  color: #fff;
+  font-size: 24rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(239, 68, 68, 0.3);
+}
+
+.image-add {
+  width: 180rpx;
+  height: 180rpx;
+  border: 2rpx dashed #cbd5e1;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  background: #f8fafc;
+  transition: all 0.2s;
+}
+
+.image-add:active {
+  border-color: #0f766e;
+  background: #f0fdfa;
+}
+
+.add-icon {
+  font-size: 48rpx;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.add-text {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+/* ==================== 提交按钮 ==================== */
+.submit-section {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.btn-submit {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+}
+
+.btn-submit::after {
+  border: none;
+}
+
+.btn-submit.disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+}
+
+.btn-submit:active:not(.disabled) {
+  opacity: 0.9;
+}

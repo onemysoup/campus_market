@@ -1,0 +1,85 @@
+<view class="container">
+  <!-- 吸顶商品信息条 -->
+  <view class="item-bar" wx:if="{{itemInfo}}" bindtap="onTapItem">
+    <image class="item-thumb" src="{{itemInfo.image}}" mode="aspectFill" />
+    <view class="item-info">
+      <text class="item-title">{{itemInfo.title}}</text>
+      <view class="item-meta">
+        <text class="item-price">¥{{itemInfo.priceText}}</text>
+        <text class="item-status {{itemInfo.status === 1 ? 'on-sale' : 'sold'}}">{{itemInfo.statusText}}</text>
+      </view>
+    </view>
+    <text class="item-arrow">›</text>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view
+    class="message-list"
+    scroll-y
+    scroll-into-view="{{scrollToView}}"
+    scroll-with-animation
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <!-- 加载中 -->
+    <view class="loading-more" wx:if="{{loadingMessages}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <!-- 消息流 -->
+    <view
+      class="message-item {{item.isMine ? 'mine' : 'other'}}"
+      wx:for="{{messages}}"
+      wx:key="messageId"
+      id="{{item.messageId}}"
+    >
+      <!-- 时间分割线（每10分钟显示一次） -->
+      <view class="time-divider" wx:if="{{index === 0}}">
+        <text>{{item.timeText}}</text>
+      </view>
+
+      <!-- 对方消息 -->
+      <block wx:if="{{!item.isMine}}">
+        <view class="msg-content-wrap">
+          <view class="msg-bubble other-bubble">
+            <text>{{item.content}}</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 我的消息 -->
+      <block wx:if="{{item.isMine}}">
+        <view class="msg-content-wrap mine-wrap">
+          <view class="msg-bubble mine-bubble">
+            <text>{{item.content}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 底部锚点 -->
+    <view id="msg_bottom"></view>
+  </scroll-view>
+
+  <!-- 输入区域 -->
+  <view class="input-area">
+    <view class="input-wrap">
+      <input
+        class="msg-input"
+        placeholder="输入消息..."
+        value="{{inputContent}}"
+        bindinput="onInputChange"
+        bindconfirm="onSend"
+        adjust-position
+      />
+    </view>
+    <button
+      class="btn-send {{canSend ? 'active' : ''}}"
+      disabled="{{!canSend}}"
+      bindtap="onSend"
+    >
+      发送
+    </button>
+  </view>
+</view>

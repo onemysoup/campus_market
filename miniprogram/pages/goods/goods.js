@@ -1,40 +1,71 @@
-const api = require('../../api/index');
-const { CATEGORY_LIST, CONDITION_LIST } = require('../../utils/util');
+/**
+ * 商品列表页
+ * 全量商品分页查询、多条件筛选、下拉刷新、触底加载
+ */
+
+const itemsApi = require('../../api/items');
+const {
+  CATEGORY_LIST,
+  CAMPUS_AREA_MAP,
+  CONDITION_LIST,
+  ITEM_STATUS_MAP,
+  formatPrice,
+  formatTime
+} = require('../../utils/constants');
 
 Page({
   data: {
+    // 列表数据
     list: [],
+    // 分页
     page: 1,
     pageSize: 10,
+    totalCount: 0,
     hasMore: true,
+    // 加载状态
     loading: false,
+    loadingMore: false,
+    // 筛选条件
     keyword: '',
-    categoryId: '',
-    condition: '',
-    priceMin: '',
-    priceMax: '',
-    sort: 'new',
-    categories: [{ id: '', name: '全部' }, ...CATEGORY_LIST],
-    conditions: [{ id: '', name: '全部' }, ...CONDITION_LIST],
-    sortOptions: [
-      { value: 'new', label: '最新' },
-      { value: 'price_asc', label: '价格升序' },
-      { value: 'price_desc', label: '价格降序' },
-      { value: 'view_desc', label: '热门' }
+    category: null,
+    campusArea: null,
+    minPrice: '',
+    maxPrice: '',
+    // 筛选选项
+    categories: [
+      { id: null, name: '全部分类' },
+      ...CATEGORY_LIST
     ],
-    categoryLabel: '全部',
-    conditionLabel: '全部',
-    sortLabel: '最新',
-    fallback: 'https://dummyimage.com/240x240/e2e8f0/64748b&text=Goods'
+    campusOptions: [
+      { value: null, label: '全部校区' },
+      { value: 0, label: '东校区' },
+      { value: 1, label: '西校区' }
+    ],
+    // 筛选器显示状态
+    showFilter: false,
+    // 当前选中的筛选标签
+    categoryLabel: '全部分类',
+    campusLabel: '全部校区',
+    // UI
+    defaultImage: ''
   },
 
+  filterTimer: null,
+
   onLoad(options) {
-    const presetCategory = wx.getStorageSync('goodsFilterCategory') || options.categoryId || '';
-    if (presetCategory) {
-      const c = this.data.categories.find((item) => Number(item.id) === Number(presetCategory));
-      this.setData({ categoryId: Number(presetCategory), categoryLabel: c ? c.name : '全部' });
+    // 从首页分类跳转过来时，预设分类筛选
+    const presetCategory = wx.getStorageSync('goodsFilterCategory');
+    if (presetCategory !== undefined && presetCategory !== null && presetCategory !== '') {
+      const cat = this.data.categories.find(c => c.id === Number(presetCategory));
+      if (cat) {
+        this.setData({
+          category: Number(presetCategory),
+          categoryLabel: cat.name
+        });
+      }
       wx.removeStorageSync('goodsFilterCategory');
     }
+
     this.fetchList(true);
   },
 
@@ -43,37 +74,76 @@ Page({
   },
 
   onReachBottom() {
-    if (this.data.hasMore && !this.data.loading) {
+    if (this.data.hasMore && !this.data.loading && !this.data.loadingMore) {
       this.fetchList(false);
     }
   },
 
-  async fetchList(reset = false) {
-    this.setData({ loading: true });
-    try {
-      const nextPage = reset ? 1 : this.data.page + 1;
-      const data = await api.getGoods({
-        page: nextPage,
-        pageSize: this.data.pageSize,
-        keyword: this.data.keyword,
-        categoryId: this.data.categoryId,
-        condition: this.data.condition,
-        priceMin: this.data.priceMin,
-        priceMax: this.data.priceMax,
-        sort: this.data.sort
-      });
+  // ==================== 数据加载 ====================
 
-      const newList = reset ? data.list : this.data.list.concat(data.list || []);
+  /**
+   * 获取商品列表
+   * @param {boolean} reset - 是否重置（下拉刷新时为 true）
+   */
+  async fetchList(reset = false) {
+    if (this.data.loading || this.data.loadingMore) return;
+
+    const isReset = reset;
+    const page = isReset ? 1 : this.data.page + 1;
+
+    this.setData({
+      [isReset ? 'loading' : 'loadingMore']: true
+    });
+
+    try {
+      // 构建查询参数（过滤空值）
+      const params = {
+        page,
+        pageSize: this.data.pageSize
+      };
+
+      if (this.data.keyword) params.keyword = this.data.keyword;
+      if (this.data.category !== null) params.category = this.data.category;
+      if (this.data.campusArea !== null) params.campusArea = this.data.campusArea;
+      if (this.data.minPrice) params.minPrice = Number(this.data.minPrice);
+      if (this.data.maxPrice) params.maxPrice = Number(this.data.maxPrice);
+
+      const result = await itemsApi.getItems(params);
+      const newList = (result.items || []).map(this.formatItem);
+      const totalCount = result.totalCount || 0;
+
       this.setData({
-        list: newList,
-        page: nextPage,
-        hasMore: newList.length < (data.total || 0)
+        list: isReset ? newList : [...this.data.list, ...newList],
+        page,
+        totalCount,
+        hasMore: (isReset ? newList.length : this.data.list.length + newList.length) < totalCount,
+        loading: false,
+        loadingMore: false
       });
     } catch (error) {
-    } finally {
-      this.setData({ loading: false });
+      console.error('[Goods] fetchList error:', error);
+      this.setData({
+        loading: false,
+        loadingMore: false
+      });
     }
   },
+
+  /**
+   * 格式化商品数据
+   */
+  formatItem(item) {
+    return {
+      ...item,
+      priceText: formatPrice(item.price),
+      timeText: formatTime(item.createdAt),
+      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '',
+      statusText: ITEM_STATUS_MAP[item.status]?.label || '',
+      statusColor: ITEM_STATUS_MAP[item.status]?.color || ''
+    };
+  },
+
+  // ==================== 搜索 ====================
 
   onKeywordInput(e) {
     this.setData({ keyword: e.detail.value });
@@ -83,36 +153,69 @@ Page({
     this.fetchList(true);
   },
 
+  onClearSearch() {
+    this.setData({ keyword: '' });
+    this.fetchList(true);
+  },
+
+  // ==================== 筛选 ====================
+
+  onToggleFilter() {
+    this.setData({ showFilter: !this.data.showFilter });
+  },
+
   onCategoryChange(e) {
     const idx = Number(e.detail.value);
     const selected = this.data.categories[idx];
-    this.setData({ categoryId: selected.id, categoryLabel: selected.name });
+    this.setData({
+      category: selected.id,
+      categoryLabel: selected.name,
+      showFilter: false
+    });
     this.fetchList(true);
   },
 
-  onConditionChange(e) {
+  onCampusChange(e) {
     const idx = Number(e.detail.value);
-    const selected = this.data.conditions[idx];
-    this.setData({ condition: selected.id, conditionLabel: selected.name });
+    const selected = this.data.campusOptions[idx];
+    this.setData({
+      campusArea: selected.value,
+      campusLabel: selected.label,
+      showFilter: false
+    });
     this.fetchList(true);
   },
 
-  onSortChange(e) {
-    const idx = Number(e.detail.value);
-    const selected = this.data.sortOptions[idx];
-    this.setData({ sort: selected.value, sortLabel: selected.label });
+  onMinPriceInput(e) {
+    this.setData({ minPrice: e.detail.value });
+  },
+
+  onMaxPriceInput(e) {
+    this.setData({ maxPrice: e.detail.value });
+  },
+
+  onPriceFilterConfirm() {
     this.fetchList(true);
   },
 
-  onPriceMinInput(e) {
-    this.setData({ priceMin: e.detail.value });
+  onResetFilter() {
+    this.setData({
+      keyword: '',
+      category: null,
+      campusArea: null,
+      minPrice: '',
+      maxPrice: '',
+      categoryLabel: '全部分类',
+      campusLabel: '全部校区',
+      showFilter: false
+    });
+    this.fetchList(true);
   },
 
-  onPriceMaxInput(e) {
-    this.setData({ priceMax: e.detail.value });
-  },
+  // ==================== 页面跳转 ====================
 
   goDetail(e) {
-    wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${e.currentTarget.dataset.id}` });
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${id}` });
   }
 });

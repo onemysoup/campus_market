@@ -1,94 +1,267 @@
-const api = require('../../api/index');
-const { ORDER_STATUS_MAP, ensureLogin } = require('../../utils/util');
+/**
+ * 我的订单页
+ * 双 Tab 切换（买入/卖出）、状态筛选
+ */
+
+const transactionsApi = require('../../api/transactions');
+const {
+  ITEM_STATUS_MAP,
+  TRANSACTION_TYPE,
+  formatPrice,
+  formatTime
+} = require('../../utils/constants');
+
+/**
+ * 交易状态映射
+ * 0=Trading(交易中), 1=Completed(已完成), 2=Cancelled(已取消)
+ */
+const TX_STATUS_MAP = {
+  0: { label: '交易中', color: '#f59e0b', bg: '#fef3c7' },
+  1: { label: '已完成', color: '#22c55e', bg: '#dcfce7' },
+  2: { label: '已取消', color: '#94a3b8', bg: '#f1f5f9' }
+};
 
 Page({
   data: {
-    tab: 'buyer',
-    statusMap: ORDER_STATUS_MAP,
-    orders: [],
-    goodsList: [],
-    favorList: []
+    // 主 Tab：买入/卖出
+    mainTab: 'buyer',
+    mainTabs: [
+      { key: 'buyer', label: '我买到的' },
+      { key: 'seller', label: '我卖出的' }
+    ],
+    // 状态筛选 Tab
+    statusTab: -1,  // -1=全部
+    statusTabs: [
+      { key: -1, label: '全部' },
+      { key: 0, label: '交易中' },
+      { key: 1, label: '已完成' },
+      { key: 2, label: '已取消' }
+    ],
+    // 列表数据
+    list: [],
+    // 分页
+    page: 1,
+    pageSize: 10,
+    totalCount: 0,
+    hasMore: true,
+    // 加载状态
+    loading: false,
+    loadingMore: false,
+    // 统计
+    stats: {
+      trading: 0,
+      completed: 0,
+      cancelled: 0
+    }
   },
 
   onLoad(options) {
-    if (!ensureLogin()) return;
-    if (options.tab) {
-      this.setData({ tab: options.tab });
+    const app = getApp();
+    if (!app.checkLogin()) {
+      wx.navigateBack();
+      return;
     }
-    this.loadData();
+
+    // 支持从外部传入初始 Tab
+    if (options.tab === 'sell') {
+      this.setData({ mainTab: 'seller' });
+    }
+    this.fetchList(true);
   },
 
   onPullDownRefresh() {
-    this.loadData().finally(() => wx.stopPullDownRefresh());
+    this.fetchList(true).finally(() => wx.stopPullDownRefresh());
   },
 
-  switchTab(e) {
-    this.setData({ tab: e.currentTarget.dataset.tab });
-    this.loadData();
+  onReachBottom() {
+    if (this.data.hasMore && !this.data.loading && !this.data.loadingMore) {
+      this.fetchList(false);
+    }
   },
 
-  async loadData() {
+  // ==================== Tab 切换 ====================
+
+  onMainTabChange(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (tab === this.data.mainTab) return;
+    this.setData({ mainTab: tab });
+    this.fetchList(true);
+  },
+
+  onStatusTabChange(e) {
+    const status = Number(e.currentTarget.dataset.status);
+    if (status === this.data.statusTab) return;
+    this.setData({ statusTab: status });
+    this.fetchList(true);
+  },
+
+  // ==================== 数据加载 ====================
+
+  /**
+   * 获取交易列表
+   */
+  async fetchList(reset = false) {
+    if (this.data.loading || this.data.loadingMore) return;
+
+    const isReset = reset;
+    const page = isReset ? 1 : this.data.page + 1;
+
+    this.setData({
+      [isReset ? 'loading' : 'loadingMore']: true
+    });
+
     try {
-      const { tab } = this.data;
-      this.setData({ orders: [], goodsList: [], favorList: [] });
-      if (tab === 'buyer') {
-        const data = await api.getBuyerOrders();
-        this.setData({ orders: data.list || [] });
-      } else if (tab === 'seller') {
-        const data = await api.getSellerOrders();
-        this.setData({ orders: data.list || [] });
-      } else if (tab === 'publish') {
-        const data = await api.getMyGoods();
-        this.setData({ goodsList: data.list || [] });
-      } else {
-        const data = await api.getFavorList();
-        this.setData({ favorList: data.list || [] });
+      const { mainTab, pageSize } = this.data;
+
+      const result = await transactionsApi.getTransactions({
+        role: mainTab,
+        page,
+        pageSize
+      });
+
+      const items = (result.items || []).map(this.formatTransaction);
+      const totalCount = result.totalCount || 0;
+
+      // 计算统计
+      const stats = this.calculateStats(items, totalCount);
+
+      this.setData({
+        list: isReset ? items : [...this.data.list, ...items],
+        page,
+        totalCount,
+        hasMore: (isReset ? items : [...this.data.list, ...items]).length < totalCount,
+        stats,
+        loading: false,
+        loadingMore: false
+      });
+    } catch (error) {
+      console.error('[MyOrders] fetchList error:', error);
+      this.setData({
+        loading: false,
+        loadingMore: false
+      });
+    }
+  },
+
+  /**
+   * 格式化交易数据
+   */
+  formatTransaction(item) {
+    const status = item.status || 0;
+    const statusInfo = TX_STATUS_MAP[status] || TX_STATUS_MAP[0];
+
+    return {
+      ...item,
+      priceText: formatPrice(item.price),
+      timeText: formatTime(item.createdAt),
+      status,
+      statusText: statusInfo.label,
+      statusColor: statusInfo.color,
+      statusBg: statusInfo.bg,
+      transactionTypeText: item.transactionType === 1 ? '租赁' : '出售'
+    };
+  },
+
+  /**
+   * 计算统计数据
+   */
+  calculateStats(items, totalCount) {
+    // 简单统计当前列表中的状态分布
+    const trading = items.filter(i => i.status === 0).length;
+    const completed = items.filter(i => i.status === 1).length;
+    const cancelled = items.filter(i => i.status === 2).length;
+
+    return { trading, completed, cancelled };
+  },
+
+  // ==================== 操作交互 ====================
+
+  /**
+   * 点击订单 → 跳转商品详情
+   */
+  onTapOrder(e) {
+    const { itemid } = e.currentTarget.dataset;
+    if (itemid) {
+      wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${itemid}` });
+    }
+  },
+
+  /**
+   * 确认收货（买家）
+   */
+  async onConfirmReceive(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    wx.showModal({
+      title: '确认收货',
+      content: '请确认已收到商品，确认后将完成交易',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          // TODO: 需要取货码，暂时提示
+          wx.showToast({ title: '请使用取货码核销', icon: 'none' });
+        } catch (error) {
+          console.error('[MyOrders] confirmReceive error:', error);
+        }
       }
-    } catch (error) {
-    }
+    });
   },
 
-  async confirmOrder(e) {
-    try {
-      await api.confirmOrder(e.currentTarget.dataset.id);
-      this.loadData();
-    } catch (error) {
-    }
+  /**
+   * 取消交易
+   */
+  async onCancelTransaction(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    wx.showModal({
+      title: '取消交易',
+      content: '确定要取消这笔交易吗？',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await transactionsApi.cancelTransaction(transactionid, '用户主动取消');
+          wx.showToast({ title: '已取消', icon: 'success' });
+          this.fetchList(true);
+        } catch (error) {
+          console.error('[MyOrders] cancelTransaction error:', error);
+        }
+      }
+    });
   },
 
-  async cancelOrder(e) {
-    try {
-      await api.cancelOrder(e.currentTarget.dataset.id, { cancel_reason: '用户主动取消' });
-      this.loadData();
-    } catch (error) {
-    }
+  /**
+   * 核销取货码（卖家）
+   */
+  onVerifyPickup(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    wx.showModal({
+      title: '核销取货码',
+      editable: true,
+      placeholderText: '请输入买家提供的取货码',
+      success: async (res) => {
+        if (!res.confirm) return;
+        const pickupCode = res.content?.trim();
+        if (!pickupCode) {
+          wx.showToast({ title: '请输入取货码', icon: 'none' });
+          return;
+        }
+
+        try {
+          await transactionsApi.verifyPickupCode(transactionid, pickupCode);
+          wx.showToast({ title: '核销成功', icon: 'success' });
+          this.fetchList(true);
+        } catch (error) {
+          console.error('[MyOrders] verifyPickup error:', error);
+        }
+      }
+    });
   },
 
-  async completeOrder(e) {
-    try {
-      await api.completeOrder(e.currentTarget.dataset.id);
-      this.loadData();
-    } catch (error) {
-    }
-  },
-
-  editGoods(e) {
-    wx.navigateTo({ url: `/pages/publish/publish?id=${e.currentTarget.dataset.id}` });
-  },
-
-  async offlineGoods(e) {
-    try {
-      await api.deleteGoods(e.currentTarget.dataset.id);
-      this.loadData();
-    } catch (error) {
-    }
-  },
-
-  async cancelFavor(e) {
-    try {
-      await api.unfavorGoods(e.currentTarget.dataset.id);
-      this.loadData();
-    } catch (error) {
-    }
+  /**
+   * 联系对方
+   */
+  onContact(e) {
+    const { otherid } = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: `/pages/chat/chat?targetUserId=${otherid}`
+    });
   }
 });
