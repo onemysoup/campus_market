@@ -44,7 +44,7 @@
 
     <!-- 空状态 -->
     <view class="empty-state" wx:elif="{{!loading && list.length === 0}}">
-      <image class="empty-icon" src="" mode="aspectFit" />
+      <text class="empty-icon">📦</text>
       <text class="empty-text">暂无{{mainTab === 'buyer' ? '买入' : '卖出'}}订单</text>
     </view>
 
@@ -53,9 +53,6 @@
       class="order-card"
       wx:for="{{list}}"
       wx:key="transactionId"
-      data-transactionid="{{item.transactionId}}"
-      data-itemid="{{item.itemId}}"
-      bindtap="onTapOrder"
     >
       <!-- 卡片头部：状态 + 时间 -->
       <view class="order-header">
@@ -66,7 +63,7 @@
       </view>
 
       <!-- 卡片主体：商品信息 -->
-      <view class="order-body">
+      <view class="order-body" data-itemid="{{item.itemId}}" bindtap="onTapOrder">
         <image class="order-thumb" src="{{item.firstImage}}" mode="aspectFill" />
         <view class="order-meta">
           <view class="order-title">{{item.title}}</view>
@@ -77,11 +74,18 @@
         </view>
       </view>
 
+      <!-- 取货码区域（仅买家可见，交易中状态） -->
+      <view class="pickup-code-section" wx:if="{{mainTab === 'buyer' && item.pickupCode && item.status === 0}}">
+        <view class="pickup-label">🔑 取货码（请出示给卖家）</view>
+        <view class="pickup-code">{{item.pickupCode}}</view>
+        <view class="pickup-tip">交易时请将此码提供给卖家核销</view>
+      </view>
+
       <!-- 卡片底部：操作按钮 -->
       <view class="order-footer">
         <view class="order-other">
           <text class="other-label">{{mainTab === 'buyer' ? '卖家' : '买家'}}：</text>
-          <text class="other-name">{{item.otherNickname}}</text>
+          <text class="other-name">{{item.otherNickname || '未知用户'}}</text>
         </view>
         <view class="order-actions">
           <!-- 交易中：可取消、可联系 -->
@@ -98,14 +102,14 @@
               data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
               catchtap="onContact"
             >联系</button>
-            <!-- 买家可确认收货 -->
+            <!-- 卖家核销入口 -->
             <button
-              class="btn-action btn-confirm"
+              class="btn-action btn-verify"
               size="mini"
-              wx:if="{{mainTab === 'buyer'}}"
+              wx:if="{{mainTab === 'seller'}}"
               data-transactionid="{{item.transactionId}}"
-              catchtap="onConfirmReceive"
-            >确认收货</button>
+              catchtap="onVerifyPickup"
+            >核销取货码</button>
           </block>
           <!-- 已完成/已取消：可联系 -->
           <block wx:if="{{item.status !== 0}}">

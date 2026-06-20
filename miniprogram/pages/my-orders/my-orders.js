@@ -228,6 +228,34 @@ Page({
   },
 
   /**
+   * 核销取货码（卖家）
+   */
+  onVerifyPickup(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    wx.showModal({
+      title: '核销取货码',
+      editable: true,
+      placeholderText: '请输入买家提供的取货码',
+      success: async (res) => {
+        if (!res.confirm) return;
+        const pickupCode = res.content?.trim();
+        if (!pickupCode) {
+          wx.showToast({ title: '请输入取货码', icon: 'none' });
+          return;
+        }
+
+        try {
+          await transactionsApi.verifyPickupCode(transactionid, pickupCode);
+          wx.showToast({ title: '核销成功', icon: 'success' });
+          this.fetchList(true);
+        } catch (error) {
+          console.error('[MyOrders] verifyPickup error:', error);
+        }
+      }
+    });
+  },
+
+  /**
    * 联系对方
    */
   onContact(e) {

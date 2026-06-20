@@ -221,6 +221,44 @@
   color: #fff;
 }
 
+.btn-verify {
+  background: #f59e0b;
+  color: #fff;
+}
+
+/* ==================== 取货码区域 ==================== */
+.pickup-code-section {
+  padding: 20rpx;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-top: 1rpx solid #fcd34d;
+}
+
+.pickup-label {
+  font-size: 24rpx;
+  color: #92400e;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.pickup-code {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #78350f;
+  letter-spacing: 8rpx;
+  text-align: center;
+  padding: 16rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12rpx;
+  font-family: monospace;
+}
+
+.pickup-tip {
+  font-size: 22rpx;
+  color: #a16207;
+  text-align: center;
+  margin-top: 12rpx;
+}
+
 /* ==================== 加载状态 ==================== */
 .loading-more {
   display: flex;
