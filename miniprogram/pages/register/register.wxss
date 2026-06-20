@@ -1,4 +1,106 @@
-.container { padding: 24rpx; }
-.switcher { display: flex; margin-bottom: 20rpx; background: #e2e8f0; border-radius: 14rpx; overflow: hidden; }
-.switcher view { flex: 1; text-align: center; padding: 18rpx 0; color: #334155; }
-.switcher .active { background: #0f766e; color: #fff; font-weight: 600; }
+.container {
+  padding: 24rpx;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* 模式切换 */
+.switcher {
+  display: flex;
+  margin-bottom: 20rpx;
+  background: #e2e8f0;
+  border-radius: 14rpx;
+  overflow: hidden;
+}
+
+.switcher view {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  color: #334155;
+  font-size: 28rpx;
+  transition: all 0.3s;
+}
+
+.switcher .active {
+  background: #0f766e;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 认证状态 */
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 20rpx;
+  background: #f0fdf4;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid #bbf7d0;
+}
+
+.auth-icon {
+  font-size: 28rpx;
+}
+
+.auth-text {
+  font-size: 26rpx;
+  color: #166534;
+}
+
+/* 表单标题 */
+.form-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #115e59;
+  margin-bottom: 8rpx;
+}
+
+.form-desc {
+  font-size: 24rpx;
+  color: #64748b;
+  margin-bottom: 32rpx;
+}
+
+/* 输入框组 */
+.input-group {
+  margin-bottom: 20rpx;
+}
+
+/* 验证码行 */
+.code-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.code-input {
+  flex: 1;
+}
+
+.btn-code {
+  min-width: 220rpx;
+  font-size: 26rpx;
+  background: #0f766e;
+  color: #fff;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  white-space: nowrap;
+}
+
+.btn-code::after {
+  border: none;
+}
+
+.btn-code-disabled {
+  background: #94a3b8;
+  color: #e2e8f0;
+}
+
+/* 按钮 */
+.btn-primary {
+  margin-top: 12rpx;
+}
