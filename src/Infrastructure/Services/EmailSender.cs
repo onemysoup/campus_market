@@ -1,14 +1,22 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace CAUSecondHand.Infrastructure.Services;
 
-public sealed class EmailSender(IOptions<SmtpOptions> options) : IEmailSender
+public sealed class EmailSender(IOptions<SmtpOptions> options, ILogger<EmailSender> logger) : IEmailSender
 {
     public async Task SendVerificationCodeAsync(string email, string code)
     {
+        // 开发环境下如果没有配置 SMTP，跳过发送
+        if (string.IsNullOrEmpty(options.Value.Host) || string.IsNullOrEmpty(options.Value.User))
+        {
+            logger.LogWarning("[EmailSender] SMTP 未配置，跳过邮件发送。邮箱: {Email}, 验证码: {Code}", email, code);
+            return;
+        }
+
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("CAU二手交易平台", options.Value.From));
         message.To.Add(new MailboxAddress("", email));

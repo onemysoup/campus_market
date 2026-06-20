@@ -10,7 +10,7 @@ namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/users/{userId:guid}")]
-[Authorize(Policy = "AuthLevelL1")]
+[Authorize(Policy = "AuthLevelL0")]
 public class ProfileController(AppDbContext db) : ControllerBase
 {
     [HttpGet("credit")]

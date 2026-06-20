@@ -182,4 +182,42 @@ public class ItemsController(AppDbContext db) : ControllerBase
 
         return Ok(new { code = 0, message = "取消收藏成功" });
     }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpGet("my")]
+    public async Task<IActionResult> GetMyItems()
+    {
+        var userId = User.GetUserId();
+        var items = await db.Items
+            .Include(i => i.Seller)
+            .Where(i => i.SellerId == userId)
+            .OrderByDescending(i => i.CreatedAt)
+            .Select(i => ItemCardVO.FromEntity(i))
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = items });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpGet("favorites")]
+    public async Task<IActionResult> GetFavorites()
+    {
+        var userId = User.GetUserId();
+
+        // 先获取用户收藏的 ItemId 列表
+        var favoriteItemIds = await db.Favorites
+            .Where(f => f.UserId == userId)
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => f.ItemId)
+            .ToListAsync();
+
+        // 再查询对应的 Item（包含 Seller）
+        var items = await db.Items
+            .Include(i => i.Seller)
+            .Where(i => favoriteItemIds.Contains(i.Id))
+            .Select(i => ItemCardVO.FromEntity(i))
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = items });
+    }
 }

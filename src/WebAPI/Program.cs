@@ -38,6 +38,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AuthLevelL0", policy => policy.RequireAuthenticatedUser())
     .AddPolicy("AuthLevelL1", policy => policy.RequireClaim("authLevel", "1", "2"))
     .AddPolicy("AdminOnly", policy => policy.RequireClaim("roleType", "Admin"));
 
@@ -61,7 +62,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 // Infrastructure services
 builder.Services.AddSingleton(new TokenService(
     builder.Configuration.GetSection("Token")["HmacKey"] ?? ""));
-builder.Services.AddSingleton<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.Configure<SmtpOptions>(
     builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.AddHttpClient<IWeChatApiClient, WeChatApiClient>();
