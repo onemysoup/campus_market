@@ -1,36 +1,142 @@
 <view class="container">
-  <view class="card">
-    <input class="input" placeholder="搜索商品关键词" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="onSearch" />
-    <view class="filters">
-      <picker mode="selector" range="{{categories}}" range-key="name" bindchange="onCategoryChange">
-        <view class="chip">分类：{{categoryLabel}}</view>
-      </picker>
-      <picker mode="selector" range="{{conditions}}" range-key="name" bindchange="onConditionChange">
-        <view class="chip">成色：{{conditionLabel}}</view>
-      </picker>
-      <picker mode="selector" range="{{sortOptions}}" range-key="label" bindchange="onSortChange">
-        <view class="chip">排序：{{sortLabel}}</view>
-      </picker>
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索商品..."
+        value="{{keyword}}"
+        bindinput="onKeywordInput"
+        bindconfirm="onSearch"
+      />
+      <text class="clear-btn" wx:if="{{keyword}}" bindtap="onClearSearch">✕</text>
     </view>
-    <view class="price-row">
-      <input class="input mini" placeholder="最低价" type="digit" value="{{priceMin}}" bindinput="onPriceMinInput" />
-      <input class="input mini" placeholder="最高价" type="digit" value="{{priceMax}}" bindinput="onPriceMaxInput" />
-      <button size="mini" class="btn-primary" bindtap="onSearch">筛选</button>
+    <view class="filter-btn {{showFilter ? 'active' : ''}}" bindtap="onToggleFilter">
+      <text>筛选</text>
     </view>
   </view>
 
-  <view class="card goods" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
-    <image class="thumb" src="{{item.images[0] || fallback}}" mode="aspectFill" />
-    <view class="meta">
-      <view class="title">{{item.title}}</view>
-      <view class="desc">{{item.description}}</view>
-      <view class="bottom">
-        <text class="price">¥{{item.price}}</text>
-        <text class="tag">{{item.seller.nickname}}</text>
+  <!-- 筛选面板 -->
+  <view class="filter-panel {{showFilter ? 'show' : ''}}">
+    <!-- 分类筛选 -->
+    <view class="filter-row">
+      <text class="filter-label">分类</text>
+      <picker mode="selector" range="{{categories}}" range-key="name" value="0" bindchange="onCategoryChange">
+        <view class="filter-picker">
+          {{categoryLabel}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 校区筛选 -->
+    <view class="filter-row">
+      <text class="filter-label">校区</text>
+      <picker mode="selector" range="{{campusOptions}}" range-key="label" value="0" bindchange="onCampusChange">
+        <view class="filter-picker">
+          {{campusLabel}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 价格区间 -->
+    <view class="filter-row">
+      <text class="filter-label">价格</text>
+      <view class="price-range">
+        <input
+          class="price-input"
+          type="digit"
+          placeholder="最低"
+          value="{{minPrice}}"
+          bindinput="onMinPriceInput"
+        />
+        <text class="price-sep">-</text>
+        <input
+          class="price-input"
+          type="digit"
+          placeholder="最高"
+          value="{{maxPrice}}"
+          bindinput="onMaxPriceInput"
+        />
+        <button class="price-confirm" size="mini" bindtap="onPriceFilterConfirm">确定</button>
       </view>
     </view>
+
+    <!-- 重置按钮 -->
+    <view class="filter-actions">
+      <button class="btn-reset" bindtap="onResetFilter">重置筛选</button>
+    </view>
   </view>
 
-  <view class="empty" wx:if="{{!list.length && !loading}}">暂无商品</view>
-  <view class="more">{{hasMore ? '上拉加载更多' : '没有更多了'}}</view>
+  <!-- 当前筛选条件标签 -->
+  <view class="active-filters" wx:if="{{category !== null || campusArea !== null || minPrice || maxPrice}}">
+    <view class="filter-tag" wx:if="{{category !== null}}">
+      {{categoryLabel}}
+    </view>
+    <view class="filter-tag" wx:if="{{campusArea !== null}}">
+      {{campusLabel}}
+    </view>
+    <view class="filter-tag" wx:if="{{minPrice || maxPrice}}">
+      ¥{{minPrice || '0'}} - ¥{{maxPrice || '∞'}}
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="goods-list">
+    <!-- 首次加载骨架屏 -->
+    <view class="skeleton-list" wx:if="{{loading && list.length === 0}}">
+      <view class="skeleton-item" wx:for="{{[1,2,3,4,5]}}" wx:key="*this">
+        <view class="skeleton-thumb"></view>
+        <view class="skeleton-meta">
+          <view class="skeleton-title"></view>
+          <view class="skeleton-info"></view>
+          <view class="skeleton-price"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{!loading && list.length === 0}}">
+      <image class="empty-icon" src="https://via.placeholder.com/200x200/e2e8f0/64748b?text=Empty" mode="aspectFit" />
+      <text class="empty-text">暂无符合条件的商品</text>
+      <button class="btn-empty-reset" bindtap="onResetFilter">重置筛选条件</button>
+    </view>
+
+    <!-- 商品列表 -->
+    <view
+      class="goods-item"
+      wx:for="{{list}}"
+      wx:key="itemId"
+      bindtap="goDetail"
+      data-id="{{item.itemId}}"
+    >
+      <image class="goods-thumb" src="{{item.firstImage || defaultImage}}" mode="aspectFill" />
+      <view class="goods-meta">
+        <view class="goods-title">{{item.title}}</view>
+        <view class="goods-info">
+          <text class="tag category-tag">{{item.categoryText}}</text>
+          <text class="tag status-tag" style="background: {{item.statusColor}}20; color: {{item.statusColor}};">
+            {{item.statusText}}
+          </text>
+        </view>
+        <view class="goods-bottom">
+          <text class="goods-price">¥{{item.priceText}}</text>
+          <text class="goods-time">{{item.timeText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loadingMore}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <!-- 没有更多数据 -->
+    <view class="no-more" wx:if="{{!hasMore && list.length > 0 && !loadingMore}}">
+      <text>— 已经到底了 —</text>
+    </view>
+  </view>
 </view>

@@ -3,7 +3,7 @@
  * onShow 动态刷新用户信息、信用分、认证等级
  */
 
-const { profileApi } = require('../../api');
+const profileApi = require('../../api/profile');
 const { AUTH_LEVEL_MAP, CAMPUS_AREA_MAP } = require('../../utils/constants');
 
 Page({

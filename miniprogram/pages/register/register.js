@@ -3,7 +3,7 @@
  * 功能：邮箱绑定（发送验证码 + 验证）、设置密码、重置密码
  */
 
-const { authApi } = require('../../api');
+const authApi = require('../../api/auth');
 const { AUTH_LEVEL_MAP } = require('../../utils/constants');
 
 Page({

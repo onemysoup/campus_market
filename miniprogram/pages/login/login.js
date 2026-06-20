@@ -3,7 +3,7 @@
  * 支持：微信一键登录（含新用户引导完善资料）
  */
 
-const { authApi } = require('../../api');
+const authApi = require('../../api/auth');
 const { CAMPUS_AREA_MAP } = require('../../utils/constants');
 
 Page({
