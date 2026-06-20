@@ -1,0 +1,52 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading && list.length === 0}}">
+    <view class="skeleton-item" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="skeleton-thumb"></view>
+      <view class="skeleton-meta">
+        <view class="skeleton-title"></view>
+        <view class="skeleton-price"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:elif="{{!loading && list.length === 0}}">
+    <text class="empty-icon">❤️</text>
+    <text class="empty-text">还没有收藏商品</text>
+    <button class="btn-browse" bindtap="goBrowse">去逛逛</button>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="goods-list" wx:else>
+    <view class="goods-card" wx:for="{{list}}" wx:key="itemId">
+      <!-- 商品信息 -->
+      <view class="goods-info" data-id="{{item.itemId}}" bindtap="goDetail">
+        <image class="goods-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <view class="goods-meta">
+          <view class="goods-title">{{item.title}}</view>
+          <view class="goods-bottom">
+            <text class="goods-price">¥{{item.priceText}}</text>
+            <view class="goods-status" style="background: {{item.statusColor}}20; color: {{item.statusColor}};">
+              {{item.statusText}}
+            </view>
+          </view>
+          <view class="goods-extra">
+            <text class="category-tag">{{item.categoryText}}</text>
+            <text class="view-count">👁 {{item.viewCount}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="goods-actions">
+        <button
+          class="btn-action btn-unfavorite"
+          data-id="{{item.itemId}}"
+          data-title="{{item.title}}"
+          catchtap="onUnfavorite"
+        >取消收藏</button>
+      </view>
+    </view>
+  </view>
+</view>
