@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_DATABASE: cau_second_hand
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__Default: Server=mysql;Port=3306;Database=cau_second_hand;User=root;Password=devpassword;Charset=utf8mb4
+      Jwt__Key: dev-hmac-key-for-testing-only-not-for-production
+      Jwt__Issuer: CAUSecondHand
+      Jwt__Audience: CAUSecondHand
+      Token__HmacKey: dev-hmac-key-for-pickup-codes
+      WeChat__AppId: ${WECHAT_APPID:-}
+      WeChat__AppSecret: ${WECHAT_APPSECRET:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  mysql_data:

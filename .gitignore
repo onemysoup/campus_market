@@ -1,17 +1,18 @@
+# .NET build outputs
+**/bin/
+**/obj/
+*.user
+*.suo
+
 # Environment files
 .env
-server/.env
-server/.env.*
 !.env.example
-!server/.env.example
 
 # Dependencies
 node_modules/
-server/node_modules/
 miniprogram/node_modules/
 
 # Runtime and logs
-server/uploads/
 *.log
 npm-debug.log*
 yarn-debug.log*

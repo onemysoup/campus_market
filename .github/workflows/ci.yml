@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev-*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0
+      - run: dotnet restore src/WebAPI/CAUSecondHand.WebAPI.csproj
+      - run: dotnet build src/WebAPI/CAUSecondHand.WebAPI.csproj --no-restore
+      - run: dotnet format src/ --verify-no-changes --no-restore
