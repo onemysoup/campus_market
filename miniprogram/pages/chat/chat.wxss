@@ -1,7 +1,348 @@
-.title { font-size: 30rpx; font-weight: 700; margin-bottom: 12rpx; }
-.row { padding: 12rpx 0; border-bottom: 1px solid #e2e8f0; }
-.msg { font-size: 24rpx; color: #64748b; margin-top: 4rpx; }
-.msg-item { max-width: 70%; margin-bottom: 10rpx; padding: 10rpx 16rpx; background: #f1f5f9; border-radius: 12rpx; }
-.msg-item.mine { margin-left: auto; background: #ccfbf1; }
-.send-row { display: flex; gap: 10rpx; align-items: center; margin-top: 10rpx; }
-.send-row .input { flex: 1; margin-bottom: 0; }
+.container {
+  height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==================== 会话列表 ==================== */
+.session-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.list-header {
+  padding: 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.list-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f1f5f9;
+  transition: background 0.2s;
+}
+
+.session-item:active {
+  background: #f8fafc;
+}
+
+.session-avatar-wrap {
+  position: relative;
+  margin-right: 20rpx;
+}
+
+.session-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #f1f5f9;
+}
+
+.session-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.session-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.session-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.session-bottom {
+  display: flex;
+  align-items: center;
+}
+
+.session-preview {
+  font-size: 26rpx;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 对话详情 ==================== */
+.chat-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f1f5f9;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.back-btn {
+  font-size: 48rpx;
+  color: #0f766e;
+  padding: 8rpx 16rpx 8rpx 0;
+  line-height: 1;
+}
+
+.chat-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.header-right {
+  width: 80rpx;
+}
+
+/* ==================== 消息列表 ==================== */
+.message-list {
+  flex: 1;
+  padding: 24rpx;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.message-item {
+  display: flex;
+  margin-bottom: 24rpx;
+  align-items: flex-start;
+}
+
+.message-item.mine {
+  justify-content: flex-end;
+}
+
+.msg-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.msg-content-wrap {
+  max-width: 65%;
+  margin-left: 16rpx;
+}
+
+.mine-wrap {
+  margin-left: 0;
+  margin-right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.msg-bubble {
+  padding: 16rpx 24rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.other-bubble {
+  background: #fff;
+  color: #334155;
+  border-top-left-radius: 4rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.mine-bubble {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  border-top-right-radius: 4rpx;
+}
+
+.msg-time {
+  font-size: 20rpx;
+  color: #94a3b8;
+  margin-top: 8rpx;
+  padding: 0 8rpx;
+}
+
+.mine-time {
+  text-align: right;
+}
+
+/* ==================== 输入区域 ==================== */
+.input-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.input-wrap {
+  flex: 1;
+  background: #f1f5f9;
+  border-radius: 12rpx;
+  padding: 16rpx 24rpx;
+}
+
+.msg-input {
+  font-size: 28rpx;
+  min-height: 40rpx;
+  max-height: 200rpx;
+}
+
+.btn-send {
+  min-width: 120rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  background: #cbd5e1;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 12rpx;
+  border: none;
+}
+
+.btn-send::after {
+  border: none;
+}
+
+.btn-send.active {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+
+.btn-send:active.active {
+  opacity: 0.9;
+}
+
+/* ==================== 骨架屏 ==================== */
+.loading-state {
+  padding: 24rpx;
+}
+
+.skeleton-session {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.skeleton-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-right: 20rpx;
+}
+
+.skeleton-info {
+  flex: 1;
+}
+
+.skeleton-name {
+  height: 32rpx;
+  width: 40%;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6rpx;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-msg {
+  height: 24rpx;
+  width: 70%;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6rpx;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==================== 加载更多 ==================== */
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 32rpx 0;
+  color: #64748b;
+  font-size: 26rpx;
+}
+
+.loading-spinner {
+  width: 32rpx;
+  height: 32rpx;
+  border: 4rpx solid #e2e8f0;
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx 0;
+}
+
+.empty-icon {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #94a3b8;
+}

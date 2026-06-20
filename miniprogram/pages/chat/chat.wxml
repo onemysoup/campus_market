@@ -1,18 +1,143 @@
 <view class="container">
-  <view class="card" wx:if="{{!conversationId}}">
-    <view class="title">会话列表</view>
-    <view class="row" wx:for="{{conversations}}" wx:key="conversationId" bindtap="openConversation" data-id="{{item.conversationId}}">
-      <view>{{item.otherUser.nickname}}</view>
-      <view class="msg">{{item.lastMessage}}</view>
+  <!-- ==================== 会话列表模式 ==================== -->
+  <view class="session-list" wx:if="{{mode === 'list'}}">
+    <!-- 顶部标题 -->
+    <view class="list-header">
+      <text class="list-title">消息</text>
+    </view>
+
+    <!-- 加载中 -->
+    <view class="loading-state" wx:if="{{loadingSessions}}">
+      <view class="skeleton-session" wx:for="{{[1,2,3]}}" wx:key="*this">
+        <view class="skeleton-avatar"></view>
+        <view class="skeleton-info">
+          <view class="skeleton-name"></view>
+          <view class="skeleton-msg"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{sessions.length === 0}}">
+      <image class="empty-icon" src="https://via.placeholder.com/200x200/e2e8f0/64748b?text=Chat" mode="aspectFit" />
+      <text class="empty-text">暂无消息</text>
+      <text class="empty-hint">浏览商品时可联系卖家</text>
+    </view>
+
+    <!-- 会话列表 -->
+    <view
+      class="session-item"
+      wx:for="{{sessions}}"
+      wx:key="sessionId"
+      data-session="{{item}}"
+      bindtap="onTapSession"
+    >
+      <view class="session-avatar-wrap">
+        <image
+          class="session-avatar"
+          src="{{item.otherUserAvatar || 'https://via.placeholder.com/80x80/e2e8f0/64748b?text=U'}}"
+          mode="aspectFill"
+        />
+      </view>
+      <view class="session-info">
+        <view class="session-top">
+          <text class="session-name">{{item.otherUserNickname}}</text>
+          <text class="session-time">{{item.lastMessageTime}}</text>
+        </view>
+        <view class="session-bottom">
+          <text class="session-preview">{{item.lastMessagePreview || '暂无消息'}}</text>
+        </view>
+      </view>
     </view>
   </view>
 
-  <view class="card" wx:if="{{conversationId}}">
-    <view class="title">聊天记录</view>
-    <view class="msg-item {{item.sender_id===userId?'mine':''}}" wx:for="{{messages}}" wx:key="id">{{item.content}}</view>
-    <view class="send-row">
-      <input class="input" value="{{content}}" bindinput="onContentInput" placeholder="输入消息" />
-      <button size="mini" class="btn-primary" bindtap="send">发送</button>
+  <!-- ==================== 对话详情模式 ==================== -->
+  <view class="chat-detail" wx:if="{{mode === 'chat'}}">
+    <!-- 顶部导航 -->
+    <view class="chat-header">
+      <view class="back-btn" bindtap="onBackToList">
+        <text>‹</text>
+      </view>
+      <view class="chat-title">
+        <text>{{currentSession.otherUserNickname || '聊天'}}</text>
+      </view>
+      <view class="header-right"></view>
+    </view>
+
+    <!-- 消息列表 -->
+    <scroll-view
+      class="message-list"
+      scroll-y
+      scroll-into-view="{{scrollToView}}"
+      scroll-with-animation
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <!-- 加载更多 -->
+      <view class="loading-more" wx:if="{{loadingMessages}}">
+        <view class="loading-spinner"></view>
+        <text>加载中...</text>
+      </view>
+
+      <!-- 消息流 -->
+      <view
+        class="message-item {{item.isMine ? 'mine' : 'other'}}"
+        wx:for="{{messages}}"
+        wx:key="messageId"
+        id="{{item.messageId}}"
+      >
+        <!-- 对方消息：头像在左 -->
+        <block wx:if="{{!item.isMine}}">
+          <image
+            class="msg-avatar"
+            src="{{currentSession.otherUserAvatar || 'https://via.placeholder.com/80x80/e2e8f0/64748b?text=U'}}"
+            mode="aspectFill"
+          />
+          <view class="msg-content-wrap">
+            <view class="msg-bubble other-bubble">
+              <text>{{item.content}}</text>
+            </view>
+            <text class="msg-time">{{item.timeText}}</text>
+          </view>
+        </block>
+
+        <!-- 我的消息：头像在右 -->
+        <block wx:if="{{item.isMine}}">
+          <view class="msg-content-wrap mine-wrap">
+            <view class="msg-bubble mine-bubble">
+              <text>{{item.content}}</text>
+            </view>
+            <text class="msg-time mine-time">{{item.timeText}}</text>
+          </view>
+        </block>
+      </view>
+
+      <!-- 底部锚点 -->
+      <view id="msg_bottom"></view>
+    </scroll-view>
+
+    <!-- 输入区域 -->
+    <view class="input-area" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : 'env(safe-area-inset-bottom)'}}px;">
+      <view class="input-wrap">
+        <input
+          class="msg-input"
+          placeholder="输入消息..."
+          value="{{inputContent}}"
+          bindinput="onInputChange"
+          bindfocus="onInputFocus"
+          bindblur="onInputBlur"
+          confirm-type="send"
+          bindconfirm="onSend"
+          adjust-position="{{false}}"
+        />
+      </view>
+      <button
+        class="btn-send {{inputContent.trim() ? 'active' : ''}}"
+        disabled="{{!inputContent.trim()}}"
+        bindtap="onSend"
+      >
+        发送
+      </button>
     </view>
   </view>
 </view>
