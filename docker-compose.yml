@@ -29,10 +29,16 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
       ConnectionStrings__Default: Server=mysql;Port=3306;Database=cau_second_hand;User=root;Password=devpassword;Charset=utf8mb4
-      Jwt__Key: dev-hmac-key-for-testing-only-not-for-production
-      Jwt__Issuer: CAUSecondHand
-      Jwt__Audience: CAUSecondHand
-      Token__HmacKey: dev-hmac-key-for-pickup-codes
+      Jwt__Key: ${JWT_KEY:-dev-hmac-key-for-testing-only-not-for-production}
+      Jwt__Issuer: ${JWT_ISSUER:-CAUSecondHand}
+      Jwt__Audience: ${JWT_AUDIENCE:-CAUSecondHand}
+      Token__HmacKey: ${TOKEN_HMAC_KEY:-dev-hmac-key-for-pickup-codes}
+      Smtp__Host: ${SMTP_HOST:-smtp.cau.edu.cn}
+      Smtp__Port: ${SMTP_PORT:-465}
+      Smtp__UseSsl: ${SMTP_USE_SSL:-true}
+      Smtp__User: ${SMTP_USER:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-}
       WeChat__AppId: ${WECHAT_APPID:-}
       WeChat__AppSecret: ${WECHAT_APPSECRET:-}
     depends_on:

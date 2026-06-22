@@ -91,14 +91,19 @@ public class AuthController(
         return Ok(new { code = 0, message = "验证码已发送" });
     }
 
+    [Authorize]
     [HttpPost("verify-email")]
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
     {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
         var cachedCode = cache.Get<string>($"{EmailCodePrefix}{request.Email}");
         if (cachedCode is null || cachedCode != request.Code)
             return BadRequest(new { code = 4000, message = "验证码错误或已过期" });
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailAddress == request.Email);
+        var user = await db.Users.FindAsync(userId);
         if (user is null)
             return NotFound(new { code = 4004, message = "用户未找到" });
 
