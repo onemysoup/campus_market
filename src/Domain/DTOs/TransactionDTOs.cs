@@ -27,8 +27,17 @@ public sealed record TransactionVO
     public bool IsCrossCampus { get; init; }
     public DateTime TokenExpiredAt { get; init; }
     public DateTime CreatedAt { get; init; }
+    public decimal Price { get; init; }
+    public string? ItemTitle { get; init; }
+    public int Status => TokenStatus switch
+    {
+        TokenStatus.Unused => 0,
+        TokenStatus.Verified => 1,
+        TokenStatus.Voided => 2,
+        _ => 0
+    };
 
-    public static TransactionVO FromEntity(Transaction transaction) => new()
+    public static TransactionVO FromEntity(Transaction transaction, decimal price = 0, string? itemTitle = null) => new()
     {
         TransactionId = transaction.Id,
         ItemId = transaction.ItemId,
@@ -40,6 +49,8 @@ public sealed record TransactionVO
         AgreedLocation = transaction.AgreedLocation,
         IsCrossCampus = transaction.IsCrossCampus,
         TokenExpiredAt = transaction.TokenExpiredAt,
-        CreatedAt = transaction.CreatedAt
+        CreatedAt = transaction.CreatedAt,
+        Price = price,
+        ItemTitle = itemTitle ?? string.Empty
     };
 }

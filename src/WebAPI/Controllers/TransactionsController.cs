@@ -15,6 +15,34 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [Authorize(Policy = "AuthLevelL1")]
 public class TransactionsController(AppDbContext db, TokenService tokenService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> GetTransactions(
+        [FromQuery] string? role,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var userId = User.GetUserId();
+        var query = db.Transactions.AsQueryable();
+
+        query = (role?.ToLowerInvariant()) switch
+        {
+            "buyer" => query.Where(t => t.BuyerId == userId),
+            "seller" => query.Where(t => t.SellerId == userId),
+            _ => query.Where(t => t.BuyerId == userId || t.SellerId == userId)
+        };
+
+        var totalCount = await query.CountAsync();
+        var transactions = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(t => t.Item)
+            .Select(t => TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title))
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = new { transactions, totalCount, page, pageSize } });
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
     {
@@ -24,6 +52,8 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.IsAvailableForBuying())
             return BadRequest(new { code = 4000, message = "商品不可购买" });
+        if (item.SellerId == buyerId)
+            return BadRequest(new { code = 4000, message = "不能购买自己的商品" });
 
         var pickupCode = tokenService.GeneratePickupCode(item.Id, buyerId);
         var transaction = new Transaction(
@@ -38,7 +68,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         db.Transactions.Add(transaction);
         await db.SaveChangesAsync();
 
-        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction) });
+        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction, item.Price, item.Title) });
     }
 
     [HttpPost("{id:guid}/verify")]

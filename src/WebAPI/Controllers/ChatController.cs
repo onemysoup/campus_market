@@ -1,8 +1,11 @@
 using CAUSecondHand.Domain.DTOs;
+using CAUSecondHand.Domain.Entities;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.WebAPI.Helpers;
+using CAUSecondHand.WebAPI.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CAUSecondHand.WebAPI.Controllers;
@@ -10,7 +13,7 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [ApiController]
 [Route("api/v1/chats")]
 [Authorize(Policy = "AuthLevelL1")]
-public class ChatController(AppDbContext db) : ControllerBase
+public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetSessions()
@@ -26,9 +29,15 @@ public class ChatController(AppDbContext db) : ControllerBase
             .Where(u => otherUserIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id);
 
+        var itemIds = sessions.Select(s => s.ItemId).ToList();
+        var items = await db.Items
+            .Where(i => itemIds.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id);
+
         var result = sessions.Select(s =>
         {
             var other = otherUsers.GetValueOrDefault(s.GetOtherPartyId(userId));
+            var item = items.GetValueOrDefault(s.ItemId);
             return new ChatSessionVO
             {
                 SessionId = s.Id,
@@ -36,6 +45,9 @@ public class ChatController(AppDbContext db) : ControllerBase
                 OtherUserNickname = other?.Nickname ?? "未知用户",
                 OtherUserAvatar = other?.AvatarUrl,
                 ItemId = s.ItemId,
+                ItemTitle = item?.Title,
+                ItemPrice = item?.Price ?? 0,
+                ItemImage = item?.Images.Count > 0 ? item.Images[0] : null,
                 LastMessagePreview = s.LastMessagePreview,
                 LastMessageTime = s.LastMessageTime,
                 CreatedAt = s.CreatedAt
@@ -63,5 +75,40 @@ public class ChatController(AppDbContext db) : ControllerBase
             .ToListAsync();
 
         return Ok(new { code = 0, data = new { messages, page, pageSize } });
+    }
+
+    [HttpPost("send")]
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
+    {
+        var senderId = User.GetUserId();
+
+        // 查找或创建会话
+        var session = await db.ChatSessions
+            .FirstOrDefaultAsync(s =>
+                (s.UserAId == senderId && s.UserBId == request.ReceiverId
+                 || s.UserAId == request.ReceiverId && s.UserBId == senderId)
+                && s.ItemId == request.ItemId);
+
+        if (session is null)
+        {
+            session = new ChatSession(request.ItemId, senderId, request.ReceiverId);
+            db.ChatSessions.Add(session);
+        }
+
+        var message = new Message(session.Id, senderId, request.ReceiverId,
+            request.MsgType, request.Content);
+        db.Messages.Add(message);
+
+        session.UpdateLastMessage(
+            DateTimeOffset.FromUnixTimeMilliseconds(message.Timestamp).UtcDateTime,
+            request.Content.Length > 50 ? request.Content[..50] + "..." : request.Content);
+
+        await db.SaveChangesAsync();
+
+        // Notify receiver via SignalR
+        await hubContext.Clients.Group($"user:{request.ReceiverId}")
+            .SendAsync("ReceiveMessage", MessageVO.FromEntity(message));
+
+        return Ok(new { code = 0, data = MessageVO.FromEntity(message) });
     }
 }

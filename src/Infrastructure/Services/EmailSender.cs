@@ -1,11 +1,12 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace CAUSecondHand.Infrastructure.Services;
 
-public sealed class EmailSender(IOptions<SmtpOptions> options) : IEmailSender
+public sealed class EmailSender(IOptions<SmtpOptions> options, ILogger<EmailSender> logger) : IEmailSender
 {
     public async Task SendVerificationCodeAsync(string email, string code)
     {
@@ -19,12 +20,21 @@ public sealed class EmailSender(IOptions<SmtpOptions> options) : IEmailSender
             Text = $"您的验证码是: {code}\n验证码有效期为10分钟。"
         };
 
-        using var client = new SmtpClient();
-        await client.ConnectAsync(options.Value.Host, options.Value.Port,
-            options.Value.UseSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls);
-        await client.AuthenticateAsync(options.Value.User, options.Value.Password);
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
+        try
+        {
+            using var client = new SmtpClient();
+            await client.ConnectAsync(options.Value.Host, options.Value.Port,
+                options.Value.UseSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(options.Value.User, options.Value.Password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+        }
+        catch (Exception ex)
+        {
+#pragma warning disable CA1848
+            logger.LogWarning(ex, "SMTP 发送验证码至 {Email} 失败", email);
+#pragma warning restore CA1848
+        }
     }
 }
 
