@@ -36,7 +36,8 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => TransactionVO.FromEntity(t))
+            .Include(t => t.Item)
+            .Select(t => TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title))
             .ToListAsync();
 
         return Ok(new { code = 0, data = new { transactions, totalCount, page, pageSize } });
@@ -67,7 +68,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         db.Transactions.Add(transaction);
         await db.SaveChangesAsync();
 
-        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction) });
+        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction, item.Price, item.Title) });
     }
 
     [HttpPost("{id:guid}/verify")]

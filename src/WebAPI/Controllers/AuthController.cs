@@ -188,7 +188,11 @@ public class AuthController(
         user.UpdateProfile(request.Nickname, request.AvatarUrl);
         await db.SaveChangesAsync();
 
-        return Ok(new { code = 0, message = "资料更新成功" });
+        return Ok(new
+        {
+            code = 0,
+            data = new { nickname = user.Nickname, avatarUrl = user.AvatarUrl }
+        });
     }
 
     private string GenerateToken(User user)
