@@ -119,7 +119,7 @@ Page({
         pageSize
       });
 
-      const items = (result.items || []).map(this.formatTransaction);
+      const items = (result.transactions || []).map(this.formatTransaction);
       const totalCount = result.totalCount || 0;
 
       // 计算统计

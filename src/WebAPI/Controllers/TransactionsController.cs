@@ -51,6 +51,8 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.IsAvailableForBuying())
             return BadRequest(new { code = 4000, message = "商品不可购买" });
+        if (item.SellerId == buyerId)
+            return BadRequest(new { code = 4000, message = "不能购买自己的商品" });
 
         var pickupCode = tokenService.GeneratePickupCode(item.Id, buyerId);
         var transaction = new Transaction(
