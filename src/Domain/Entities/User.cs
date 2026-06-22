@@ -28,6 +28,9 @@ public sealed class User
     public bool IsStaff { get; private set; }
     public int CreditScore { get; private set; }
     public bool IsBanned { get; private set; }
+    // 登录密码哈希（PBKDF2）
+    public string? PasswordHash { get; private set; }
+    // 6位二级密码哈希（BCrypt），用于确认交易等敏感操作
     public string? SecurityPasswordHash { get; private set; }
     public string? AvatarUrl { get; private set; }
     public string WeChatOpenId { get; private set; } = string.Empty;
@@ -78,6 +81,10 @@ public sealed class User
     }
 
     public void SetCampusArea(CampusArea area) => CampusArea = area;
+
+    public void SetPassword(string hash) => PasswordHash = hash;
+
+    public bool HasPassword() => PasswordHash != null;
 
     public void SetSecurityPassword(string hash) => SecurityPasswordHash = hash;
 

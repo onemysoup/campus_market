@@ -15,6 +15,33 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [Authorize(Policy = "AuthLevelL1")]
 public class TransactionsController(AppDbContext db, TokenService tokenService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> GetTransactions(
+        [FromQuery] string? role,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var userId = User.GetUserId();
+        var query = db.Transactions.AsQueryable();
+
+        query = (role?.ToLowerInvariant()) switch
+        {
+            "buyer" => query.Where(t => t.BuyerId == userId),
+            "seller" => query.Where(t => t.SellerId == userId),
+            _ => query.Where(t => t.BuyerId == userId || t.SellerId == userId)
+        };
+
+        var totalCount = await query.CountAsync();
+        var transactions = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => TransactionVO.FromEntity(t))
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = new { transactions, totalCount, page, pageSize } });
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
     {

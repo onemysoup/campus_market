@@ -46,6 +46,41 @@ public class ItemsController(AppDbContext db) : ControllerBase
         });
     }
 
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpGet("my")]
+    public async Task<IActionResult> GetMyItems()
+    {
+        var userId = User.GetUserId();
+        var items = await db.Items
+            .Include(i => i.Seller)
+            .Where(i => i.SellerId == userId)
+            .OrderByDescending(i => i.CreatedAt)
+            .Select(i => ItemCardVO.FromEntity(i))
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = items });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpGet("favorites")]
+    public async Task<IActionResult> GetFavorites()
+    {
+        var userId = User.GetUserId();
+        var itemIds = await db.Favorites
+            .Where(f => f.UserId == userId)
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => f.ItemId)
+            .ToListAsync();
+
+        var items = await db.Items
+            .Include(i => i.Seller)
+            .Where(i => itemIds.Contains(i.Id))
+            .Select(i => ItemCardVO.FromEntity(i))
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = items });
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetItem(Guid id)
     {

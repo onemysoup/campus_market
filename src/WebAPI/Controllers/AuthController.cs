@@ -56,6 +56,28 @@ public class AuthController(
         });
     }
 
+    [HttpPost("login")]
+    public async Task<IActionResult> LoginByPassword([FromBody] LoginByPasswordRequest request)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailAddress == request.Email);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户不存在" });
+
+        if (!user.HasPassword() || !PasswordHelper.Verify(request.Password, user.PasswordHash!))
+            return Unauthorized(new { code = 4001, message = "邮箱或密码错误" });
+
+        if (user.IsBanned)
+            return Unauthorized(new { code = 4001, message = "账号已被封禁" });
+
+        var token = GenerateToken(user);
+        return Ok(new
+        {
+            code = 0,
+            data = new LoginResponse(token, user.Id, user.Nickname,
+                user.AvatarUrl, user.AuthLevel, false)
+        });
+    }
+
     [HttpPost("send-code")]
     public async Task<IActionResult> SendCode([FromBody] SendCodeRequest request)
     {
@@ -84,7 +106,9 @@ public class AuthController(
         await db.SaveChangesAsync();
 
         cache.Remove($"{EmailCodePrefix}{request.Email}");
-        return Ok(new { code = 0, data = new { authLevel = (int)user.AuthLevel } });
+
+        var newToken = GenerateToken(user);
+        return Ok(new { code = 0, data = new { authLevel = (int)user.AuthLevel, token = newToken } });
     }
 
     [Authorize(Policy = "AuthLevelL1")]
@@ -99,10 +123,10 @@ public class AuthController(
         if (user is null)
             return NotFound(new { code = 4004, message = "用户未找到" });
 
-        if (!string.IsNullOrEmpty(user.SecurityPasswordHash))
+        if (!string.IsNullOrEmpty(user.PasswordHash))
             return BadRequest(new { code = 4000, message = "已设置过密码" });
 
-        user.SetSecurityPassword(PasswordHelper.Hash(request.Password));
+        user.SetPassword(PasswordHelper.Hash(request.Password));
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "密码设置成功" });
@@ -119,7 +143,7 @@ public class AuthController(
         if (user is null)
             return NotFound(new { code = 4004, message = "用户未找到" });
 
-        user.SetSecurityPassword(PasswordHelper.Hash(request.NewPassword));
+        user.SetPassword(PasswordHelper.Hash(request.NewPassword));
         await db.SaveChangesAsync();
 
         cache.Remove($"{EmailCodePrefix}{request.Email}");
@@ -142,6 +166,24 @@ public class AuthController(
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "校区设置成功" });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        user.UpdateProfile(request.Nickname, request.AvatarUrl);
+        await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, message = "资料更新成功" });
     }
 
     private string GenerateToken(User user)
