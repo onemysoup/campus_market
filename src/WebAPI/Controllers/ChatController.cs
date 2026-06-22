@@ -1,4 +1,5 @@
 using CAUSecondHand.Domain.DTOs;
+using CAUSecondHand.Domain.Entities;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -63,5 +64,36 @@ public class ChatController(AppDbContext db) : ControllerBase
             .ToListAsync();
 
         return Ok(new { code = 0, data = new { messages, page, pageSize } });
+    }
+
+    [HttpPost("send")]
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
+    {
+        var senderId = User.GetUserId();
+
+        // 查找或创建会话
+        var session = await db.ChatSessions
+            .FirstOrDefaultAsync(s =>
+                (s.UserAId == senderId && s.UserBId == request.ReceiverId
+                 || s.UserAId == request.ReceiverId && s.UserBId == senderId)
+                && s.ItemId == request.ItemId);
+
+        if (session is null)
+        {
+            session = new ChatSession(request.ItemId, senderId, request.ReceiverId);
+            db.ChatSessions.Add(session);
+        }
+
+        var message = new Message(session.Id, senderId, request.ReceiverId,
+            request.MsgType, request.Content);
+        db.Messages.Add(message);
+
+        session.UpdateLastMessage(
+            DateTimeOffset.FromUnixTimeMilliseconds(message.Timestamp).UtcDateTime,
+            request.Content.Length > 50 ? request.Content[..50] + "..." : request.Content);
+
+        await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, data = MessageVO.FromEntity(message) });
     }
 }

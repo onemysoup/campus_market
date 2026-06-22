@@ -38,3 +38,9 @@ public sealed record MessageVO
         IsRead = msg.IsRead
     };
 }
+
+public sealed record SendMessageRequest(
+    Guid ReceiverId,
+    Guid ItemId,
+    string Content,
+    MsgType MsgType = MsgType.Text);

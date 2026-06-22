@@ -46,6 +46,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    volumes:
+      - uploads_data:/app/wwwroot/uploads
 
 volumes:
   mysql_data:
+  uploads_data:
