@@ -155,7 +155,7 @@ public class AuthController(
         return Ok(new { code = 0, message = "密码重置成功" });
     }
 
-    [Authorize(Policy = "AuthLevelL1")]
+    [Authorize]
     [HttpPut("campus")]
     public async Task<IActionResult> SetCampus([FromBody] SetCampusRequest request)
     {
