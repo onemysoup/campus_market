@@ -10,6 +10,9 @@ public sealed record ChatSessionVO
     public required string OtherUserNickname { get; init; }
     public string? OtherUserAvatar { get; init; }
     public Guid ItemId { get; init; }
+    public string? ItemTitle { get; init; }
+    public decimal ItemPrice { get; init; }
+    public string? ItemImage { get; init; }
     public string? LastMessagePreview { get; init; }
     public DateTime? LastMessageTime { get; init; }
     public DateTime CreatedAt { get; init; }
