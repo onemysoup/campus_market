@@ -65,6 +65,19 @@ const adminApi = {
    * @param {number} delta  - 变动值（正数加分，负数扣分）
    * @param {string} reason - 原因
    */
+  getVerifications(params = {}) {
+    return get('/api/v1/admin/verifications', params);
+  },
+
+  /**
+   * 处理L2认证申请
+   * @param {string}  id      - 申请 GUID
+   * @param {boolean} approve - true=通过, false=驳回
+   */
+  handleVerification(id, approve, reason) {
+    return patch(`/api/v1/admin/verifications/${id}`, { approve, reason });
+  },
+
   adjustCredit(id, delta, reason) {
     return post(`/api/v1/admin/users/${id}/credit`, { delta, reason });
   }

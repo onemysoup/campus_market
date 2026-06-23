@@ -16,6 +16,15 @@ public sealed record ResetPasswordRequest(string Email, string Code, string NewP
 
 public sealed record UpdateProfileRequest(string? Nickname, string? AvatarUrl);
 
+public sealed record SetSecurityPasswordRequest(string Password);
+
+public sealed record ResetSecurityPasswordRequest(string Email, string Code, string NewPassword);
+
+public sealed record SubmitStudentVerificationRequest(
+    string RealName,
+    string StudentId,
+    string CertificateImageUrl);
+
 public sealed record SetCampusRequest(CampusArea CampusArea);
 
 public sealed record LoginResponse(

@@ -3,7 +3,7 @@
  * 对应后端: AuthController (/api/v1/auth)
  */
 
-const { post, put } = require('../utils/request');
+const { get, post, put } = require('../utils/request');
 
 const authApi = {
   /**
@@ -76,5 +76,42 @@ const authApi = {
     return put('/api/v1/auth/profile', data);
   }
 };
+
+
+  /**
+   * 设置独立二级密码（6位数字，用于确认交易等敏感操作）
+   * @param {string} password - 6位数字密码
+   */
+  setSecurityPassword(password) {
+    return post('/api/v1/auth/set-security-password', { password });
+  },
+
+  /**
+   * 重置独立二级密码
+   * @param {string} email      - 绑定邮箱
+   * @param {string} code       - 验证码
+   * @param {string} newPassword - 新密码
+   */
+  resetSecurityPassword(email, code, newPassword) {
+    return post('/api/v1/auth/reset-security-password', { email, code, newPassword });
+  },
+
+  /**
+   * 获取L2认证状态
+   */
+  getStudentVerification() {
+    return get('/api/v1/auth/student-verification');
+  },
+
+  /**
+   * 提交L2认证申请
+   * @param {Object} data
+   * @param {string} data.realName           - 真实姓名
+   * @param {string} data.studentId          - 学号
+   * @param {string} data.certificateImageUrl - 学生证图片URL
+   */
+  submitStudentVerification(data) {
+    return post('/api/v1/auth/student-verification', data);
+  }
 
 module.exports = authApi;
