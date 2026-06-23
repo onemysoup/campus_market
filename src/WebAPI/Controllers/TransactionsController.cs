@@ -37,7 +37,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(t => t.Item)
-            .Select(t => TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title))
+            .Select(t => TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title, t.SecureToken))
             .ToListAsync();
 
         return Ok(new { code = 0, data = new { transactions, totalCount, page, pageSize } });
@@ -68,14 +68,14 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         db.Transactions.Add(transaction);
         await db.SaveChangesAsync();
 
-        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction, item.Price, item.Title) });
+        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction, item.Price, item.Title, pickupCode) });
     }
 
     [HttpPost("{id:guid}/verify")]
     public async Task<IActionResult> VerifyPickupCode(Guid id, [FromBody] VerifyTokenRequest request)
     {
         var userId = User.GetUserId();
-        var transaction = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id);
+        var transaction = await db.Transactions.Include(t => t.Item).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
             return NotFound(new { code = 4004, message = "交易不存在" });
         if (transaction.SellerId != userId)
@@ -119,7 +119,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
     public async Task<IActionResult> StartRental(Guid id, [FromBody] RentStartRequest request)
     {
         var userId = User.GetUserId();
-        var transaction = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id);
+        var transaction = await db.Transactions.Include(t => t.Item).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
             return NotFound(new { code = 4004, message = "交易不存在" });
         if (transaction.SellerId != userId)
@@ -139,7 +139,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
     public async Task<IActionResult> CompleteReturn(Guid id)
     {
         var userId = User.GetUserId();
-        var transaction = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id);
+        var transaction = await db.Transactions.Include(t => t.Item).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
             return NotFound(new { code = 4004, message = "交易不存在" });
         if (transaction.SellerId != userId)

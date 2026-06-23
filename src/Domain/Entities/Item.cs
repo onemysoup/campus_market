@@ -11,7 +11,8 @@ public sealed class Item
 
     public Item(Guid sellerId, string title, string description, decimal price,
         ItemCategory category, ConditionLevel condition, List<string> images,
-        CampusArea campusArea, bool isRental = false)
+        CampusArea campusArea, bool isRental = false,
+        string? rentalRate = null, decimal? deposit = null)
     {
         Id = Guid.NewGuid();
         SellerId = sellerId;
@@ -23,6 +24,8 @@ public sealed class Item
         _images = images;
         CampusArea = campusArea;
         IsRental = isRental;
+        RentalRate = rentalRate;
+        Deposit = deposit;
         Status = ItemStatus.Draft;
         ViewCount = 0;
         ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30));
@@ -86,7 +89,8 @@ public sealed class Item
 
     public void Edit(string? title, string? description, decimal? price,
         ItemCategory? category, ConditionLevel? condition, List<string>? images,
-        CampusArea? campusArea, string? deliveryPoint)
+        CampusArea? campusArea, string? deliveryPoint,
+        bool? isRental = null, string? rentalRate = null, decimal? deposit = null)
     {
         if (title != null) Title = title;
         if (description != null) Description = description;
@@ -96,5 +100,11 @@ public sealed class Item
         if (images != null) { _images.Clear(); _images.AddRange(images); }
         if (campusArea.HasValue) CampusArea = campusArea.Value;
         if (deliveryPoint != null) DeliveryPoint = deliveryPoint;
+        if (isRental.HasValue) IsRental = isRental.Value;
+        if (deposit.HasValue) Deposit = deposit.Value;
+        if (rentalRate != null) RentalRate = rentalRate;
+        if (isRental.HasValue) IsRental = isRental.Value;
+        if (deposit.HasValue) Deposit = deposit.Value;
+        if (rentalRate != null) RentalRate = rentalRate;
     }
 }

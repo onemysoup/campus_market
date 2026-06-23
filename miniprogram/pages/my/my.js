@@ -81,7 +81,7 @@ Page({
     try {
       const userId = userInfo.userId;
       if (userId) {
-        const creditData = await profileApi.getCredit(userId);
+        const creditData = await profileApi.getCredit();
         this.setData({
           creditScore: creditData.creditScore || 0,
           creditTier: this.getCreditTierLabel(creditData.creditTier)

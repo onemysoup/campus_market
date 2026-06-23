@@ -9,14 +9,16 @@ using Microsoft.EntityFrameworkCore;
 namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
-[Route("api/v1/users/{userId:guid}")]
+[Route("api/v1/users/me")]
 [Authorize(Policy = "AuthLevelL1")]
 public class ProfileController(AppDbContext db) : ControllerBase
 {
+    private Guid UserId => User.GetUserId();
+
     [HttpGet("credit")]
-    public async Task<IActionResult> GetCredit(Guid userId)
+    public async Task<IActionResult> GetCredit()
     {
-        var user = await db.Users.FindAsync(userId);
+        var user = await db.Users.FindAsync(UserId);
         if (user is null)
             return NotFound(new { code = 4004, message = "用户不存在" });
 
@@ -24,10 +26,10 @@ public class ProfileController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("credit/log")]
-    public async Task<IActionResult> GetCreditLog(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetCreditLog([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var logs = await db.CreditLogs
-            .Where(l => l.UserId == userId)
+            .Where(l => l.UserId == UserId)
             .OrderByDescending(l => l.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -38,10 +40,10 @@ public class ProfileController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetHistory(Guid userId)
+    public async Task<IActionResult> GetHistory()
     {
         var histories = await db.BrowseHistories
-            .Where(h => h.UserId == userId)
+            .Where(h => h.UserId == UserId)
             .OrderByDescending(h => h.BrowsedAt)
             .Take(20)
             .Select(h => new { h.ItemId, h.BrowsedAt })
@@ -51,10 +53,10 @@ public class ProfileController(AppDbContext db) : ControllerBase
     }
 
     [HttpDelete("history")]
-    public async Task<IActionResult> ClearHistory(Guid userId)
+    public async Task<IActionResult> ClearHistory()
     {
         var histories = await db.BrowseHistories
-            .Where(h => h.UserId == userId)
+            .Where(h => h.UserId == UserId)
             .ToListAsync();
 
         db.BrowseHistories.RemoveRange(histories);
@@ -64,10 +66,10 @@ public class ProfileController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("blacklist")]
-    public async Task<IActionResult> GetBlacklist(Guid userId)
+    public async Task<IActionResult> GetBlacklist()
     {
         var entries = await db.BlacklistEntries
-            .Where(b => b.UserId == userId)
+            .Where(b => b.UserId == UserId)
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync();
 
@@ -87,25 +89,25 @@ public class ProfileController(AppDbContext db) : ControllerBase
     }
 
     [HttpPost("blacklist")]
-    public async Task<IActionResult> AddBlacklist(Guid userId, [FromBody] AddBlacklistDTO dto)
+    public async Task<IActionResult> AddBlacklist([FromBody] AddBlacklistDTO dto)
     {
-        if (userId == dto.BlockedId)
+        if (UserId == dto.BlockedId)
             return BadRequest(new { code = 4000, message = "不能拉黑自己" });
 
-        if (await db.BlacklistEntries.AnyAsync(b => b.UserId == userId && b.BlockedId == dto.BlockedId))
+        if (await db.BlacklistEntries.AnyAsync(b => b.UserId == UserId && b.BlockedId == dto.BlockedId))
             return Ok(new { code = 0, message = "已拉黑" });
 
-        db.BlacklistEntries.Add(new BlacklistEntry(userId, dto.BlockedId));
+        db.BlacklistEntries.Add(new BlacklistEntry(UserId, dto.BlockedId));
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "拉黑成功" });
     }
 
     [HttpDelete("blacklist/{blockedId:guid}")]
-    public async Task<IActionResult> RemoveBlacklist(Guid userId, Guid blockedId)
+    public async Task<IActionResult> RemoveBlacklist(Guid blockedId)
     {
         var entry = await db.BlacklistEntries
-            .FirstOrDefaultAsync(b => b.UserId == userId && b.BlockedId == blockedId);
+            .FirstOrDefaultAsync(b => b.UserId == UserId && b.BlockedId == blockedId);
         if (entry is null)
             return NotFound(new { code = 4004, message = "未拉黑该用户" });
 

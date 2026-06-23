@@ -37,7 +37,7 @@ public sealed record TransactionVO
         _ => 0
     };
 
-    public static TransactionVO FromEntity(Transaction transaction, decimal price = 0, string? itemTitle = null) => new()
+    public static TransactionVO FromEntity(Transaction transaction, decimal price = 0, string? itemTitle = null, string? secureToken = null) => new()
     {
         TransactionId = transaction.Id,
         ItemId = transaction.ItemId,
