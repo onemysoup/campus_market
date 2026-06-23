@@ -7,6 +7,16 @@ const { get, patch, post } = require('../utils/request');
 
 const adminApi = {
   /**
+   * 获取用户列表
+   * @param {Object} params
+   * @param {number} params.page - 页码
+   * @param {number} params.pageSize - 每页数量
+   */
+  getUsers(params = {}) {
+    return get('/api/v1/admin/users', params);
+  },
+
+  /**
    * 获取仪表盘统计数据
    */
   getDashboard() {

@@ -3,51 +3,32 @@
   background: #f8fafc;
 }
 
-/* ==================== 无权限 ==================== */
-.no-permission {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 200rpx 0;
-}
-
-.lock-icon {
-  font-size: 80rpx;
-  margin-bottom: 24rpx;
-}
-
-.no-perm-text {
-  font-size: 30rpx;
-  color: #64748b;
-}
-
 /* ==================== Tab 栏 ==================== */
-.admin-tabs {
+.tabs {
   display: flex;
   background: #fff;
   border-bottom: 1rpx solid #f1f5f9;
+  overflow-x: auto;
 }
 
-.admin-tab {
+.tab {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  padding: 24rpx 0;
-  font-size: 28rpx;
+  padding: 20rpx 0;
+  min-width: 120rpx;
   color: #64748b;
+  font-size: 22rpx;
   position: relative;
   transition: all 0.3s;
 }
 
-.admin-tab.active {
+.tab.active {
   color: #0f766e;
-  font-weight: 600;
 }
 
-.admin-tab.active::after {
+.tab.active::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -59,11 +40,12 @@
 }
 
 .tab-icon {
-  font-size: 32rpx;
+  font-size: 36rpx;
+  margin-bottom: 4rpx;
 }
 
 /* ==================== 仪表盘 ==================== */
-.dashboard {
+.section {
   padding: 24rpx;
 }
 
@@ -99,24 +81,13 @@
   color: #64748b;
 }
 
-.section {
+.today-stats {
   background: #fff;
   border-radius: 16rpx;
   padding: 24rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-}
-
-.section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 20rpx;
-}
-
-.today-stats {
   display: flex;
   justify-content: space-around;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .today-item {
@@ -125,128 +96,176 @@
 
 .today-value {
   display: block;
-  font-size: 40rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #0f766e;
   margin-bottom: 8rpx;
 }
 
 .today-label {
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #64748b;
 }
 
-/* ==================== 举报列表 ==================== */
-.reports-section {
-  padding: 16rpx 24rpx;
+/* ==================== 列表头部 ==================== */
+.list-header {
+  margin-bottom: 16rpx;
 }
 
-.report-card {
+.list-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* ==================== 用户卡片 ==================== */
+.user-card {
   background: #fff;
   border-radius: 16rpx;
+  padding: 20rpx;
   margin-bottom: 16rpx;
-  overflow: hidden;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
-.report-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 20rpx;
-  background: #fffbeb;
-  border-bottom: 1rpx solid #fef3c7;
+.user-info {
+  margin-bottom: 16rpx;
 }
 
-.report-reason {
+.user-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+}
+
+.user-email {
+  font-size: 24rpx;
+  color: #64748b;
+  display: block;
+  margin-top: 4rpx;
+}
+
+.user-tags {
   display: flex;
-  align-items: center;
   gap: 8rpx;
+  margin-top: 12rpx;
 }
 
-.reason-tag {
+.tag {
   font-size: 20rpx;
-  padding: 4rpx 10rpx;
-  background: #f59e0b;
-  color: #fff;
+  padding: 4rpx 12rpx;
   border-radius: 6rpx;
 }
 
-.reason-text {
-  font-size: 26rpx;
-  color: #92400e;
+.auth-0 { background: #f1f5f9; color: #64748b; }
+.auth-1 { background: #dcfce7; color: #16a34a; }
+.auth-2 { background: #dbeafe; color: #2563eb; }
+.credit { background: #fef3c7; color: #d97706; }
+.banned { background: #fee2e2; color: #dc2626; }
+
+.user-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.action-btn {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
   font-weight: 500;
 }
 
-.report-time {
-  font-size: 22rpx;
-  color: #94a3b8;
+.action-btn.ban { background: #fee2e2; color: #dc2626; }
+.action-btn.unban { background: #dcfce7; color: #16a34a; }
+.action-btn.credit { background: #dbeafe; color: #2563eb; }
+.action-btn.offline { background: #fee2e2; color: #dc2626; }
+.action-btn.detail { background: #f0fdfa; color: #0f766e; }
+.action-btn.accept { background: #dcfce7; color: #16a34a; }
+.action-btn.reject { background: #fee2e2; color: #dc2626; }
+
+/* ==================== 商品卡片 ==================== */
+.item-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
-.report-body {
-  padding: 16rpx 20rpx;
+.item-info {
+  margin-bottom: 16rpx;
+}
+
+.item-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+}
+
+.item-meta {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  margin-top: 8rpx;
+}
+
+.item-price { font-size: 28rpx; font-weight: 700; color: #dc2626; }
+.item-category { font-size: 22rpx; color: #0f766e; background: #f0fdfa; padding: 2rpx 10rpx; border-radius: 6rpx; }
+.item-status { font-size: 22rpx; font-weight: 500; }
+.item-time { font-size: 22rpx; color: #94a3b8; display: block; margin-top: 8rpx; }
+
+.item-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+/* ==================== 举报卡片 ==================== */
+.report-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .report-info {
-  display: flex;
-  margin-bottom: 8rpx;
-  font-size: 26rpx;
+  margin-bottom: 16rpx;
 }
 
-.report-label {
-  color: #64748b;
-  flex-shrink: 0;
-}
-
-.report-value {
-  color: #334155;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.report-reason {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #dc2626;
+  display: block;
 }
 
 .report-desc {
   font-size: 26rpx;
   color: #475569;
-  line-height: 1.5;
-  margin-top: 12rpx;
-  padding-top: 12rpx;
-  border-top: 1rpx solid #f1f5f9;
+  display: block;
+  margin-top: 8rpx;
 }
 
-.report-footer {
+.report-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+  display: block;
+  margin-top: 8rpx;
+}
+
+.report-actions {
   display: flex;
   gap: 12rpx;
-  padding: 16rpx 20rpx;
-  border-top: 1rpx solid #f1f5f9;
 }
 
-.btn-action {
-  flex: 1;
-  font-size: 24rpx;
-  padding: 12rpx 0;
-  border-radius: 8rpx;
-  line-height: 1.5;
-  min-height: 0;
-}
-
-.btn-action::after {
-  border: none;
-}
-
-.btn-dismiss {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.btn-accept {
-  background: #f0fdfa;
-  color: #0f766e;
-}
-
-.btn-ban {
-  background: #fef2f2;
-  color: #dc2626;
+.empty {
+  text-align: center;
+  padding: 60rpx;
+  color: #94a3b8;
+  font-size: 28rpx;
 }
 
 /* ==================== 弹窗 ==================== */
@@ -265,49 +284,41 @@
 
 .modal-content {
   width: 85%;
-  max-height: 80vh;
   background: #fff;
   border-radius: 24rpx;
-  overflow: hidden;
+  padding: 32rpx;
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: 700;
   color: #0f172a;
-  padding: 32rpx 24rpx 16rpx;
   text-align: center;
+  margin-bottom: 8rpx;
 }
 
 .modal-subtitle {
   font-size: 26rpx;
   color: #64748b;
   text-align: center;
-  padding-bottom: 16rpx;
-}
-
-.modal-body {
-  padding: 16rpx 24rpx;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.form-item {
   margin-bottom: 24rpx;
 }
 
+.form-item {
+  margin-bottom: 20rpx;
+}
+
 .form-label {
-  display: block;
   font-size: 26rpx;
   color: #475569;
-  font-weight: 500;
-  margin-bottom: 12rpx;
+  margin-bottom: 8rpx;
+  display: block;
 }
 
 .form-input {
   width: 100%;
   height: 80rpx;
-  padding: 0 20rpx;
+  padding: 0 16rpx;
   background: #f8fafc;
   border: 2rpx solid #e2e8f0;
   border-radius: 12rpx;
@@ -318,7 +329,7 @@
 .form-textarea {
   width: 100%;
   min-height: 120rpx;
-  padding: 16rpx 20rpx;
+  padding: 16rpx;
   background: #f8fafc;
   border: 2rpx solid #e2e8f0;
   border-radius: 12rpx;
@@ -326,87 +337,39 @@
   box-sizing: border-box;
 }
 
-.credit-hint {
-  font-size: 22rpx;
-  color: #94a3b8;
-  margin-bottom: 12rpx;
-}
-
 .modal-footer {
   display: flex;
-  border-top: 1rpx solid #f1f5f9;
-}
-
-.btn-modal {
-  flex: 1;
-  height: 96rpx;
-  line-height: 96rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  border-radius: 0;
-  border: none;
-  background: transparent;
-}
-
-.btn-modal::after {
-  border: none;
+  gap: 16rpx;
+  margin-top: 24rpx;
 }
 
 .btn-cancel {
+  flex: 1;
+  background: #f1f5f9;
   color: #64748b;
-  border-right: 1rpx solid #f1f5f9;
 }
 
 .btn-confirm {
-  color: #0f766e;
-  background: #f0fdfa;
+  flex: 1;
+  background: #0f766e;
+  color: #fff;
 }
 
-/* ==================== 加载状态 ==================== */
-.loading-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  padding: 32rpx 0;
-  color: #64748b;
-  font-size: 26rpx;
-}
-
-.loading-spinner {
-  width: 32rpx;
-  height: 32rpx;
-  border: 4rpx solid #e2e8f0;
-  border-top-color: #0f766e;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.no-more {
-  text-align: center;
-  padding: 32rpx 0;
-  color: #94a3b8;
-  font-size: 24rpx;
-}
-
-/* ==================== 空状态 ==================== */
-.empty-state {
+/* ==================== 无权限 ==================== */
+.no-permission {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 0;
+  justify-content: center;
+  padding: 200rpx 0;
 }
 
-.empty-icon {
+.lock-icon {
   font-size: 80rpx;
   margin-bottom: 24rpx;
 }
 
-.empty-text {
-  font-size: 28rpx;
-  color: #94a3b8;
+.no-perm-text {
+  font-size: 30rpx;
+  color: #64748b;
 }

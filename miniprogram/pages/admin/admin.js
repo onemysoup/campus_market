@@ -1,14 +1,15 @@
 /**
  * 管理后台页
- * 仪表盘 + 举报处理 + 用户封禁 + 信用分调整
- *
- * 权限要求：仅 Admin 角色可访问
+ * 仪表盘 + 用户管理 + 商品管理 + 举报处理
  */
 
 const adminApi = require('../../api/admin');
+const itemsApi = require('../../api/items');
 const {
   REPORT_REASON_MAP,
   ITEM_STATUS_MAP,
+  CATEGORY_LIST,
+  formatPrice,
   formatTime
 } = require('../../utils/constants');
 
@@ -30,25 +31,32 @@ Page({
     activeTab: 'dashboard',
     tabs: [
       { key: 'dashboard', label: '仪表盘', icon: '📊' },
+      { key: 'users', label: '用户管理', icon: '👥' },
+      { key: 'items', label: '商品管理', icon: '📦' },
       { key: 'reports', label: '举报处理', icon: '🚨' }
     ],
+    // 用户列表
+    users: [],
+    userPage: 1,
+    userHasMore: true,
+    // 商品列表
+    items: [],
+    itemPage: 1,
+    itemHasMore: true,
     // 举报列表
     reports: [],
     reportPage: 1,
     reportHasMore: true,
     // 加载状态
     loading: false,
+    loadingUsers: false,
+    loadingItems: false,
     loadingReports: false,
     // 操作弹窗
     showActionModal: false,
-    actionType: '',  // 'handleReport' | 'toggleBan' | 'adjustCredit'
+    actionType: '',
     actionData: {},
     actionLoading: false,
-    // 举报处理表单
-    reportForm: {
-      accept: true,
-      note: ''
-    },
     // 信用分调整表单
     creditForm: {
       userId: '',
@@ -57,8 +65,7 @@ Page({
     }
   },
 
-  onLoad() {
-    // 权限硬性判断
+  onLoad(options) {
     const app = getApp();
     if (!app.checkLogin()) {
       wx.navigateBack();
@@ -78,12 +85,33 @@ Page({
       return;
     }
 
-    this.setData({ isAdmin: true });
-    this.loadDashboard();
+    // 支持从 URL 参数指定初始 Tab
+    const initialTab = options.tab || 'dashboard';
+    this.setData({ isAdmin: true, activeTab: initialTab });
+
+    // 加载对应 Tab 的数据
+    if (initialTab === 'dashboard') {
+      this.loadDashboard();
+    } else if (initialTab === 'users') {
+      this.loadUsers(true);
+    } else if (initialTab === 'items') {
+      this.loadItems(true);
+    } else if (initialTab === 'reports') {
+      this.loadReports(true);
+    }
   },
 
   onPullDownRefresh() {
-    this.loadDashboard().finally(() => wx.stopPullDownRefresh());
+    const { activeTab } = this.data;
+    if (activeTab === 'dashboard') {
+      this.loadDashboard().finally(() => wx.stopPullDownRefresh());
+    } else if (activeTab === 'users') {
+      this.loadUsers(true).finally(() => wx.stopPullDownRefresh());
+    } else if (activeTab === 'items') {
+      this.loadItems(true).finally(() => wx.stopPullDownRefresh());
+    } else if (activeTab === 'reports') {
+      this.loadReports(true).finally(() => wx.stopPullDownRefresh());
+    }
   },
 
   // ==================== Tab 切换 ====================
@@ -95,6 +123,10 @@ Page({
 
     if (tab === 'dashboard') {
       this.loadDashboard();
+    } else if (tab === 'users') {
+      this.loadUsers(true);
+    } else if (tab === 'items') {
+      this.loadItems(true);
     } else if (tab === 'reports') {
       this.loadReports(true);
     }
@@ -116,7 +148,119 @@ Page({
     }
   },
 
-  // ==================== 举报列表 ====================
+  // ==================== 用户管理 ====================
+
+  async loadUsers(reset = false) {
+    if (this.data.loadingUsers) return;
+
+    const page = reset ? 1 : this.data.userPage + 1;
+    this.setData({ loadingUsers: true });
+
+    try {
+      const result = await adminApi.getUsers({ page, pageSize: 20 });
+      const users = (result.users || []).map(u => ({
+        ...u,
+        timeText: formatTime(u.createdAt)
+      }));
+
+      this.setData({
+        users: reset ? users : [...this.data.users, ...users],
+        userPage: page,
+        userHasMore: users.length >= 20,
+        loadingUsers: false
+      });
+    } catch (error) {
+      console.error('[Admin] loadUsers error:', error);
+      this.setData({ loadingUsers: false });
+    }
+  },
+
+  onToggleBan(e) {
+    const { userid, nickname, banned } = e.currentTarget.dataset;
+    const isBanned = banned === 'true';
+
+    wx.showModal({
+      title: isBanned ? '解封用户' : '封禁用户',
+      content: `确定要${isBanned ? '解封' : '封禁'}用户「${nickname}」吗？`,
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await adminApi.toggleBan(userid, !isBanned);
+          wx.showToast({ title: isBanned ? '已解封' : '已封禁', icon: 'success' });
+          this.loadUsers(true);
+        } catch (error) {
+          console.error('[Admin] toggleBan error:', error);
+        }
+      }
+    });
+  },
+
+  onAdjustCredit(e) {
+    const { userid, nickname } = e.currentTarget.dataset;
+    this.setData({
+      showActionModal: true,
+      actionType: 'adjustCredit',
+      actionData: { userId: userid, nickname },
+      creditForm: { userId: userid, delta: '', reason: '' }
+    });
+  },
+
+  // ==================== 商品管理 ====================
+
+  async loadItems(reset = false) {
+    if (this.data.loadingItems) return;
+
+    const page = reset ? 1 : this.data.itemPage + 1;
+    this.setData({ loadingItems: true });
+
+    try {
+      // 使用真实接口获取商品列表
+      const result = await itemsApi.getItems({ page, pageSize: 20 });
+      const items = (result.items || []).map(item => ({
+        ...item,
+        priceText: formatPrice(item.price),
+        categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '',
+        statusText: ITEM_STATUS_MAP[item.status]?.label || '',
+        statusColor: ITEM_STATUS_MAP[item.status]?.color || ''
+      }));
+
+      this.setData({
+        items: reset ? items : [...this.data.items, ...items],
+        itemPage: page,
+        itemHasMore: items.length >= 20,
+        loadingItems: false
+      });
+    } catch (error) {
+      console.error('[Admin] loadItems error:', error);
+      this.setData({ loadingItems: false });
+    }
+  },
+
+  onTakeOffline(e) {
+    const { itemid, title } = e.currentTarget.dataset;
+
+    wx.showModal({
+      title: '下架商品',
+      content: `确定要下架「${title}」吗？`,
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await itemsApi.changeStatus(itemid, 4);  // 4=Inactive
+          wx.showToast({ title: '已下架', icon: 'success' });
+          this.loadItems(true);
+        } catch (error) {
+          console.error('[Admin] takeOffline error:', error);
+        }
+      }
+    });
+  },
+
+  goDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${id}` });
+  },
+
+  // ==================== 举报处理 ====================
 
   async loadReports(reset = false) {
     if (this.data.loadingReports) return;
@@ -125,19 +269,17 @@ Page({
     this.setData({ loadingReports: true });
 
     try {
-      const result = await adminApi.getReports({
-        page,
-        pageSize: 10
-      });
-
-      const newList = reset
-        ? (result.reports || [])
-        : [...this.data.reports, ...(result.reports || [])];
+      const result = await adminApi.getReports({ page, pageSize: 20 });
+      const reports = (result.reports || []).map(r => ({
+        ...r,
+        reasonText: REPORT_REASON_MAP[r.reason]?.label || '未知',
+        timeText: formatTime(r.createdAt)
+      }));
 
       this.setData({
-        reports: newList,
+        reports: reset ? reports : [...this.data.reports, ...reports],
         reportPage: page,
-        reportHasMore: newList.length < (result.totalCount || 0),
+        reportHasMore: reports.length >= 20,
         loadingReports: false
       });
     } catch (error) {
@@ -146,87 +288,33 @@ Page({
     }
   },
 
-  onReportReachBottom() {
-    if (this.data.reportHasMore && !this.data.loadingReports) {
-      this.loadReports(false);
-    }
-  },
-
-  // ==================== 操作弹窗 ====================
-
-  /**
-   * 打开处理举报弹窗
-   */
   onHandleReport(e) {
-    const report = e.currentTarget.dataset.report;
-    this.setData({
-      showActionModal: true,
-      actionType: 'handleReport',
-      actionData: report,
-      reportForm: { accept: true, note: '' }
-    });
-  },
-
-  /**
-   * 打开封禁用户弹窗
-   */
-  onToggleBan(e) {
-    const userId = e.currentTarget.dataset.userid;
-    const nickname = e.currentTarget.dataset.nickname;
-    const isBanned = e.currentTarget.dataset.banned;
+    const { reportid, accept } = e.currentTarget.dataset;
 
     wx.showModal({
-      title: isBanned ? '解封用户' : '封禁用户',
-      content: `确定要${isBanned ? '解封' : '封禁'}用户「${nickname}」吗？`,
+      title: accept === 'true' ? '接受举报' : '驳回举报',
+      content: accept === 'true' ? '确定接受此举报？将对被举报者进行处理。' : '确定驳回此举报？',
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          await adminApi.toggleBan(userId, !isBanned);
-          wx.showToast({ title: isBanned ? '已解封' : '已封禁', icon: 'success' });
+          await adminApi.handleReport(reportid, accept === 'true', '');
+          wx.showToast({ title: '处理成功', icon: 'success' });
+          this.loadReports(true);
           this.loadDashboard();
         } catch (error) {
-          console.error('[Admin] toggleBan error:', error);
+          console.error('[Admin] handleReport error:', error);
         }
       }
     });
   },
 
-  /**
-   * 打开调整信用分弹窗
-   */
-  onAdjustCredit(e) {
-    const userId = e.currentTarget.dataset.userid;
-    const nickname = e.currentTarget.dataset.nickname;
+  // ==================== 弹窗操作 ====================
 
-    this.setData({
-      showActionModal: true,
-      actionType: 'adjustCredit',
-      actionData: { userId, nickname },
-      creditForm: { userId, delta: '', reason: '' }
-    });
-  },
-
-  /**
-   * 关闭弹窗
-   */
   onCloseModal() {
     this.setData({ showActionModal: false });
   },
 
-  /**
-   * 阻止冒泡
-   */
   onStopPropagation() {},
-
-  // ==================== 表单输入 ====================
-
-  onReportAcceptChange(e) {
-    this.setData({ 'reportForm.accept': e.detail.value });
-  },
-
-  onReportNoteInput(e) {
-    this.setData({ 'reportForm.note': e.detail.value });
-  },
 
   onCreditDeltaInput(e) {
     this.setData({ 'creditForm.delta': e.detail.value });
@@ -236,36 +324,6 @@ Page({
     this.setData({ 'creditForm.reason': e.detail.value });
   },
 
-  // ==================== 提交操作 ====================
-
-  /**
-   * 提交举报处理
-   */
-  async onSubmitReport() {
-    const { actionData, reportForm } = this.data;
-    this.setData({ actionLoading: true });
-
-    try {
-      await adminApi.handleReport(
-        actionData.id,
-        reportForm.accept,
-        reportForm.note
-      );
-
-      wx.showToast({ title: '处理成功', icon: 'success' });
-      this.setData({ showActionModal: false });
-      this.loadReports(true);
-      this.loadDashboard();
-    } catch (error) {
-      console.error('[Admin] handleReport error:', error);
-    } finally {
-      this.setData({ actionLoading: false });
-    }
-  },
-
-  /**
-   * 提交信用分调整
-   */
   async onSubmitCredit() {
     const { creditForm } = this.data;
     const delta = Number(creditForm.delta);
@@ -282,15 +340,10 @@ Page({
 
     this.setData({ actionLoading: true });
     try {
-      await adminApi.adjustCredit(
-        creditForm.userId,
-        delta,
-        creditForm.reason.trim()
-      );
-
+      await adminApi.adjustCredit(creditForm.userId, delta, creditForm.reason.trim());
       wx.showToast({ title: '调整成功', icon: 'success' });
       this.setData({ showActionModal: false });
-      this.loadDashboard();
+      this.loadUsers(true);
     } catch (error) {
       console.error('[Admin] adjustCredit error:', error);
     } finally {

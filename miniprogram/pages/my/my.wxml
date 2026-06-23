@@ -8,6 +8,7 @@
 
       <!-- 认证等级徽章 -->
       <view class="badges">
+        <view class="badge admin-badge" wx:if="{{isAdmin}}">管理员</view>
         <view class="badge" style="background: {{authLevelColor}}20; color: {{authLevelColor}}; border: 1rpx solid {{authLevelColor}}40;">
           {{authLevelLabel}}
         </view>
@@ -17,8 +18,37 @@
       </view>
     </view>
 
-    <!-- 功能菜单 -->
-    <view class="card menu-card">
+    <!-- 管理员菜单 -->
+    <view class="card menu-card" wx:if="{{isAdmin}}">
+      <view class="menu-item" bindtap="goAdmin">
+        <text class="menu-icon">📊</text>
+        <text class="menu-text">管理后台</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" bindtap="goAdminUsers">
+        <text class="menu-icon">👥</text>
+        <text class="menu-text">用户管理</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" bindtap="goAdminItems">
+        <text class="menu-icon">📦</text>
+        <text class="menu-text">商品管理</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" bindtap="goAdminReports">
+        <text class="menu-icon">🚨</text>
+        <text class="menu-text">举报处理</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" bindtap="onEditProfile">
+        <text class="menu-icon">⚙️</text>
+        <text class="menu-text">账号设置</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 普通用户菜单 -->
+    <view class="card menu-card" wx:if="{{!isAdmin}}">
       <view class="menu-item" bindtap="goOrders">
         <text class="menu-icon">📦</text>
         <text class="menu-text">我的订单</text>
@@ -39,11 +69,6 @@
         <text class="menu-text">账号设置</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" wx:if="{{user.role==='admin'}}" bindtap="goAdmin">
-        <text class="menu-icon">🛡️</text>
-        <text class="menu-text">管理员后台</text>
-        <text class="menu-arrow">›</text>
-      </view>
     </view>
 
     <!-- 退出按钮 -->
@@ -55,7 +80,7 @@
   <!-- 未登录 -->
   <block wx:if="{{!isLoggedIn}}">
     <view class="card empty-card">
-      <image class="empty-icon" src="https://dummyimage.com/200x200/e2e8f0/64748b&text=👤" mode="aspectFit" />
+      <text class="empty-icon">👤</text>
       <view class="empty-title">登录后查看更多</view>
       <view class="empty-desc">登录后可查看订单、收藏和发布管理</view>
       <button class="btn-primary" bindtap="goLogin">去登录</button>

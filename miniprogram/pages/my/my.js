@@ -11,6 +11,7 @@ Page({
   data: {
     isLoggedIn: false,
     user: {},
+    isAdmin: false,
     // 扩展信息
     creditScore: 0,
     creditTier: '',
@@ -19,7 +20,7 @@ Page({
     authLevelColor: '#94a3b8',
     campusLabel: '',
     // UI
-    fallback: 'https://dummyimage.com/120x120/e2e8f0/64748b&text=U',
+    fallback: '',
     loading: false
   },
 
@@ -50,6 +51,7 @@ Page({
       this.setData({
         isLoggedIn: false,
         user: {},
+        isAdmin: false,
         creditScore: 0,
         creditTier: '',
         authLevel: 0,
@@ -62,11 +64,14 @@ Page({
 
     // 从 userInfo 中获取 authLevel（优先使用本地存储的最新值）
     const authLevel = userInfo.authLevel || app.globalData.authLevel || 0;
+    const roleType = userInfo.roleType || app.globalData.roleType || '';
+    const isAdmin = roleType === 'Admin';
 
     // 先用本地缓存快速渲染
     this.setData({
       isLoggedIn: true,
       user: userInfo,
+      isAdmin: isAdmin,
       authLevel: authLevel,
       authLevelLabel: AUTH_LEVEL_MAP[authLevel]?.label || '未认证',
       authLevelColor: AUTH_LEVEL_MAP[authLevel]?.color || '#94a3b8'
@@ -120,6 +125,18 @@ Page({
 
   goAdmin() {
     wx.navigateTo({ url: '/pages/admin/admin' });
+  },
+
+  goAdminUsers() {
+    wx.navigateTo({ url: '/pages/admin/admin?tab=users' });
+  },
+
+  goAdminItems() {
+    wx.navigateTo({ url: '/pages/admin/admin?tab=items' });
+  },
+
+  goAdminReports() {
+    wx.navigateTo({ url: '/pages/admin/admin?tab=reports' });
   },
 
   goLogin() {

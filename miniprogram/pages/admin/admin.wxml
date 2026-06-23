@@ -1,206 +1,189 @@
-<view class="container">
-  <!-- 权限拦截 -->
-  <view class="no-permission" wx:if="{{!isAdmin}}">
-    <text class="lock-icon">🔒</text>
-    <text class="no-perm-text">仅管理员可访问</text>
+<view class="container" wx:if="{{isAdmin}}">
+  <!-- Tab 栏 -->
+  <view class="tabs">
+    <view
+      class="tab {{activeTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-tab="{{item.key}}"
+      bindtap="onTabChange"
+    >
+      <text class="tab-icon">{{item.icon}}</text>
+      <text class="tab-text">{{item.label}}</text>
+    </view>
   </view>
 
-  <!-- 管理后台主内容 -->
-  <block wx:if="{{isAdmin}}">
-    <!-- Tab 栏 -->
-    <view class="admin-tabs">
-      <view
-        class="admin-tab {{activeTab === item.key ? 'active' : ''}}"
-        wx:for="{{tabs}}"
-        wx:key="key"
-        data-tab="{{item.key}}"
-        bindtap="onTabChange"
-      >
-        <text class="tab-icon">{{item.icon}}</text>
-        <text class="tab-text">{{item.label}}</text>
+  <!-- 仪表盘 -->
+  <view class="section" wx:if="{{activeTab === 'dashboard'}}">
+    <view class="stats-grid">
+      <view class="stat-card">
+        <text class="stat-value">{{dashboard.totalUsers || 0}}</text>
+        <text class="stat-label">总用户</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-value">{{dashboard.totalItems || 0}}</text>
+        <text class="stat-label">总商品</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-value">{{dashboard.activeItems || 0}}</text>
+        <text class="stat-label">在售商品</text>
+      </view>
+      <view class="stat-card highlight">
+        <text class="stat-value">{{dashboard.pendingReports || 0}}</text>
+        <text class="stat-label">待处理举报</text>
       </view>
     </view>
-
-    <!-- ==================== 仪表盘 ==================== -->
-    <view class="dashboard" wx:if="{{activeTab === 'dashboard'}}">
-      <!-- 统计卡片 -->
-      <view class="stats-grid">
-        <view class="stat-card">
-          <text class="stat-value">{{dashboard.totalUsers || 0}}</text>
-          <text class="stat-label">总用户数</text>
-        </view>
-        <view class="stat-card">
-          <text class="stat-value">{{dashboard.totalItems || 0}}</text>
-          <text class="stat-label">总商品数</text>
-        </view>
-        <view class="stat-card">
-          <text class="stat-value">{{dashboard.activeItems || 0}}</text>
-          <text class="stat-label">在售商品</text>
-        </view>
-        <view class="stat-card highlight">
-          <text class="stat-value">{{dashboard.pendingReports || 0}}</text>
-          <text class="stat-label">待处理举报</text>
-        </view>
+    <view class="today-stats">
+      <view class="today-item">
+        <text class="today-value">{{dashboard.todayNewUsers || 0}}</text>
+        <text class="today-label">今日新增用户</text>
       </view>
-
-      <!-- 今日数据 -->
-      <view class="section">
-        <view class="section-title">📈 今日数据</view>
-        <view class="today-stats">
-          <view class="today-item">
-            <text class="today-value">{{dashboard.todayNewUsers || 0}}</text>
-            <text class="today-label">新用户</text>
-          </view>
-          <view class="today-item">
-            <text class="today-value">{{dashboard.todayNewItems || 0}}</text>
-            <text class="today-label">新商品</text>
-          </view>
-          <view class="today-item">
-            <text class="today-value">{{dashboard.todayTransactions || 0}}</text>
-            <text class="today-label">新交易</text>
-          </view>
-        </view>
+      <view class="today-item">
+        <text class="today-value">{{dashboard.todayNewItems || 0}}</text>
+        <text class="today-label">今日新增商品</text>
+      </view>
+      <view class="today-item">
+        <text class="today-value">{{dashboard.todayTransactions || 0}}</text>
+        <text class="today-label">今日交易</text>
       </view>
     </view>
+  </view>
 
-    <!-- ==================== 举报处理 ==================== -->
-    <view class="reports-section" wx:if="{{activeTab === 'reports'}}">
-      <!-- 空状态 -->
-      <view class="empty-state" wx:if="{{reports.length === 0 && !loadingReports}}">
-        <text class="empty-icon">✅</text>
-        <text class="empty-text">暂无待处理举报</text>
-      </view>
-
-      <!-- 举报列表 -->
-      <view class="report-card" wx:for="{{reports}}" wx:key="id">
-        <view class="report-header">
-          <view class="report-reason">
-            <text class="reason-tag">举报原因</text>
-            <text class="reason-text">{{item.reasonType === 0 ? '虚假商品' : item.reasonType === 1 ? '垃圾广告' : item.reasonType === 2 ? '不当内容' : item.reasonType === 3 ? '欺诈行为' : '其他'}}</text>
-          </view>
-          <text class="report-time">{{item.createdAt}}</text>
-        </view>
-
-        <view class="report-body">
-          <view class="report-info">
-            <text class="report-label">举报人：</text>
-            <text class="report-value">{{item.reporterId}}</text>
-          </view>
-          <view class="report-info">
-            <text class="report-label">被举报：</text>
-            <text class="report-value">{{item.targetId}}</text>
-          </view>
-          <view class="report-desc" wx:if="{{item.description}}">
-            <text class="report-label">描述：</text>
-            <text>{{item.description}}</text>
+  <!-- 用户管理 -->
+  <view class="section" wx:if="{{activeTab === 'users'}}">
+    <view class="list-header">
+      <text class="list-title">用户列表</text>
+    </view>
+    <view class="user-list">
+      <view class="user-card" wx:for="{{users}}" wx:key="userId">
+        <view class="user-info">
+          <text class="user-name">{{item.nickname}}</text>
+          <text class="user-email">{{item.email}}</text>
+          <view class="user-tags">
+            <text class="tag auth-{{item.authLevel}}">L{{item.authLevel}}</text>
+            <text class="tag credit">信用: {{item.creditScore}}</text>
+            <text class="tag banned" wx:if="{{item.isBanned}}">已封禁</text>
           </view>
         </view>
-
-        <view class="report-footer">
-          <button
-            class="btn-action btn-dismiss"
-            size="mini"
-            data-report="{{item}}"
-            bindtap="onHandleReport"
-          >驳回</button>
-          <button
-            class="btn-action btn-accept"
-            size="mini"
-            data-report="{{item}}"
-            bindtap="onHandleReport"
-          >处理</button>
-          <button
-            class="btn-action btn-ban"
-            size="mini"
-            data-userid="{{item.targetId}}"
-            data-nickname="{{item.targetId}}"
-            data-banned="{{false}}"
+        <view class="user-actions">
+          <view
+            class="action-btn {{item.isBanned ? 'unban' : 'ban'}}"
+            data-userid="{{item.userId}}"
+            data-nickname="{{item.nickname}}"
+            data-banned="{{item.isBanned}}"
             catchtap="onToggleBan"
-          >封禁用户</button>
+          >
+            {{item.isBanned ? '解封' : '封禁'}}
+          </view>
+          <view
+            class="action-btn credit"
+            data-userid="{{item.userId}}"
+            data-nickname="{{item.nickname}}"
+            catchtap="onAdjustCredit"
+          >
+            调整信用
+          </view>
         </view>
       </view>
+    </view>
+  </view>
 
-      <!-- 加载更多 -->
-      <view class="loading-more" wx:if="{{loadingReports}}">
-        <view class="loading-spinner"></view>
-        <text>加载中...</text>
-      </view>
-
-      <view class="no-more" wx:if="{{!reportHasMore && reports.length > 0 && !loadingReports}}">
-        <text>— 没有更多了 —</text>
+  <!-- 商品管理 -->
+  <view class="section" wx:if="{{activeTab === 'items'}}">
+    <view class="list-header">
+      <text class="list-title">商品列表</text>
+    </view>
+    <view class="item-list">
+      <view class="item-card" wx:for="{{items}}" wx:key="itemId">
+        <view class="item-info">
+          <text class="item-title">{{item.title}}</text>
+          <view class="item-meta">
+            <text class="item-price">¥{{item.priceText}}</text>
+            <text class="item-category">{{item.categoryText}}</text>
+            <text class="item-status" style="color: {{item.statusColor}};">{{item.statusText}}</text>
+          </view>
+          <text class="item-time">{{item.timeText}}</text>
+        </view>
+        <view class="item-actions">
+          <view
+            class="action-btn offline"
+            wx:if="{{item.status === 1}}"
+            data-itemid="{{item.itemId}}"
+            data-title="{{item.title}}"
+            catchtap="onTakeOffline"
+          >
+            下架
+          </view>
+          <view class="action-btn detail" data-id="{{item.itemId}}" catchtap="goDetail">
+            详情
+          </view>
+        </view>
       </view>
     </view>
-  </block>
+  </view>
 
-  <!-- ==================== 操作弹窗 ==================== -->
+  <!-- 举报处理 -->
+  <view class="section" wx:if="{{activeTab === 'reports'}}">
+    <view class="list-header">
+      <text class="list-title">待处理举报</text>
+    </view>
+    <view class="report-list">
+      <view class="report-card" wx:for="{{reports}}" wx:key="id">
+        <view class="report-info">
+          <text class="report-reason">{{item.reasonText}}</text>
+          <text class="report-desc">{{item.description || '无描述'}}</text>
+          <text class="report-time">{{item.timeText}}</text>
+        </view>
+        <view class="report-actions">
+          <view
+            class="action-btn accept"
+            data-reportid="{{item.id}}"
+            data-accept="true"
+            catchtap="onHandleReport"
+          >
+            接受
+          </view>
+          <view
+            class="action-btn reject"
+            data-reportid="{{item.id}}"
+            data-accept="false"
+            catchtap="onHandleReport"
+          >
+            驳回
+          </view>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{reports.length === 0 && !loadingReports}}">
+        暂无待处理举报
+      </view>
+    </view>
+  </view>
+
+  <!-- 信用分调整弹窗 -->
   <view class="modal-mask" wx:if="{{showActionModal}}" bindtap="onCloseModal">
     <view class="modal-content" catchtap="onStopPropagation">
-      <!-- 举报处理弹窗 -->
-      <block wx:if="{{actionType === 'handleReport'}}">
-        <view class="modal-title">处理举报</view>
-        <view class="modal-body">
-          <view class="form-item">
-            <text class="form-label">处理结果</text>
-            <radio-group bindchange="onReportAcceptChange">
-              <radio value="{{true}}" checked="{{reportForm.accept}}" color="#0f766e">接受举报</radio>
-              <radio value="{{false}}" checked="{{!reportForm.accept}}" color="#0f766e" style="margin-left: 40rpx;">驳回举报</radio>
-            </radio-group>
-          </view>
-          <view class="form-item">
-            <text class="form-label">处理备注</text>
-            <textarea
-              class="form-textarea"
-              placeholder="请输入处理备注（可选）"
-              value="{{reportForm.note}}"
-              bindinput="onReportNoteInput"
-            />
-          </view>
+      <view class="modal-title">调整信用分</view>
+      <view class="modal-subtitle">用户：{{actionData.nickname}}</view>
+      <view class="modal-body">
+        <view class="form-item">
+          <text class="form-label">调整分值（正数加分，负数扣分）</text>
+          <input class="form-input" type="number" placeholder="例：-10 或 +5" value="{{creditForm.delta}}" bindinput="onCreditDeltaInput" />
         </view>
-        <view class="modal-footer">
-          <button class="btn-modal btn-cancel" bindtap="onCloseModal">取消</button>
-          <button
-            class="btn-modal btn-confirm"
-            loading="{{actionLoading}}"
-            bindtap="onSubmitReport"
-          >确认处理</button>
+        <view class="form-item">
+          <text class="form-label">调整原因</text>
+          <textarea class="form-textarea" placeholder="请输入调整原因" value="{{creditForm.reason}}" bindinput="onCreditReasonInput" />
         </view>
-      </block>
-
-      <!-- 信用分调整弹窗 -->
-      <block wx:if="{{actionType === 'adjustCredit'}}">
-        <view class="modal-title">调整信用分</view>
-        <view class="modal-subtitle">用户：{{actionData.nickname}}</view>
-        <view class="modal-body">
-          <view class="form-item">
-            <text class="form-label">调整分值</text>
-            <view class="credit-hint">正数加分，负数扣分（范围：-100 ~ +100）</view>
-            <input
-              class="form-input"
-              type="number"
-              placeholder="例：-10 或 +5"
-              value="{{creditForm.delta}}"
-              bindinput="onCreditDeltaInput"
-            />
-          </view>
-          <view class="form-item">
-            <text class="form-label">调整原因</text>
-            <textarea
-              class="form-textarea"
-              placeholder="请输入调整原因（必填）"
-              value="{{creditForm.reason}}"
-              bindinput="onCreditReasonInput"
-            />
-          </view>
-        </view>
-        <view class="modal-footer">
-          <button class="btn-modal btn-cancel" bindtap="onCloseModal">取消</button>
-          <button
-            class="btn-modal btn-confirm"
-            loading="{{actionLoading}}"
-            bindtap="onSubmitCredit"
-          >确认调整</button>
-        </view>
-      </block>
+      </view>
+      <view class="modal-footer">
+        <button class="btn-cancel" bindtap="onCloseModal">取消</button>
+        <button class="btn-confirm" loading="{{actionLoading}}" bindtap="onSubmitCredit">确认</button>
+      </view>
     </view>
   </view>
+</view>
+
+<!-- 无权限 -->
+<view class="no-permission" wx:if="{{!isAdmin && !loading}}">
+  <text class="lock-icon">🔒</text>
+  <text class="no-perm-text">仅管理员可访问</text>
 </view>
