@@ -2,7 +2,6 @@
  * 我的收藏页
  * 展示当前用户收藏的商品，支持取消收藏
  *
- * TODO: 待后端提供 GET /api/v1/items/favorites 接口后对接
  */
 
 const itemsApi = require('../../api/items');
@@ -54,32 +53,6 @@ Page({
   },
 
   /**
-   * 生成 Mock 数据
-   */
-  generateMockData() {
-    const items = [
-      { title: 'iPhone 14 Pro Max', price: 6999 },
-      { title: '考研数学复习全书', price: 45 },
-      { title: '索尼 WH-1000XM5', price: 1899 },
-      { title: '宿舍懒人沙发', price: 128 }
-    ];
-
-    return items.map((item, i) => ({
-      itemId: `fav_item_${i}`,
-      title: item.title,
-      price: item.price,
-      priceText: item.price.toFixed(2),
-      firstImage: '',
-      category: i % 8,
-      categoryText: CATEGORY_LIST[i % 8]?.name || '',
-      status: 1,
-      statusText: '在售',
-      statusColor: '#22c55e',
-      viewCount: Math.floor(Math.random() * 200),
-      timeText: formatTime(new Date(Date.now() - i * 3600000).toISOString()),
-      isFavorited: true
-    }));
-  },
 
   /**
    * 格式化商品数据
