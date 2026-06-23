@@ -54,15 +54,26 @@ Page({
       const sessions = await chatApi.getSessions();
 
       // 处理会话数据，适配后端返回格式
-      const processedSessions = (sessions || []).map(session => ({
-        ...session,
-        // 显示对方的头像昵称（后端返回的是 otherUserId/otherUserNickname）
-        displayNickname: session.otherUserNickname || '用户',
-        displayAvatar: session.otherUserAvatar || '',
-        // 角色标签（根据是否有卖家信息判断）
-        userRole: 0,
-        userRoleText: '卖家'
-      }));
+      const userInfo = wx.getStorageSync('userInfo') || {};
+      const myUserId = userInfo.userId || '';
+
+      console.log('[Chat] myUserId:', myUserId);
+      console.log('[Chat] sessions:', sessions);
+
+      const processedSessions = (sessions || []).map(session => {
+        // 判断角色：如果当前用户是卖家，则对方是买家；否则对方是卖家
+        const isSeller = session.sellerId === myUserId;
+
+        console.log('[Chat] session.sellerId:', session.sellerId, 'isSeller:', isSeller);
+
+        return {
+          ...session,
+          displayNickname: session.otherUserNickname || '用户',
+          displayAvatar: session.otherUserAvatar || '',
+          userRole: isSeller ? 1 : 0,
+          userRoleText: isSeller ? '买家' : '卖家'
+        };
+      });
 
       this.setData({
         sessions: processedSessions,

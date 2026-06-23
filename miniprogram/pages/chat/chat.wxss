@@ -65,6 +65,25 @@
   background: #e2e8f0;
 }
 
+.avatar-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder text {
+  color: #fff;
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
 .unread-badge {
   position: absolute;
   top: -8rpx;

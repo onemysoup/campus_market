@@ -41,9 +41,12 @@
         <view class="avatar-wrap">
           <image
             class="avatar"
-            src="{{item.displayAvatar}}"
+            src="{{item.displayAvatar || ''}}"
             mode="aspectFill"
           />
+          <view class="avatar-placeholder" wx:if="{{!item.displayAvatar}}">
+            <text>{{item.displayNickname[0] || '?'}}</text>
+          </view>
           <view class="unread-badge" wx:if="{{item.unreadCount > 0}}">
             {{item.unreadCount > 99 ? '99+' : item.unreadCount}}
           </view>
@@ -53,7 +56,7 @@
       <!-- 中间：主内容 -->
       <view class="session-center">
         <view class="session-top">
-          <text class="nickname">{{item.displayNickname}}</text>
+          <text class="nickname">{{item.displayNickname || '用户'}}</text>
           <view class="role-tag {{item.userRole === 1 ? 'buyer' : 'seller'}}">
             {{item.userRoleText}}
           </view>
