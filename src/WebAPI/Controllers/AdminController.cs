@@ -13,6 +13,30 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public class AdminController(AppDbContext db) : ControllerBase
 {
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var query = db.Users.OrderByDescending(u => u.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var users = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new
+            {
+                userId = u.Id,
+                nickname = u.Nickname,
+                email = u.EmailAddress,
+                authLevel = (int)u.AuthLevel,
+                creditScore = u.CreditScore,
+                isBanned = u.IsBanned,
+                createdAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = new { users, totalCount, page, pageSize } });
+    }
+
     [HttpGet("stats/dashboard")]
     public async Task<IActionResult> GetDashboard()
     {

@@ -52,7 +52,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, isNewUser)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), isNewUser)
         });
     }
 
@@ -63,7 +63,9 @@ public class AuthController(
         if (user is null)
             return NotFound(new { code = 4004, message = "用户不存在" });
 
-        if (!user.HasPassword() || !PasswordHelper.Verify(request.Password, user.PasswordHash!))
+        // 检查 PasswordHash 或 SecurityPasswordHash
+        var passwordHash = user.PasswordHash ?? user.SecurityPasswordHash;
+        if (string.IsNullOrEmpty(passwordHash) || !PasswordHelper.Verify(request.Password, passwordHash))
             return Unauthorized(new { code = 4001, message = "邮箱或密码错误" });
 
         if (user.IsBanned)
@@ -74,7 +76,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, false)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), false)
         });
     }
 

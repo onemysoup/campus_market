@@ -55,6 +55,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AuthLevelL0", policy => policy.RequireAuthenticatedUser())
     .AddPolicy("AuthLevelL1", policy => policy.RequireClaim("authLevel", "1", "2"))
     .AddPolicy("AdminOnly", policy => policy.RequireClaim("roleType", "Admin"));
 

@@ -170,10 +170,13 @@ public class ItemsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ItemStatusChangeDTO dto)
     {
         var userId = User.GetUserId();
+        var roleType = User.GetRoleType();
         var item = await db.Items.FirstOrDefaultAsync(i => i.Id == id);
         if (item is null)
             return NotFound(new { code = 4004, message = "商品不存在" });
-        if (!item.CanBeEditedBy(userId))
+
+        // 管理员可以修改任何商品，普通用户只能修改自己的
+        if (roleType != "Admin" && !item.CanBeEditedBy(userId))
             return Forbid();
 
         var result = item.TransitionTo(dto.Status);

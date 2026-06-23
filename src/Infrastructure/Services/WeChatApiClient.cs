@@ -1,10 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CAUSecondHand.Infrastructure.Services;
 
-public sealed class WeChatApiClient(HttpClient http, IOptions<WeChatOptions> options) : IWeChatApiClient
+public sealed class WeChatApiClient(HttpClient http, IOptions<WeChatOptions> options, ILogger<WeChatApiClient> logger) : IWeChatApiClient
 {
     public async Task<WeChatSession?> Code2SessionAsync(string code)
     {
@@ -12,7 +13,13 @@ public sealed class WeChatApiClient(HttpClient http, IOptions<WeChatOptions> opt
                   $"?appid={options.Value.AppId}&secret={options.Value.AppSecret}" +
                   $"&js_code={code}&grant_type=authorization_code";
 
+        logger.LogInformation("请求微信 API: {Url}", url.Replace(options.Value.AppSecret, "***"));
+
         var result = await http.GetFromJsonAsync<WeChatSessionResponse>(url);
+
+        logger.LogInformation("微信 API 响应: errcode={Errcode}, errmsg={Errmsg}, openid={OpenId}",
+            result?.Errcode, result?.Errmsg, result?.OpenId);
+
         if (result is null || result.Errcode != 0
             || string.IsNullOrWhiteSpace(result.OpenId)
             || string.IsNullOrWhiteSpace(result.SessionKey))

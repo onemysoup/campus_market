@@ -48,6 +48,7 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
                 ItemTitle = item?.Title,
                 ItemPrice = item?.Price ?? 0,
                 ItemImage = item?.Images.Count > 0 ? item.Images[0] : null,
+                SellerId = item?.SellerId ?? Guid.Empty,
                 LastMessagePreview = s.LastMessagePreview,
                 LastMessageTime = s.LastMessageTime,
                 CreatedAt = s.CreatedAt

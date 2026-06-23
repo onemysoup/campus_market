@@ -5,33 +5,46 @@ namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/files")]
+[Authorize(Policy = "AuthLevelL0")]
 public class FilesController(IWebHostEnvironment env) : ControllerBase
 {
-    private static readonly HashSet<string> AllowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-
-    [Authorize(Policy = "AuthLevelL1")]
     [HttpPost("upload")]
-    [RequestSizeLimit(10 * 1024 * 1024)] // 10MB
     public async Task<IActionResult> Upload(IFormFile file)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new { code = 4000, message = "请选择文件" });
 
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedExtensions.Contains(ext))
-            return BadRequest(new { code = 4000, message = "不支持的文件格式，仅支持 jpg/png/gif/webp" });
+        // 限制文件大小 10MB
+        if (file.Length > 10 * 1024 * 1024)
+            return BadRequest(new { code = 4000, message = "文件大小不能超过10MB" });
 
-        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
-        var uploadsDir = Path.Combine(webRoot, "uploads");
-        Directory.CreateDirectory(uploadsDir);
+        // 限制文件类型
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest(new { code = 4000, message = "只支持 jpg/png/gif/webp 格式" });
 
+        // 生成唯一文件名
+        var ext = Path.GetExtension(file.FileName);
         var fileName = $"{Guid.NewGuid()}{ext}";
-        var filePath = Path.Combine(uploadsDir, fileName);
 
-        await using var stream = new FileStream(filePath, FileMode.Create);
-        await file.CopyToAsync(stream);
+        // 保存到 wwwroot/images
+        var imagesPath = Path.Combine(env.WebRootPath, "images");
+        if (!Directory.Exists(imagesPath))
+            Directory.CreateDirectory(imagesPath);
 
-        var url = $"/uploads/{fileName}";
-        return Ok(new { code = 0, data = new { url } });
+        var filePath = Path.Combine(imagesPath, fileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        // 返回访问 URL
+        var url = $"{Request.Scheme}://{Request.Host}/images/{fileName}";
+
+        return Ok(new
+        {
+            code = 0,
+            data = new { url }
+        });
     }
 }
