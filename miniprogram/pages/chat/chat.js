@@ -53,24 +53,16 @@ Page({
     try {
       const sessions = await chatApi.getSessions();
 
-      // 处理会话数据，根据当前用户显示对方信息
-      const userInfo = wx.getStorageSync('userInfo') || {};
-      const myUserId = userInfo.userId || '';
-
-      const processedSessions = (sessions || []).map(session => {
-        // 判断当前用户是买家还是卖家
-        const isSeller = session.sellerId === myUserId;
-
-        return {
-          ...session,
-          // 显示对方的头像昵称
-          displayNickname: isSeller ? (session.buyerNickname || '买家') : (session.sellerNickname || '卖家'),
-          displayAvatar: isSeller ? (session.buyerAvatar || '') : (session.sellerAvatar || ''),
-          // 角色标签
-          userRole: isSeller ? 1 : 0,
-          userRoleText: isSeller ? '买家' : '卖家'
-        };
-      });
+      // 处理会话数据，适配后端返回格式
+      const processedSessions = (sessions || []).map(session => ({
+        ...session,
+        // 显示对方的头像昵称（后端返回的是 otherUserId/otherUserNickname）
+        displayNickname: session.otherUserNickname || '用户',
+        displayAvatar: session.otherUserAvatar || '',
+        // 角色标签（根据是否有卖家信息判断）
+        userRole: 0,
+        userRoleText: '卖家'
+      }));
 
       this.setData({
         sessions: processedSessions,
@@ -90,9 +82,9 @@ Page({
     const session = e.currentTarget.dataset.session;
     this.goChatDetail(
       session.sessionId,
-      session.targetUserId || (session.userRole === 1 ? session.buyerId : session.sellerId),
+      session.otherUserId || session.targetUserId,
       session.itemId,
-      session.displayNickname
+      session.displayNickname || session.otherUserNickname
     );
   },
 

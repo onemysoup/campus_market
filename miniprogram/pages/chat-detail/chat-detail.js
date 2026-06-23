@@ -37,6 +37,7 @@ Page({
     }
 
     const { sessionId, targetUserId, itemId, targetNickname } = options;
+    console.log('[ChatDetail] onLoad options:', options);
 
     this.setData({
       sessionId: sessionId || '',
@@ -156,6 +157,7 @@ Page({
 
     // 调用后端接口发送消息
     try {
+      console.log('[ChatDetail] 发送消息:', { receiverId: targetUserId, itemId, content });
       await chatApi.sendMessage({
         receiverId: targetUserId,
         itemId: itemId,
