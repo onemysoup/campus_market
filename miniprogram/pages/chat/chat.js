@@ -71,7 +71,7 @@ Page({
           displayNickname: session.otherUserNickname || '用户',
           displayAvatar: session.otherUserAvatar || '',
           userRole: isSeller ? 1 : 0,
-          userRoleText: isSeller ? '买家' : '卖家'
+          userRoleText: isSeller ? '卖家' : '买家'
         };
       });
 

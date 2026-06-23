@@ -4,6 +4,7 @@
  */
 
 const itemsApi = require('../../api/items');
+const filesApi = require('../../api/files');
 const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
@@ -205,37 +206,28 @@ Page({
   },
 
   /**
-   * 上传图片（Mock 方案：保存为本地持久化文件）
+   * 上传图片（真实上传到后端服务器）
    */
   async uploadImages(tempFiles) {
     wx.showLoading({ title: '上传中...', mask: true });
 
     try {
-      const savedUrls = [];
+      const uploadedUrls = [];
 
       for (let i = 0; i < tempFiles.length; i++) {
-        // TODO: 替换为真实上传接口
-        // const url = await uploadApi.uploadFile(tempFiles[i]);
-
-        // Mock: 将临时文件保存为本地持久化文件
         try {
-          const saved = await new Promise((resolve, reject) => {
-            wx.saveFile({
-              tempFilePath: tempFiles[i],
-              success: (res) => resolve(res.savedFilePath),
-              fail: (err) => reject(err)
-            });
-          });
-          savedUrls.push(saved);
+          // 调用后端上传接口
+          const result = await filesApi.uploadImage(tempFiles[i]);
+          uploadedUrls.push(result.url);
         } catch (e) {
-          // 保存失败则使用原路径
-          console.warn('[Publish] saveFile failed, using temp path:', e);
-          savedUrls.push(tempFiles[i]);
+          console.error('[Publish] upload failed:', e);
+          wx.showToast({ title: '图片上传失败', icon: 'none' });
+          return;
         }
       }
 
       this.setData({
-        'form.images': [...this.data.form.images, ...savedUrls]
+        'form.images': [...this.data.form.images, ...uploadedUrls]
       });
 
       wx.showToast({ title: '上传成功', icon: 'success' });
