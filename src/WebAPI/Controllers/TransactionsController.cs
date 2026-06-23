@@ -90,6 +90,8 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             return BadRequest(new { code = 4000, message = "取货码错误" });
 
         transaction.ConfirmPickup();
+        if (transaction.Item is not null)
+            transaction.Item.TransitionTo(ItemStatus.Sold);
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "核销成功" });

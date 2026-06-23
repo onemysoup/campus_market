@@ -98,7 +98,10 @@ public sealed record ItemPublishDTO(
     ConditionLevel ConditionLevel,
     List<string> Images,
     CampusArea CampusArea,
-    bool IsNegotiable = true);
+    bool IsNegotiable = true,
+    bool IsRental = false,
+    string? RentalRate = null,
+    decimal? Deposit = null);
 
 public sealed record ItemEditDTO(
     string? Title,
@@ -108,7 +111,10 @@ public sealed record ItemEditDTO(
     ConditionLevel? ConditionLevel,
     List<string>? Images,
     CampusArea? CampusArea,
-    string? DeliveryPoint);
+    string? DeliveryPoint,
+    bool? IsRental = null,
+    string? RentalRate = null,
+    decimal? Deposit = null);
 
 public sealed record ItemStatusChangeDTO(ItemStatus Status);
 
