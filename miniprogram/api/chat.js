@@ -26,12 +26,14 @@ const chatApi = {
 
   /**
    * 发送消息
-   * @param {string} receiverId - 接收方用户 GUID
-   * @param {string} itemId     - 关联商品 GUID
-   * @param {string} content    - 消息内容
+   * @param {Object} data
+   * @param {string} data.receiverId - 接收方用户 GUID
+   * @param {string} data.itemId     - 关联商品 GUID
+   * @param {string} data.content    - 消息内容
+   * @param {number} data.msgType    - 消息类型 (0=文本, 1=图片)
    */
-  sendMessage(receiverId, itemId, content) {
-    return post('/api/v1/chats/send', { receiverId, itemId, content });
+  sendMessage(data) {
+    return post('/api/v1/chats/send', data);
   }
 };
 

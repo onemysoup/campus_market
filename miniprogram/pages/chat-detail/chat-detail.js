@@ -1,31 +1,31 @@
 /**
  * 聊天详情页
- * 对接后端 ChatController + SignalR 实时推送
+ * 对接后端：
+ * - GET /api/v1/chats/{sessionId}/messages
+ * - POST /api/v1/chats/send
  */
 
 const chatApi = require('../../api/chat');
 const itemsApi = require('../../api/items');
-const signalr = require('../../utils/signalr');
 const { formatPrice, formatTime } = require('../../utils/constants');
-
-function formatMsgTime(timestamp) {
-  const date = new Date(timestamp);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
 
 Page({
   data: {
+    // 会话信息
     sessionId: '',
     targetUserId: '',
     itemId: '',
     targetNickname: '',
+    // 商品信息（吸顶显示）
     itemInfo: null,
+    // 消息列表
     messages: [],
+    // 输入框
     inputContent: '',
     canSend: false,
+    // 滚动位置
     scrollToView: '',
+    // 加载状态
     loadingMessages: false
   },
 
@@ -45,48 +45,25 @@ Page({
       targetNickname: targetNickname ? decodeURIComponent(targetNickname) : '用户'
     });
 
-    wx.setNavigationBarTitle({ title: this.data.targetNickname });
+    // 设置页面标题
+    wx.setNavigationBarTitle({
+      title: this.data.targetNickname
+    });
 
-    if (itemId) this.loadItemInfo(itemId);
+    // 加载商品信息
+    if (itemId) {
+      this.loadItemInfo(itemId);
+    }
+
+    // 加载消息
     this.loadMessages();
-
-    // 建立 SignalR 实时连接
-    this.connectSignalR();
   },
 
-  onUnload() {
-    signalr.offMessage();
-  },
+  // ==================== 数据加载 ====================
 
   /**
-   * 建立 SignalR 实时连接，监听新消息
+   * 加载商品信息（吸顶显示）
    */
-  connectSignalR() {
-    const token = wx.getStorageSync('token');
-    if (!token) return;
-
-    signalr.connect(token);
-    signalr.onMessage((message) => {
-      // 只处理当前会话的消息
-      if (message.sessionId === this.data.sessionId && message.senderId !== (wx.getStorageSync('userInfo') || {}).userId) {
-        const newMsg = {
-          messageId: message.messageId,
-          senderId: message.senderId,
-          content: message.content,
-          timestamp: message.timestamp,
-          isMine: false,
-          timeText: formatMsgTime(message.timestamp)
-        };
-
-        this.setData({
-          messages: [...this.data.messages, newMsg]
-        });
-
-        this.scrollToBottom();
-      }
-    });
-  },
-
   async loadItemInfo(itemId) {
     try {
       const item = await itemsApi.getItem(itemId);
@@ -94,6 +71,7 @@ Page({
         itemInfo: {
           itemId: item.itemId,
           title: item.title,
+          price: formatPrice(item.price),
           priceText: formatPrice(item.price),
           image: item.images?.[0] || '',
           status: item.status,
@@ -105,26 +83,34 @@ Page({
     }
   },
 
+  /**
+   * 加载消息列表（对接后端）
+   */
   async loadMessages() {
     const { sessionId } = this.data;
     if (!sessionId) return;
 
     this.setData({ loadingMessages: true });
+
     try {
-      const result = await chatApi.getMessages(sessionId);
+      const result = await chatApi.getMessages(sessionId, { page: 1, pageSize: 50 });
+
+      // 处理消息数据
       const userInfo = wx.getStorageSync('userInfo') || {};
       const myUserId = userInfo.userId || '';
 
-      const messages = (result.messages || []).map(m => ({
-        messageId: m.messageId,
-        senderId: m.senderId,
-        content: m.content,
-        timestamp: m.timestamp,
-        isMine: m.senderId === myUserId,
-        timeText: formatMsgTime(m.timestamp)
+      const messages = (result?.messages || result || []).map(msg => ({
+        ...msg,
+        isMine: msg.senderId === myUserId,
+        timeText: this.formatMsgTime(msg.timestamp)
       }));
 
-      this.setData({ messages, loadingMessages: false });
+      this.setData({
+        messages,
+        loadingMessages: false
+      });
+
+      // 滚动到底部
       this.scrollToBottom();
     } catch (error) {
       console.error('[ChatDetail] loadMessages error:', error);
@@ -132,36 +118,64 @@ Page({
     }
   },
 
+  // ==================== 消息发送 ====================
+
   onInputChange(e) {
     const value = e.detail.value;
-    this.setData({ inputContent: value, canSend: value.trim().length > 0 });
+    this.setData({
+      inputContent: value,
+      canSend: value.trim().length > 0
+    });
   },
 
   async onSend() {
     const content = this.data.inputContent.trim();
-    if (!content || !this.data.targetUserId || !this.data.itemId) return;
+    if (!content) return;
 
+    const { targetUserId, itemId, sessionId } = this.data;
+
+    // 清空输入框
     this.setData({ inputContent: '', canSend: false });
 
+    // 乐观更新
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    const newMsg = {
+      messageId: `msg_${Date.now()}`,
+      senderId: userInfo.userId,
+      content,
+      timestamp: Date.now(),
+      isMine: true,
+      timeText: this.formatMsgTime(Date.now())
+    };
+
+    this.setData({
+      messages: [...this.data.messages, newMsg]
+    });
+
+    this.scrollToBottom();
+
+    // 调用后端接口发送消息
     try {
-      const result = await chatApi.sendMessage(this.data.targetUserId, this.data.itemId, content);
-
-      const newMsg = {
-        messageId: result.messageId,
-        senderId: result.senderId,
-        content: result.content,
-        timestamp: result.timestamp,
-        isMine: true,
-        timeText: formatMsgTime(result.timestamp)
-      };
-
-      this.setData({ messages: [...this.data.messages, newMsg] });
-      this.scrollToBottom();
+      await chatApi.sendMessage({
+        receiverId: targetUserId,
+        itemId: itemId,
+        content: content,
+        msgType: 0  // 文本消息
+      });
     } catch (error) {
-      console.error('[ChatDetail] send error:', error);
+      console.error('[ChatDetail] sendMessage error:', error);
       wx.showToast({ title: '发送失败', icon: 'none' });
-      this.setData({ inputContent: content, canSend: true });
     }
+  },
+
+  // ==================== 工具函数 ====================
+
+  formatMsgTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
   },
 
   scrollToBottom() {
@@ -172,9 +186,13 @@ Page({
     }
   },
 
+  // ==================== 商品信息栏点击 ====================
+
   onTapItem() {
     if (this.data.itemId) {
-      wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${this.data.itemId}` });
+      wx.navigateTo({
+        url: `/pages/goods-detail/goods-detail?id=${this.data.itemId}`
+      });
     }
   }
 });

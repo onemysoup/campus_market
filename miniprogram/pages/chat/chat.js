@@ -1,6 +1,6 @@
 /**
  * 消息列表页
- * 对接后端 ChatController (/api/v1/chats)
+ * 对接后端 GET /api/v1/chats
  */
 
 const chatApi = require('../../api/chat');
@@ -9,11 +9,7 @@ const { formatTime } = require('../../utils/constants');
 Page({
   data: {
     sessions: [],
-    page: 1,
-    pageSize: 20,
-    hasMore: true,
     loading: false,
-    loadingMore: false,
     hasLoaded: false
   },
 
@@ -26,114 +22,83 @@ Page({
   },
 
   onShow() {
+    // 检查是否从其他页面跳转过来
     const app = getApp();
     if (app.globalData.chatParams) {
       const { sellerId, itemId, sellerNickname } = app.globalData.chatParams;
       app.globalData.chatParams = null;
 
-      this.loadSessions(true);
-
-      setTimeout(() => {
+      // 先加载会话列表
+      this.loadSessions().then(() => {
+        // 跳转到聊天详情
         this.goChatDetail(null, sellerId, itemId, sellerNickname);
-      }, 100);
+      });
       return;
     }
 
-    this.loadSessions(true);
+    // 每次显示时刷新
+    this.loadSessions();
   },
 
   onPullDownRefresh() {
-    this.loadSessions(true).finally(() => wx.stopPullDownRefresh());
-  },
-
-  onReachBottom() {
-    if (this.data.hasMore && !this.data.loading && !this.data.loadingMore) {
-      this.loadSessions(false);
-    }
+    this.loadSessions().finally(() => wx.stopPullDownRefresh());
   },
 
   /**
-   * 加载会话列表
+   * 加载会话列表（对接后端）
    */
-  async loadSessions(reset = false) {
-    if (this.data.loading || this.data.loadingMore) return;
-
-    const isReset = reset;
-    const page = isReset ? 1 : this.data.page;
-
-    this.setData({
-      [isReset ? 'loading' : 'loadingMore']: true
-    });
+  async loadSessions() {
+    this.setData({ loading: true });
 
     try {
-      const result = await chatApi.getSessions();
+      const sessions = await chatApi.getSessions();
+
+      // 处理会话数据，根据当前用户显示对方信息
       const userInfo = wx.getStorageSync('userInfo') || {};
       const myUserId = userInfo.userId || '';
 
-      // 将后端返回的 ChatSessionVO 映射为前端展示格式
-      const sessions = (result || []).map(s => ({
-        sessionId: s.sessionId,
-        itemId: s.itemId,
-        itemTitle: s.itemTitle || '',
-        itemPrice: formatPrice(s.itemPrice),
-        itemImage: s.itemImage || '',
+      const processedSessions = (sessions || []).map(session => {
+        // 判断当前用户是买家还是卖家
+        const isSeller = session.sellerId === myUserId;
 
-        // 对方信息
-        targetUserId: s.otherUserId,
-        targetNickname: s.otherUserNickname || '未知用户',
-        targetAvatar: s.otherUserAvatar || '',
-
-        // 卖家/买家信息（根据当前用户判断）
-        sellerId: myUserId === s.otherUserId ? s.otherUserId : myUserId,
-        sellerNickname: myUserId === s.otherUserId ? s.otherUserNickname : userInfo.nickname || '我',
-        sellerAvatar: myUserId === s.otherUserId ? s.otherUserAvatar : userInfo.avatarUrl || '',
-        buyerId: myUserId !== s.otherUserId ? s.otherUserId : myUserId,
-        buyerNickname: myUserId !== s.otherUserId ? s.otherUserNickname : userInfo.nickname || '我',
-        buyerAvatar: myUserId !== s.otherUserId ? s.otherUserAvatar : userInfo.avatarUrl || '',
-
-        // 最后消息
-        lastMessage: s.lastMessagePreview || '',
-        updateTime: s.lastMessageTime || s.createdAt,
-        updateTimeText: formatTime(s.lastMessageTime || s.createdAt),
-        unreadCount: 0,
-
-        // 显示信息
-        displayNickname: s.otherUserNickname || '未知用户',
-        displayAvatar: s.otherUserAvatar || '',
-        userRole: 0,
-        userRoleText: '卖家'
-      }));
+        return {
+          ...session,
+          // 显示对方的头像昵称
+          displayNickname: isSeller ? (session.buyerNickname || '买家') : (session.sellerNickname || '卖家'),
+          displayAvatar: isSeller ? (session.buyerAvatar || '') : (session.sellerAvatar || ''),
+          // 角色标签
+          userRole: isSeller ? 1 : 0,
+          userRoleText: isSeller ? '买家' : '卖家'
+        };
+      });
 
       this.setData({
-        sessions: isReset ? sessions : [...this.data.sessions, ...sessions],
-        page: page + 1,
-        hasMore: false,
+        sessions: processedSessions,
         loading: false,
-        loadingMore: false,
         hasLoaded: true
       });
     } catch (error) {
       console.error('[Chat] loadSessions error:', error);
-      this.setData({
-        loading: false,
-        loadingMore: false,
-        hasLoaded: true
-      });
+      this.setData({ loading: false });
     }
   },
 
+  /**
+   * 点击会话卡片 → 跳转聊天详情
+   */
   onTapSession(e) {
     const session = e.currentTarget.dataset.session;
     this.goChatDetail(
       session.sessionId,
-      session.targetUserId,
+      session.targetUserId || (session.userRole === 1 ? session.buyerId : session.sellerId),
       session.itemId,
-      session.targetNickname
+      session.displayNickname
     );
   },
 
-  onReachTop() {},
-
+  /**
+   * 跳转聊天详情页
+   */
   goChatDetail(sessionId, targetUserId, itemId, targetNickname) {
     const params = [];
     if (sessionId) params.push(`sessionId=${sessionId}`);
@@ -146,35 +111,18 @@ Page({
     });
   },
 
-  onSlideDelete(e) {
-    const { session } = e.currentTarget.dataset;
-    const index = e.detail.index;
-
-    if (index === 0) {
-      wx.showModal({
-        title: '删除会话',
-        content: `确定删除与「${session.targetNickname}」的会话吗？`,
-        success: (res) => {
-          if (!res.confirm) return;
-
-          const sessions = this.data.sessions.filter(
-            s => s.sessionId !== session.sessionId
-          );
-          this.setData({ sessions });
-          wx.showToast({ title: '已删除', icon: 'success' });
-        }
-      });
-    }
-  },
-
+  /**
+   * 清空全部消息
+   */
   onClearAll() {
     wx.showModal({
       title: '清空消息',
-      content: '确定清空所有会话吗？',
+      content: '确定清空所有会话吗？此操作不可恢复。',
       confirmColor: '#ef4444',
       success: (res) => {
         if (!res.confirm) return;
-        this.setData({ sessions: [], page: 1, hasMore: false });
+
+        this.setData({ sessions: [] });
         wx.showToast({ title: '已清空', icon: 'success' });
       }
     });
