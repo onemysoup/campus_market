@@ -178,10 +178,11 @@ Page({
       // 刷新详情页状态
       this.loadDetail();
 
-      // 提示成功
+      var pickupCode = transaction.secureToken || "";
+      var msg = pickupCode ? "\ud83d\udd11\u53d6\u8d27\u7801\uff1a" + pickupCode + "\n\n\u8bf7\u524d\u5f80\u300c\u6211\u7684\u8ba2\u5355\u300d\u4e0e\u5356\u5bb6\u4ea4\u6613" : "\u8bf7\u524d\u5f80\u300c\u6211\u7684\u8ba2\u5355\u300d\u67e5\u770b\u4ea4\u6613\u8be6\u60c5";
       wx.showModal({
         title: '🎉 下单成功',
-        content: '请前往「我的订单」查看交易详情，与卖家协商取货事宜。',
+        content: msg,
         showCancel: true,
         cancelText: '留在这里',
         confirmText: '查看订单',
