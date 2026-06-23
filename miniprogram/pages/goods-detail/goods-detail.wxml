@@ -127,6 +127,10 @@
         <text class="action-icon">💬</text>
         <text class="action-text">联系</text>
       </view>
+      <view class="action-item" bindtap="onReport">
+        <text class="action-icon">⚠️</text>
+        <text class="action-text">举报</text>
+      </view>
     </view>
     <view class="action-right">
       <button

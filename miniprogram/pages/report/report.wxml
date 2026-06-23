@@ -1,0 +1,22 @@
+<view class="container">
+  <view class="card">
+    <view class="title">举报原因</view>
+    <view class="reason-tag">{{reasonText}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title">详细描述</view>
+    <textarea
+      class="textarea"
+      placeholder="请详细描述举报原因（必填）"
+      maxlength="500"
+      value="{{description}}"
+      bindinput="onDescInput"
+    />
+    <view class="count">{{description.length}}/500</view>
+  </view>
+
+  <view class="card">
+    <button class="btn-primary" loading="{{loading}}" bindtap="onSubmit">提交举报</button>
+  </view>
+</view>
