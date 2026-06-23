@@ -50,21 +50,24 @@ App({
    * @param {Object} loginData - 后端返回的登录数据
    */
   onLoginSuccess(loginData) {
-    const { token, userId, nickname, avatarUrl, authLevel, isNewUser } = loginData;
+    const { token, userId, nickname, avatarUrl, authLevel, roleType, isNewUser } = loginData;
 
     const userInfo = {
       userId,
       nickname: nickname || `用户${userId.slice(-4)}`,
       avatarUrl: avatarUrl || '',
       authLevel: authLevel || 0,
+      roleType: roleType || 'Student',
       authLevelLabel: AUTH_LEVEL_MAP[authLevel]?.label || '未认证',
-      canPublish: AUTH_LEVEL_MAP[authLevel]?.canPublish || false
+      canPublish: AUTH_LEVEL_MAP[authLevel]?.canPublish || false,
+      isAdmin: roleType === 'Admin'
     };
 
     this.globalData.token = token;
     this.globalData.userInfo = userInfo;
     this.globalData.isLoggedIn = true;
     this.globalData.authLevel = authLevel;
+    this.globalData.roleType = roleType;
 
     wx.setStorageSync('token', token);
     wx.setStorageSync('userInfo', userInfo);

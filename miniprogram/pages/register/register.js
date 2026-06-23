@@ -32,6 +32,20 @@ Page({
   timer: null,
 
   onLoad(options) {
+    // 检查登录状态
+    const token = wx.getStorageSync('token');
+    if (!token) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录后再进行操作',
+        showCancel: false,
+        success: () => {
+          wx.navigateBack();
+        }
+      });
+      return;
+    }
+
     // 从登录页跳转时可能带参数
     if (options.step === 'email') {
       this.setData({ mode: 'email' });

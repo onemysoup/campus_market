@@ -201,7 +201,7 @@ Page({
   // ==================== 联系卖家 ====================
 
   /**
-   * 发起聊天
+   * 发起聊天（跳转到消息页，然后进入聊天详情）
    */
   onContactSeller() {
     const { goods } = this.data;
@@ -219,9 +219,6 @@ Page({
       return;
     }
 
-    // 预创建会话记录到本地存储（这样消息列表能立即显示）
-    this.prepareSession(sellerId, goods.seller.nickname, goods);
-
     // 通过全局变量传递聊天参数，然后跳转到消息 Tab
     app.globalData.chatParams = {
       sellerId: sellerId,
@@ -229,47 +226,6 @@ Page({
       sellerNickname: goods.seller.nickname || '卖家'
     };
     wx.switchTab({ url: '/pages/chat/chat' });
-  },
-
-  /**
-   * 预创建会话记录
-   */
-  prepareSession(sellerId, sellerNickname, goods) {
-    const sessions = wx.getStorageSync('chatSessions') || [];
-
-    // 检查是否已存在
-    const exists = sessions.some(s =>
-      s.sellerId === sellerId && s.itemId === this.data.itemId
-    );
-
-    if (!exists) {
-      // 获取当前用户信息（买家）
-      const userInfo = wx.getStorageSync('userInfo') || {};
-
-      const newSession = {
-        sessionId: `session_${sellerId}_${this.data.itemId}_${Date.now()}`,
-        itemId: this.data.itemId,
-        itemTitle: goods.title || '商品',
-        itemPrice: goods.price || '0',
-        itemImage: goods.images?.[0] || '',
-        // 卖家信息
-        sellerId: sellerId,
-        sellerNickname: sellerNickname || '卖家',
-        sellerAvatar: goods.seller?.avatarUrl || '',
-        // 买家信息（当前用户）
-        buyerId: userInfo.userId || '',
-        buyerNickname: userInfo.nickname || '',
-        buyerAvatar: userInfo.avatarUrl || '',
-        // 最后消息
-        lastMessage: '[点击开始聊天]',
-        updateTime: new Date().toISOString(),
-        updateTimeText: '刚刚',
-        unreadCount: 0
-      };
-
-      sessions.unshift(newSession);
-      wx.setStorageSync('chatSessions', sessions);
-    }
   },
 
   // ==================== 举报 ====================
