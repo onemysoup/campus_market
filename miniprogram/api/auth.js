@@ -3,7 +3,7 @@
  * 对应后端: AuthController (/api/v1/auth)
  */
 
-const { post, put } = require('../utils/request');
+const { get, post, put } = require('../utils/request');
 
 const authApi = {
   /**
@@ -41,7 +41,7 @@ const authApi = {
   },
 
   /**
-   * 设置安全密码（首次）
+   * 设置邮箱登录密码（首次）
    * @param {string} password - 密码
    */
   setPassword(password) {
@@ -49,13 +49,49 @@ const authApi = {
   },
 
   /**
-   * 重置密码
+   * 设置安全密码/交易确认密码（首次）
+   * @param {string} password - 6位数字安全密码
+   */
+  setSecurityPassword(password) {
+    return post('/api/v1/auth/set-security-password', { password });
+  },
+
+  /**
+   * 查询 L2 高级认证申请状态
+   */
+  getStudentVerification() {
+    return get('/api/v1/auth/student-verification');
+  },
+
+  /**
+   * 提交 L2 高级认证申请
+   * @param {Object} data
+   * @param {string} data.realName - 姓名
+   * @param {string} data.studentId - 学号
+   * @param {string} data.certificateImageUrl - 学生证/证件照片 URL
+   */
+  submitStudentVerification(data) {
+    return post('/api/v1/auth/student-verification', data);
+  },
+
+  /**
+   * 重置登录密码
    * @param {string} email      - 邮箱
    * @param {string} code       - 验证码
    * @param {string} newPassword - 新密码
    */
   resetPassword(email, code, newPassword) {
     return post('/api/v1/auth/reset-password', { email, code, newPassword });
+  },
+
+  /**
+   * 重置安全密码
+   * @param {string} email       - 当前账号绑定邮箱
+   * @param {string} code        - 验证码
+   * @param {string} newPassword - 6位数字安全密码
+   */
+  resetSecurityPassword(email, code, newPassword) {
+    return post('/api/v1/auth/reset-security-password', { email, code, newPassword });
   },
 
   /**

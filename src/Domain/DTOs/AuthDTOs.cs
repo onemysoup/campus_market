@@ -12,6 +12,15 @@ public sealed record LoginByPasswordRequest(string Email, string Password);
 
 public sealed record SetPasswordRequest(string Password);
 
+public sealed record SetSecurityPasswordRequest(string Password);
+
+public sealed record ResetSecurityPasswordRequest(string Email, string Code, string NewPassword);
+
+public sealed record SubmitStudentVerificationRequest(
+    string RealName,
+    string StudentId,
+    string CertificateImageUrl);
+
 public sealed record ResetPasswordRequest(string Email, string Code, string NewPassword);
 
 public sealed record UpdateProfileRequest(string? Nickname, string? AvatarUrl);
@@ -24,4 +33,5 @@ public sealed record LoginResponse(
     string? Nickname,
     string? AvatarUrl,
     AuthLevel AuthLevel,
+    string RoleType,
     bool IsNewUser);

@@ -6,11 +6,11 @@
 // ==================== 环境配置 ====================
 const ENV_CONFIG = {
   develop: {
-    baseURL: 'http://localhost:5070',
+    baseURL: 'http://localhost:8080',
     envName: '开发环境'
   },
   trial: {
-    baseURL: 'http://localhost:5070',  // 体验版地址，按需修改
+    baseURL: 'http://localhost:8080',  // 体验版地址，按需修改
     envName: '体验环境'
   },
   release: {

@@ -52,7 +52,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, isNewUser)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), isNewUser)
         });
     }
 
@@ -74,7 +74,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, false)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), false)
         });
     }
 
@@ -135,6 +135,152 @@ public class AuthController(
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "密码设置成功" });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("set-security-password")]
+    public async Task<IActionResult> SetSecurityPassword([FromBody] SetSecurityPasswordRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        if (user.HasSecurityPassword())
+            return BadRequest(new { code = 4000, message = "已设置过安全密码" });
+
+        user.SetSecurityPassword(PasswordHelper.Hash(request.Password));
+        await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, message = "安全密码设置成功" });
+    }
+
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("reset-security-password")]
+    public async Task<IActionResult> ResetSecurityPassword([FromBody] ResetSecurityPasswordRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        if (string.IsNullOrWhiteSpace(user.EmailAddress))
+            return BadRequest(new { code = 4000, message = "请先完成 CAU 邮箱认证" });
+
+        if (!string.Equals(user.EmailAddress, request.Email, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { code = 4000, message = "只能使用当前账号绑定邮箱重置安全密码" });
+
+        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{request.Email}");
+        if (cachedCode is null || cachedCode != request.Code)
+            return BadRequest(new { code = 4000, message = "验证码错误或已过期" });
+
+        user.SetSecurityPassword(PasswordHelper.Hash(request.NewPassword));
+        await db.SaveChangesAsync();
+
+        cache.Remove($"{EmailCodePrefix}{request.Email}");
+        return Ok(new { code = 0, message = "安全密码重置成功" });
+    }
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpGet("student-verification")]
+    public async Task<IActionResult> GetStudentVerification()
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        var application = await db.StudentVerificationApplications
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (application is null)
+            return Ok(new { code = 0, data = new { status = "None", statusCode = -1, authLevel = (int)user.AuthLevel } });
+
+        return Ok(new
+        {
+            code = 0,
+            data = new
+            {
+                application.Id,
+                application.RealName,
+                application.StudentId,
+                application.CertificateImageUrl,
+                status = application.Status.ToString(),
+                statusCode = (int)application.Status,
+                application.AdminNote,
+                application.CreatedAt,
+                application.ReviewedAt,
+                authLevel = (int)user.AuthLevel,
+                token = user.AuthLevel >= AuthLevel.L2 ? GenerateToken(user) : null
+            }
+        });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("student-verification")]
+    public async Task<IActionResult> SubmitStudentVerification([FromBody] SubmitStudentVerificationRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        if (user.AuthLevel >= AuthLevel.L2)
+            return BadRequest(new { code = 4000, message = "已完成 L2 高级认证" });
+
+        var hasPending = await db.StudentVerificationApplications
+            .AnyAsync(a => a.UserId == userId && a.Status == StudentVerificationStatus.Pending);
+        if (hasPending)
+            return BadRequest(new { code = 4000, message = "已有待审核的 L2 认证申请" });
+
+        var studentId = request.StudentId.Trim();
+        var duplicateApprovedUser = await db.Users
+            .AnyAsync(u => u.Id != userId && u.StudentId == studentId && u.AuthLevel >= AuthLevel.L2);
+        if (duplicateApprovedUser)
+            return BadRequest(new { code = 4000, message = "该学号已完成认证" });
+
+        var duplicatePendingApplication = await db.StudentVerificationApplications
+            .AnyAsync(a => a.UserId != userId
+                && a.StudentId == studentId
+                && a.Status == StudentVerificationStatus.Pending);
+        if (duplicatePendingApplication)
+            return BadRequest(new { code = 4000, message = "该学号已有待审核申请" });
+
+        var application = new StudentVerificationApplication(
+            userId,
+            request.RealName.Trim(),
+            studentId,
+            request.CertificateImageUrl.Trim());
+
+        db.StudentVerificationApplications.Add(application);
+        await db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            code = 0,
+            data = new
+            {
+                application.Id,
+                status = application.Status.ToString(),
+                statusCode = (int)application.Status,
+                application.CreatedAt
+            }
+        });
     }
 
     [HttpPost("reset-password")]

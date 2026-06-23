@@ -1,10 +1,11 @@
 /**
  * 管理后台页
- * 仪表盘 + 用户管理 + 商品管理 + 举报处理
+ * 仪表盘 + 用户管理 + 商品管理 + 认证审核 + 举报处理
  */
 
 const adminApi = require('../../api/admin');
 const itemsApi = require('../../api/items');
+const { getBaseURL } = require('../../utils/request');
 const {
   REPORT_REASON_MAP,
   ITEM_STATUS_MAP,
@@ -23,6 +24,7 @@ Page({
       totalItems: 0,
       activeItems: 0,
       pendingReports: 0,
+      pendingVerifications: 0,
       todayNewUsers: 0,
       todayNewItems: 0,
       todayTransactions: 0
@@ -33,6 +35,7 @@ Page({
       { key: 'dashboard', label: '仪表盘', icon: '📊' },
       { key: 'users', label: '用户管理', icon: '👥' },
       { key: 'items', label: '商品管理', icon: '📦' },
+      { key: 'verifications', label: '认证审核', icon: '✅' },
       { key: 'reports', label: '举报处理', icon: '🚨' }
     ],
     // 用户列表
@@ -43,6 +46,10 @@ Page({
     items: [],
     itemPage: 1,
     itemHasMore: true,
+    // 认证申请列表
+    verifications: [],
+    verificationPage: 1,
+    verificationHasMore: true,
     // 举报列表
     reports: [],
     reportPage: 1,
@@ -51,6 +58,7 @@ Page({
     loading: false,
     loadingUsers: false,
     loadingItems: false,
+    loadingVerifications: false,
     loadingReports: false,
     // 操作弹窗
     showActionModal: false,
@@ -85,33 +93,15 @@ Page({
       return;
     }
 
-    // 支持从 URL 参数指定初始 Tab
     const initialTab = options.tab || 'dashboard';
     this.setData({ isAdmin: true, activeTab: initialTab });
-
-    // 加载对应 Tab 的数据
-    if (initialTab === 'dashboard') {
-      this.loadDashboard();
-    } else if (initialTab === 'users') {
-      this.loadUsers(true);
-    } else if (initialTab === 'items') {
-      this.loadItems(true);
-    } else if (initialTab === 'reports') {
-      this.loadReports(true);
-    }
+    this.loadActiveTab(initialTab);
   },
 
   onPullDownRefresh() {
-    const { activeTab } = this.data;
-    if (activeTab === 'dashboard') {
-      this.loadDashboard().finally(() => wx.stopPullDownRefresh());
-    } else if (activeTab === 'users') {
-      this.loadUsers(true).finally(() => wx.stopPullDownRefresh());
-    } else if (activeTab === 'items') {
-      this.loadItems(true).finally(() => wx.stopPullDownRefresh());
-    } else if (activeTab === 'reports') {
-      this.loadReports(true).finally(() => wx.stopPullDownRefresh());
-    }
+    this.loadActiveTab(this.data.activeTab).finally(() => {
+      wx.stopPullDownRefresh();
+    });
   },
 
   // ==================== Tab 切换 ====================
@@ -120,16 +110,22 @@ Page({
     const tab = e.currentTarget.dataset.tab;
     if (tab === this.data.activeTab) return;
     this.setData({ activeTab: tab });
+    this.loadActiveTab(tab);
+  },
 
-    if (tab === 'dashboard') {
-      this.loadDashboard();
-    } else if (tab === 'users') {
-      this.loadUsers(true);
-    } else if (tab === 'items') {
-      this.loadItems(true);
-    } else if (tab === 'reports') {
-      this.loadReports(true);
-    }
+  loadActiveTab(tab) {
+    if (tab === 'dashboard') return this.loadDashboard();
+    if (tab === 'users') return this.loadUsers(true);
+    if (tab === 'items') return this.loadItems(true);
+    if (tab === 'verifications') return this.loadVerifications(true);
+    if (tab === 'reports') return this.loadReports(true);
+    return Promise.resolve();
+  },
+
+  buildFileUrl(url) {
+    if (!url) return '';
+    if (/^https?:/.test(url)) return url;
+    return `${getBaseURL()}${url}`;
   },
 
   // ==================== 仪表盘 ====================
@@ -177,7 +173,7 @@ Page({
 
   onToggleBan(e) {
     const { userid, nickname, banned } = e.currentTarget.dataset;
-    const isBanned = banned === 'true';
+    const isBanned = banned === 'true' || banned === true;
 
     wx.showModal({
       title: isBanned ? '解封用户' : '封禁用户',
@@ -214,7 +210,6 @@ Page({
     this.setData({ loadingItems: true });
 
     try {
-      // 使用真实接口获取商品列表
       const result = await itemsApi.getItems({ page, pageSize: 20 });
       const items = (result.items || []).map(item => ({
         ...item,
@@ -245,7 +240,7 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          await itemsApi.changeStatus(itemid, 4);  // 4=Inactive
+          await itemsApi.changeStatus(itemid, 4);
           wx.showToast({ title: '已下架', icon: 'success' });
           this.loadItems(true);
         } catch (error) {
@@ -258,6 +253,69 @@ Page({
   goDetail(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${id}` });
+  },
+
+  // ==================== 认证审核 ====================
+
+  async loadVerifications(reset = false) {
+    if (this.data.loadingVerifications) return;
+
+    const page = reset ? 1 : this.data.verificationPage + 1;
+    this.setData({ loadingVerifications: true });
+
+    try {
+      const result = await adminApi.getVerifications({ page, pageSize: 20, status: 0 });
+      const verifications = (result.applications || []).map(item => ({
+        ...item,
+        timeText: formatTime(item.createdAt),
+        proofUrl: this.buildFileUrl(item.certificateImageUrl)
+      }));
+
+      this.setData({
+        verifications: reset ? verifications : [...this.data.verifications, ...verifications],
+        verificationPage: page,
+        verificationHasMore: verifications.length >= 20,
+        loadingVerifications: false
+      });
+    } catch (error) {
+      console.error('[Admin] loadVerifications error:', error);
+      this.setData({ loadingVerifications: false });
+    }
+  },
+
+  onPreviewVerificationImage(e) {
+    const url = e.currentTarget.dataset.url;
+    if (!url) return;
+    wx.previewImage({ urls: [url], current: url });
+  },
+
+  onHandleVerification(e) {
+    const { applicationid, approve, realname } = e.currentTarget.dataset;
+    const approveFlag = approve === 'true' || approve === true;
+
+    wx.showModal({
+      title: approveFlag ? '通过认证' : '驳回认证',
+      content: approveFlag ? `确定通过「${realname}」的 L2 认证？` : `请输入驳回「${realname}」认证的原因`,
+      editable: !approveFlag,
+      placeholderText: '驳回原因',
+      success: async (res) => {
+        if (!res.confirm) return;
+        const note = (res.content || '').trim();
+        if (!approveFlag && !note) {
+          wx.showToast({ title: '请填写驳回原因', icon: 'none' });
+          return;
+        }
+
+        try {
+          await adminApi.handleVerification(applicationid, approveFlag, note);
+          wx.showToast({ title: approveFlag ? '已通过' : '已驳回', icon: 'success' });
+          this.loadVerifications(true);
+          this.loadDashboard();
+        } catch (error) {
+          console.error('[Admin] handleVerification error:', error);
+        }
+      }
+    });
   },
 
   // ==================== 举报处理 ====================

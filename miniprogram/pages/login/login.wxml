@@ -43,7 +43,7 @@
       </view>
 
       <view class="row-links">
-        <text class="link" bindtap="goRegister">忘记密码？</text>
+        <text class="link" bindtap="goResetPassword">忘记密码？</text>
         <text class="link" bindtap="goRegister">注册账号</text>
       </view>
     </block>

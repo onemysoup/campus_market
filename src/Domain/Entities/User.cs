@@ -78,6 +78,7 @@ public sealed class User
     {
         StudentId = studentId;
         AuthLevel = Enums.AuthLevel.L2;
+        AuthDate = DateOnly.FromDateTime(DateTime.UtcNow);
     }
 
     public void SetCampusArea(CampusArea area) => CampusArea = area;
@@ -110,3 +111,6 @@ public sealed class User
         AuthDate = null;
     }
 }
+
+
+
