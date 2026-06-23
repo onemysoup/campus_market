@@ -51,7 +51,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, isNewUser)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), isNewUser)
         });
     }
 
@@ -73,7 +73,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, false)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), false)
         });
     }
 

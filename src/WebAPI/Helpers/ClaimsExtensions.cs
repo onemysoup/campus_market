@@ -17,4 +17,9 @@ public static class ClaimsExtensions
         var value = user.FindFirst("authLevel")?.Value;
         return int.TryParse(value, out var level) ? (Domain.Enums.AuthLevel)level : Domain.Enums.AuthLevel.L0;
     }
+
+    public static string GetRoleType(this ClaimsPrincipal user)
+    {
+        return user.FindFirst("roleType")?.Value ?? "Student";
+    }
 }

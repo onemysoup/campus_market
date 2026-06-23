@@ -24,4 +24,5 @@ public sealed record LoginResponse(
     string? Nickname,
     string? AvatarUrl,
     AuthLevel AuthLevel,
+    string RoleType,
     bool IsNewUser);
