@@ -1,20 +1,41 @@
 /**
  * 注册/邮箱验证页
- * 功能：邮箱绑定（发送验证码 + 验证）、设置密码、重置密码
+ * 功能：邮箱绑定、设置安全密码、L2认证申请、重置登录密码
  */
 
 const authApi = require('../../api/auth');
-const { AUTH_LEVEL_MAP } = require('../../utils/constants');
+const filesApi = require('../../api/files');
+const { getBaseURL } = require('../../utils/request');
+
+const VERIFICATION_STATUS_TEXT = {
+  None: '未提交',
+  Pending: '审核中',
+  Approved: '已通过',
+  Rejected: '已驳回'
+};
 
 Page({
   data: {
-    mode: 'email',          // email | password | reset
+    mode: 'email',          // email | password | securityReset | student | reset
     // 邮箱验证表单
     email: '',
     emailCode: '',
     // 密码表单
     password: '',
     confirmPassword: '',
+    // 重置安全密码表单
+    securityResetEmail: '',
+    securityResetCode: '',
+    securityResetNewPassword: '',
+    securityResetConfirmPassword: '',
+    // L2 高级认证表单
+    realName: '',
+    studentId: '',
+    certificateImageUrl: '',
+    studentCardPreviewUrl: '',
+    verificationStatus: 'None',
+    verificationStatusText: '未提交',
+    verificationAdminNote: '',
     // 重置密码表单
     resetEmail: '',
     resetCode: '',
@@ -32,6 +53,12 @@ Page({
   timer: null,
 
   onLoad(options) {
+    // 忘记密码/重置密码允许未登录访问
+    if (options.step === 'reset') {
+      this.setData({ mode: 'reset' });
+      return;
+    }
+
     // 检查登录状态
     const token = wx.getStorageSync('token');
     if (!token) {
@@ -46,15 +73,18 @@ Page({
       return;
     }
 
-    // 从登录页跳转时可能带参数
-    if (options.step === 'email') {
-      this.setData({ mode: 'email' });
+    // 从登录页/账号设置跳转时可能带参数
+    if (['email', 'password', 'securityReset', 'student', 'reset'].includes(options.step)) {
+      this.setData({ mode: options.step });
     }
     this.loadAuthLevel();
+
+    if (this.data.mode === 'student') {
+      this.loadStudentVerification();
+    }
   },
 
   onUnload() {
-    // 页面销毁时清除定时器
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
@@ -76,6 +106,10 @@ Page({
   switchMode(e) {
     const mode = e.currentTarget.dataset.mode;
     this.setData({ mode });
+
+    if (mode === 'student') {
+      this.loadStudentVerification();
+    }
   },
 
   // ==================== 输入处理 ====================
@@ -96,6 +130,29 @@ Page({
     this.setData({ confirmPassword: e.detail.value });
   },
 
+  onRealNameInput(e) {
+    this.setData({ realName: e.detail.value.trim() });
+  },
+
+  onStudentIdInput(e) {
+    this.setData({ studentId: e.detail.value.trim() });
+  },
+
+  onSecurityResetEmailInput(e) {
+    this.setData({ securityResetEmail: e.detail.value.trim() });
+  },
+
+  onSecurityResetCodeInput(e) {
+    this.setData({ securityResetCode: e.detail.value.trim() });
+  },
+
+  onSecurityResetNewPasswordInput(e) {
+    this.setData({ securityResetNewPassword: e.detail.value });
+  },
+
+  onSecurityResetConfirmPasswordInput(e) {
+    this.setData({ securityResetConfirmPassword: e.detail.value });
+  },
   onResetEmailInput(e) {
     this.setData({ resetEmail: e.detail.value.trim() });
   },
@@ -118,7 +175,6 @@ Page({
 
     if (!canSendCode) return;
 
-    // 校验邮箱格式
     if (!email) {
       wx.showToast({ title: '请输入邮箱', icon: 'none' });
       return;
@@ -135,8 +191,6 @@ Page({
       wx.hideLoading();
 
       wx.showToast({ title: '验证码已发送', icon: 'success' });
-
-      // 启动60秒倒计时
       this.startCountdown();
     } catch (error) {
       wx.hideLoading();
@@ -190,29 +244,23 @@ Page({
       this.setData({ loading: true });
       const result = await authApi.verifyEmail(email, emailCode);
 
-      // 更新本地认证等级和 Token
       const userInfo = wx.getStorageSync('userInfo') || {};
       userInfo.authLevel = result.authLevel || 1;
       wx.setStorageSync('userInfo', userInfo);
 
-      // 更新 Token（包含新的 authLevel）
       if (result.token) {
         wx.setStorageSync('token', result.token);
-        // 同步到全局状态
         const app = getApp();
         if (app.globalData) {
           app.globalData.token = result.token;
           app.globalData.authLevel = result.authLevel || 1;
-          app.globalData.userInfo = userInfo;  // 同步 userInfo
+          app.globalData.userInfo = userInfo;
         }
       }
 
       wx.showToast({ title: '邮箱验证成功', icon: 'success' });
-
-      // 更新页面状态
       this.setData({ authLevel: result.authLevel || 1 });
 
-      // 如果还没设置密码，引导设置
       if (result.authLevel >= 1) {
         setTimeout(() => {
           this.setData({ mode: 'password' });
@@ -225,18 +273,18 @@ Page({
     }
   },
 
-  // ==================== 设置密码 ====================
+  // ==================== 设置安全密码 ====================
 
   async onSetPassword() {
     const { password, confirmPassword } = this.data;
 
     if (!password) {
-      wx.showToast({ title: '请输入密码', icon: 'none' });
+      wx.showToast({ title: '请输入安全密码', icon: 'none' });
       return;
     }
 
-    if (password.length < 6) {
-      wx.showToast({ title: '密码至少6位', icon: 'none' });
+    if (!/^\d{6}$/.test(password)) {
+      wx.showToast({ title: '安全密码需为6位数字', icon: 'none' });
       return;
     }
 
@@ -247,15 +295,214 @@ Page({
 
     try {
       this.setData({ loading: true });
-      await authApi.setPassword(password);
+      await authApi.setSecurityPassword(password);
 
-      wx.showToast({ title: '密码设置成功', icon: 'success' });
+      wx.showToast({ title: '安全密码设置成功', icon: 'success' });
 
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
     } catch (error) {
-      console.error('[Register] setPassword error:', error);
+      console.error('[Register] setSecurityPassword error:', error);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  // ==================== 重置安全密码 ====================
+
+  async onSendSecurityResetCode() {
+    const { securityResetEmail } = this.data;
+
+    if (!securityResetEmail) {
+      wx.showToast({ title: '请输入绑定邮箱', icon: 'none' });
+      return;
+    }
+
+    if (!securityResetEmail.endsWith('@cau.edu.cn')) {
+      wx.showToast({ title: '请使用 @cau.edu.cn 邮箱', icon: 'none' });
+      return;
+    }
+
+    try {
+      wx.showLoading({ title: '发送中' });
+      await authApi.sendCode(securityResetEmail);
+      wx.hideLoading();
+      wx.showToast({ title: '验证码已发送', icon: 'success' });
+      this.startCountdown();
+    } catch (error) {
+      wx.hideLoading();
+      console.error('[Register] sendSecurityResetCode error:', error);
+    }
+  },
+
+  async onResetSecurityPassword() {
+    const {
+      securityResetEmail,
+      securityResetCode,
+      securityResetNewPassword,
+      securityResetConfirmPassword
+    } = this.data;
+
+    if (!securityResetEmail || !securityResetCode || !securityResetNewPassword || !securityResetConfirmPassword) {
+      wx.showToast({ title: '请填写完整信息', icon: 'none' });
+      return;
+    }
+
+    if (!/^\d{6}$/.test(securityResetNewPassword)) {
+      wx.showToast({ title: '安全密码需为6位数字', icon: 'none' });
+      return;
+    }
+
+    if (securityResetNewPassword !== securityResetConfirmPassword) {
+      wx.showToast({ title: '两次密码不一致', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ loading: true });
+      await authApi.resetSecurityPassword(securityResetEmail, securityResetCode, securityResetNewPassword);
+
+      wx.showToast({ title: '安全密码重置成功', icon: 'success' });
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1500);
+    } catch (error) {
+      console.error('[Register] resetSecurityPassword error:', error);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+  // ==================== L2 高级认证 ====================
+
+  async loadStudentVerification() {
+    if ((this.data.authLevel || 0) < 1) return;
+
+    try {
+      const result = await authApi.getStudentVerification();
+      const status = result.status || 'None';
+      const authLevel = result.authLevel ?? this.data.authLevel;
+
+      if (result.token) {
+        wx.setStorageSync('token', result.token);
+      }
+
+      if (authLevel !== this.data.authLevel || result.token) {
+        this.syncAuthLevel(authLevel, result.token);
+      }
+
+      this.setData({
+        authLevel,
+        realName: result.realName || this.data.realName,
+        studentId: result.studentId || this.data.studentId,
+        certificateImageUrl: result.certificateImageUrl || '',
+        studentCardPreviewUrl: this.buildFileUrl(result.certificateImageUrl || ''),
+        verificationStatus: status,
+        verificationStatusText: VERIFICATION_STATUS_TEXT[status] || '未提交',
+        verificationAdminNote: result.adminNote || ''
+      });
+    } catch (error) {
+      console.error('[Register] loadStudentVerification error:', error);
+    }
+  },
+
+  buildFileUrl(url) {
+    if (!url) return '';
+    if (/^(https?:|wxfile:|http:\/\/tmp|blob:)/.test(url)) return url;
+    return `${getBaseURL()}${url}`;
+  },
+
+  syncAuthLevel(authLevel, token) {
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    userInfo.authLevel = authLevel;
+    wx.setStorageSync('userInfo', userInfo);
+
+    if (token) {
+      wx.setStorageSync('token', token);
+    }
+
+    const app = getApp();
+    if (app.globalData) {
+      app.globalData.authLevel = authLevel;
+      app.globalData.userInfo = userInfo;
+      if (token) app.globalData.token = token;
+    }
+  },
+
+  chooseStudentCardImage() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: async (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath;
+        this.setData({ studentCardPreviewUrl: tempFilePath, loading: true });
+
+        try {
+          const uploadResult = await filesApi.uploadImage(tempFilePath);
+          this.setData({ certificateImageUrl: uploadResult.url || '' });
+          wx.showToast({ title: '照片已上传', icon: 'success' });
+        } catch (error) {
+          console.error('[Register] upload student card error:', error);
+          this.setData({ studentCardPreviewUrl: '', certificateImageUrl: '' });
+        } finally {
+          this.setData({ loading: false });
+        }
+      }
+    });
+  },
+
+  previewStudentCardImage() {
+    const { studentCardPreviewUrl } = this.data;
+    if (!studentCardPreviewUrl) return;
+    wx.previewImage({ urls: [studentCardPreviewUrl], current: studentCardPreviewUrl });
+  },
+
+  async onSubmitStudentVerification() {
+    const { authLevel, realName, studentId, certificateImageUrl, verificationStatus } = this.data;
+
+    if (authLevel < 1) {
+      wx.showToast({ title: '请先完成邮箱认证', icon: 'none' });
+      return;
+    }
+
+    if (verificationStatus === 'Pending') {
+      wx.showToast({ title: '申请正在审核中', icon: 'none' });
+      return;
+    }
+
+    if (!realName) {
+      wx.showToast({ title: '请输入姓名', icon: 'none' });
+      return;
+    }
+
+    if (!studentId || studentId.length < 4) {
+      wx.showToast({ title: '请输入正确学号', icon: 'none' });
+      return;
+    }
+
+    if (!certificateImageUrl) {
+      wx.showToast({ title: '请上传学生证照片', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ loading: true });
+      const result = await authApi.submitStudentVerification({
+        realName,
+        studentId,
+        certificateImageUrl
+      });
+
+      this.setData({
+        verificationStatus: result.status || 'Pending',
+        verificationStatusText: '审核中',
+        verificationAdminNote: ''
+      });
+      wx.showToast({ title: '已提交审核', icon: 'success' });
+    } catch (error) {
+      console.error('[Register] submitStudentVerification error:', error);
     } finally {
       this.setData({ loading: false });
     }
@@ -306,7 +553,7 @@ Page({
       this.setData({ loading: true });
       await authApi.resetPassword(resetEmail, resetCode, resetNewPassword);
 
-      wx.showToast({ title: '密码重置成功', icon: 'success' });
+      wx.showToast({ title: '登录密码重置成功', icon: 'success' });
 
       setTimeout(() => {
         this.setData({ mode: 'email' });

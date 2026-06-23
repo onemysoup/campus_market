@@ -32,6 +32,10 @@
         <text class="stat-value">{{dashboard.pendingReports || 0}}</text>
         <text class="stat-label">待处理举报</text>
       </view>
+      <view class="stat-card verify-highlight">
+        <text class="stat-value">{{dashboard.pendingVerifications || 0}}</text>
+        <text class="stat-label">待审认证</text>
+      </view>
     </view>
     <view class="today-stats">
       <view class="today-item">
@@ -58,7 +62,7 @@
       <view class="user-card" wx:for="{{users}}" wx:key="userId">
         <view class="user-info">
           <text class="user-name">{{item.nickname}}</text>
-          <text class="user-email">{{item.email}}</text>
+          <text class="user-email">{{item.email || '未绑定邮箱'}}</text>
           <view class="user-tags">
             <text class="tag auth-{{item.authLevel}}">L{{item.authLevel}}</text>
             <text class="tag credit">信用: {{item.creditScore}}</text>
@@ -118,6 +122,55 @@
             详情
           </view>
         </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 认证审核 -->
+  <view class="section" wx:if="{{activeTab === 'verifications'}}">
+    <view class="list-header">
+      <text class="list-title">L2 认证审核</text>
+    </view>
+    <view class="verification-list">
+      <view class="verification-card" wx:for="{{verifications}}" wx:key="id">
+        <view class="verification-main">
+          <image
+            class="proof-thumb"
+            src="{{item.proofUrl}}"
+            mode="aspectFill"
+            data-url="{{item.proofUrl}}"
+            bindtap="onPreviewVerificationImage"
+          />
+          <view class="verification-info">
+            <text class="verification-name">{{item.realName}}</text>
+            <text class="verification-meta">学号：{{item.studentId}}</text>
+            <text class="verification-meta">邮箱：{{item.email || '未绑定邮箱'}}</text>
+            <text class="verification-time">{{item.timeText}}</text>
+          </view>
+        </view>
+        <view class="verification-actions">
+          <view
+            class="action-btn accept"
+            data-applicationid="{{item.id}}"
+            data-realname="{{item.realName}}"
+            data-approve="true"
+            catchtap="onHandleVerification"
+          >
+            通过
+          </view>
+          <view
+            class="action-btn reject"
+            data-applicationid="{{item.id}}"
+            data-realname="{{item.realName}}"
+            data-approve="false"
+            catchtap="onHandleVerification"
+          >
+            驳回
+          </view>
+        </view>
+      </view>
+      <view class="empty" wx:if="{{verifications.length === 0 && !loadingVerifications}}">
+        暂无待审核认证
       </view>
     </view>
   </view>

@@ -2,7 +2,8 @@
   <!-- 模式切换 -->
   <view class="switcher">
     <view class="{{mode==='email'?'active':''}}" bindtap="switchMode" data-mode="email">邮箱验证</view>
-    <view class="{{mode==='password'?'active':''}}" bindtap="switchMode" data-mode="password">设置密码</view>
+    <view class="{{(mode==='password'||mode==='securityReset')?'active':''}}" bindtap="switchMode" data-mode="password">安全密码</view>
+    <view class="{{mode==='student'?'active':''}}" bindtap="switchMode" data-mode="student">高级认证</view>
     <view class="{{mode==='reset'?'active':''}}" bindtap="switchMode" data-mode="reset">重置密码</view>
   </view>
 
@@ -14,65 +15,190 @@
 
   <!-- 邮箱验证 -->
   <view class="card" wx:if="{{mode==='email'}}">
-    <view class="form-title">绑定 CAU 邮箱</view>
-    <view class="form-desc">验证邮箱后可获得 L1 认证权限，即可发布商品</view>
+    <block wx:if="{{authLevel > 0}}">
+      <view class="form-title">CAU 邮箱已认证</view>
+      <view class="form-desc">当前账号已获得 L{{authLevel}} 认证权限，可直接发布和交易。</view>
+      <button class="btn-primary" bindtap="switchMode" data-mode="password">去设置安全密码</button>
+    </block>
 
-    <view class="input-group">
-      <input
-        class="input input-with-btn"
-        placeholder="请输入 @cau.edu.cn 邮箱"
-        value="{{email}}"
-        bindinput="onEmailInput"
-      />
-    </view>
+    <block wx:else>
+      <view class="form-title">绑定 CAU 邮箱</view>
+      <view class="form-desc">验证邮箱后可获得 L1 认证权限，即可发布商品</view>
 
-    <view class="code-row">
-      <input
-        class="input code-input"
-        placeholder="请输入验证码"
-        maxlength="6"
-        value="{{emailCode}}"
-        bindinput="onEmailCodeInput"
-      />
-      <button
-        class="btn-code {{canSendCode ? '' : 'btn-code-disabled'}}"
-        disabled="{{!canSendCode}}"
-        bindtap="onSendCode"
-      >
-        {{countdownText}}
-      </button>
-    </view>
+      <view class="input-group">
+        <input
+          class="input input-with-btn"
+          placeholder="请输入 @cau.edu.cn 邮箱"
+          value="{{email}}"
+          bindinput="onEmailInput"
+        />
+      </view>
 
-    <button class="btn-primary" loading="{{loading}}" bindtap="onVerifyEmail">验证邮箱</button>
+      <view class="code-row">
+        <input
+          class="input code-input"
+          placeholder="请输入验证码"
+          maxlength="6"
+          value="{{emailCode}}"
+          bindinput="onEmailCodeInput"
+        />
+        <button
+          class="btn-code {{canSendCode ? '' : 'btn-code-disabled'}}"
+          disabled="{{!canSendCode}}"
+          bindtap="onSendCode"
+        >
+          {{countdownText}}
+        </button>
+      </view>
+
+      <button class="btn-primary" loading="{{loading}}" bindtap="onVerifyEmail">验证邮箱</button>
+    </block>
   </view>
 
-  <!-- 设置密码 -->
+  <!-- 设置安全密码 -->
   <view class="card" wx:if="{{mode==='password'}}">
     <view class="form-title">设置安全密码</view>
-    <view class="form-desc">设置密码后可用于密码登录和交易确认</view>
+    <view class="form-desc">安全密码独立于登录密码，用于交易确认等敏感操作</view>
 
     <input
       class="input"
-      placeholder="请输入密码（至少6位）"
+      placeholder="请输入6位数字安全密码"
       password
       value="{{password}}"
       bindinput="onPasswordInput"
     />
     <input
       class="input"
-      placeholder="请确认密码"
+      placeholder="请再次输入安全密码"
       password
       value="{{confirmPassword}}"
       bindinput="onConfirmPasswordInput"
     />
 
     <button class="btn-primary" loading="{{loading}}" bindtap="onSetPassword">确认设置</button>
+    <button class="btn-secondary" bindtap="switchMode" data-mode="securityReset">重置安全密码</button>
+  </view>
+
+  <!-- 重置安全密码 -->
+  <view class="card" wx:if="{{mode==='securityReset'}}">
+    <view class="form-title">重置安全密码</view>
+    <view class="form-desc">通过当前账号绑定的 CAU 邮箱验证码，重新设置 6 位数字安全密码</view>
+
+    <input
+      class="input"
+      placeholder="请输入当前账号绑定邮箱"
+      value="{{securityResetEmail}}"
+      bindinput="onSecurityResetEmailInput"
+    />
+
+    <view class="code-row">
+      <input
+        class="input code-input"
+        placeholder="请输入验证码"
+        maxlength="6"
+        value="{{securityResetCode}}"
+        bindinput="onSecurityResetCodeInput"
+      />
+      <button
+        class="btn-code {{canSendCode ? '' : 'btn-code-disabled'}}"
+        disabled="{{!canSendCode}}"
+        bindtap="onSendSecurityResetCode"
+      >
+        {{countdownText}}
+      </button>
+    </view>
+
+    <input
+      class="input"
+      placeholder="请输入新的6位数字安全密码"
+      password
+      value="{{securityResetNewPassword}}"
+      bindinput="onSecurityResetNewPasswordInput"
+    />
+    <input
+      class="input"
+      placeholder="请再次输入安全密码"
+      password
+      value="{{securityResetConfirmPassword}}"
+      bindinput="onSecurityResetConfirmPasswordInput"
+    />
+
+    <button class="btn-primary" loading="{{loading}}" bindtap="onResetSecurityPassword">确认重置</button>
+  </view>
+  <!-- L2 高级认证 -->
+  <view class="card" wx:if="{{mode==='student'}}">
+    <block wx:if="{{authLevel < 1}}">
+      <view class="form-title">先完成邮箱认证</view>
+      <view class="form-desc">L2 高级认证需要先通过 CAU 邮箱认证。</view>
+      <button class="btn-primary" bindtap="switchMode" data-mode="email">去邮箱认证</button>
+    </block>
+
+    <block wx:elif="{{authLevel >= 2}}">
+      <view class="form-title">已完成 L2 高级认证</view>
+      <view class="form-desc">当前账号已具备高级认证权限。</view>
+    </block>
+
+    <block wx:elif="{{verificationStatus === 'Pending'}}">
+      <view class="form-title">L2 认证审核中</view>
+      <view class="form-desc">管理员审核通过后，账号会升级为 L2 高级认证。</view>
+      <view class="status-panel pending">
+        <text class="status-title">{{realName}} · {{studentId}}</text>
+        <text class="status-text">状态：{{verificationStatusText}}</text>
+      </view>
+      <image
+        wx:if="{{studentCardPreviewUrl}}"
+        class="proof-preview"
+        src="{{studentCardPreviewUrl}}"
+        mode="aspectFill"
+        bindtap="previewStudentCardImage"
+      />
+      <button class="btn-secondary" loading="{{loading}}" bindtap="loadStudentVerification">刷新审核状态</button>
+    </block>
+
+    <block wx:else>
+      <view class="form-title">L2 高级认证</view>
+      <view class="form-desc">提交姓名、学号和学生证/证件照片后，由管理员审核。</view>
+
+      <view class="status-panel rejected" wx:if="{{verificationStatus === 'Rejected'}}">
+        <text class="status-title">上次申请已驳回</text>
+        <text class="status-text">{{verificationAdminNote || '请核对材料后重新提交。'}}</text>
+      </view>
+
+      <input
+        class="input"
+        placeholder="请输入真实姓名"
+        value="{{realName}}"
+        bindinput="onRealNameInput"
+      />
+      <input
+        class="input"
+        placeholder="请输入学号"
+        value="{{studentId}}"
+        bindinput="onStudentIdInput"
+      />
+
+      <view class="upload-box" bindtap="chooseStudentCardImage">
+        <image
+          wx:if="{{studentCardPreviewUrl}}"
+          class="proof-image"
+          src="{{studentCardPreviewUrl}}"
+          mode="aspectFill"
+          catchtap="previewStudentCardImage"
+        />
+        <view class="upload-placeholder" wx:else>
+          <text class="upload-icon">＋</text>
+          <text class="upload-text">上传学生证/证件照片</text>
+        </view>
+      </view>
+
+      <button class="btn-primary" loading="{{loading}}" bindtap="onSubmitStudentVerification">提交审核</button>
+    </block>
   </view>
 
   <!-- 重置密码 -->
   <view class="card" wx:if="{{mode==='reset'}}">
-    <view class="form-title">重置安全密码</view>
-    <view class="form-desc">通过邮箱验证码重置密码</view>
+    <view class="form-title">重置登录密码</view>
+    <view class="form-desc">通过邮箱验证码重置邮箱登录密码</view>
 
     <input
       class="input"

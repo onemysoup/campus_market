@@ -51,6 +51,25 @@ const adminApi = {
   },
 
   /**
+   * 获取 L2 高级认证申请
+   * @param {Object} params
+   * @param {number} params.status - 0=待审核, 1=已通过, 2=已驳回
+   */
+  getVerifications(params = {}) {
+    return get('/api/v1/admin/verifications', params);
+  },
+
+  /**
+   * 审核 L2 高级认证申请
+   * @param {string} id - 申请 GUID
+   * @param {boolean} approve - true=通过, false=驳回
+   * @param {string} note - 管理员备注
+   */
+  handleVerification(id, approve, note = '') {
+    return patch(`/api/v1/admin/verifications/${id}`, { approve, note });
+  },
+
+  /**
    * 封禁/解封用户
    * @param {string}  id  - 用户 GUID
    * @param {boolean} ban - true=封禁, false=解封

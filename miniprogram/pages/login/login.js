@@ -242,6 +242,14 @@ Page({
   // ==================== 页面跳转 ====================
 
   goRegister() {
-    wx.navigateTo({ url: '/pages/register/register' });
+    wx.showModal({
+      title: '提示',
+      content: '请先使用微信一键登录，再绑定 CAU 邮箱并设置密码。',
+      showCancel: false
+    });
+  },
+
+  goResetPassword() {
+    wx.navigateTo({ url: '/pages/register/register?step=reset' });
   }
 });
