@@ -105,9 +105,16 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
 
         await db.SaveChangesAsync();
 
-        // Notify receiver via SignalR
-        await hubContext.Clients.Group($"user:{request.ReceiverId}")
-            .SendAsync("ReceiveMessage", MessageVO.FromEntity(message));
+        // Notify receiver via SignalR (best-effort, non-blocking)
+        try
+        {
+            await hubContext.Clients.Group($"user:{request.ReceiverId}")
+                .SendAsync("ReceiveMessage", MessageVO.FromEntity(message));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "SignalR 推送失败至用户 {ReceiverId}", request.ReceiverId);
+        }
 
         return Ok(new { code = 0, data = MessageVO.FromEntity(message) });
     }

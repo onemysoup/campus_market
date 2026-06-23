@@ -42,6 +42,30 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run
 # Swagger:   http://localhost:5242/swagger
 ```
 
+## 启动前端
+
+```bash
+cd miniprogram
+
+# 安装依赖（仅首次）
+npm install
+
+# 在微信开发者工具中打开 miniprogram/ 后，点击：
+# 工具 → 构建 npm
+```
+
+> 若未构建 npm，聊天实时推送不可用，REST 收发消息仍正常。
+
+## 测试账号（开发演示）
+
+首次启动自动创建，仅用于开发演示，非稳定逻辑：
+
+| 邮箱 | 密码 | 角色 |
+|------|------|------|
+| admin@cau.edu.cn | 123456 | 管理员 |
+| demo1@cau.edu.cn | 123456 | 普通用户（东校区） |
+| demo2@cau.edu.cn | 123456 | 普通用户（西校区） |
+
 ## 后端项目结构
 
 ```

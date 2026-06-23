@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Text;
 using CAUSecondHand.Domain.DTOs;
 using CAUSecondHand.Domain.Entities;
-using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.Infrastructure.Services;
 using CAUSecondHand.WebAPI.Helpers;
@@ -171,6 +170,35 @@ public class AuthController(
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "校区设置成功" });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        return Ok(new
+        {
+            code = 0,
+            data = new
+            {
+                userId = user.Id,
+                nickname = user.Nickname,
+                avatarUrl = user.AvatarUrl,
+                email = user.EmailAddress,
+                authLevel = (int)user.AuthLevel,
+                roleType = user.RoleType.ToString(),
+                creditScore = user.CreditScore,
+                campusArea = user.CampusArea.HasValue ? (int)user.CampusArea.Value : (int?)null
+            }
+        });
     }
 
     [Authorize(Policy = "AuthLevelL1")]

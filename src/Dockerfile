@@ -17,10 +17,14 @@ RUN dotnet publish WebAPI/CAUSecondHand.WebAPI.csproj -c Release -o /app --no-re
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Copy published files (owned by root)
+COPY --from=build /app .
+
+# Create uploads directory and make it writable by the non-root app user
+RUN mkdir -p /app/wwwroot/uploads && chown $APP_UID /app/wwwroot/uploads
+
 # Use the built-in non-root user (ASP.NET Core 8+ images include 'app' user)
 USER $APP_UID
-
-COPY --from=build --chown=$APP_UID /app .
 
 EXPOSE 8080
 

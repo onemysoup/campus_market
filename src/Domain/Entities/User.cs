@@ -1,6 +1,5 @@
 using System.Globalization;
 using CAUSecondHand.Domain.Enums;
-using CAUSecondHand.Domain.ValueObjects;
 
 namespace CAUSecondHand.Domain.Entities;
 
@@ -93,6 +92,8 @@ public sealed class User
     public void Ban() => IsBanned = true;
 
     public void Unban() => IsBanned = false;
+
+    public void PromoteToAdmin() => RoleType = RoleType.Admin;
 
     public void UpdateProfile(string? nickname, string? avatarUrl)
     {

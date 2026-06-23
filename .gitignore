@@ -11,6 +11,7 @@
 # Dependencies
 node_modules/
 miniprogram/node_modules/
+miniprogram/miniprogram_npm/
 
 # Runtime and logs
 *.log
