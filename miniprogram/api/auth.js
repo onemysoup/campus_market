@@ -41,7 +41,7 @@ const authApi = {
   },
 
   /**
-   * 设置安全密码（首次）
+   * 设置登录密码（首次）
    * @param {string} password - 密码
    */
   setPassword(password) {
@@ -49,7 +49,7 @@ const authApi = {
   },
 
   /**
-   * 重置密码
+   * 重置登录密码
    * @param {string} email      - 邮箱
    * @param {string} code       - 验证码
    * @param {string} newPassword - 新密码
@@ -74,9 +74,7 @@ const authApi = {
    */
   updateProfile(data) {
     return put('/api/v1/auth/profile', data);
-  }
-};
-
+  },
 
   /**
    * 设置独立二级密码（6位数字，用于确认交易等敏感操作）
@@ -97,21 +95,22 @@ const authApi = {
   },
 
   /**
-   * 获取L2认证状态
+   * 获取 L2 认证申请状态
    */
   getStudentVerification() {
     return get('/api/v1/auth/student-verification');
   },
 
   /**
-   * 提交L2认证申请
+   * 提交 L2 高级认证申请
    * @param {Object} data
    * @param {string} data.realName           - 真实姓名
    * @param {string} data.studentId          - 学号
-   * @param {string} data.certificateImageUrl - 学生证图片URL
+   * @param {string} data.certificateImageUrl - 学生证图片 URL
    */
   submitStudentVerification(data) {
     return post('/api/v1/auth/student-verification', data);
   }
+};
 
 module.exports = authApi;
