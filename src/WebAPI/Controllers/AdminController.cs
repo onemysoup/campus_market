@@ -142,19 +142,33 @@ public class AdminController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("verifications")]
-    public async Task<IActionResult> GetVerifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetVerifications(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] int? status = null)
     {
-        var query = db.StudentVerificationApplications
-            .OrderByDescending(v => v.CreatedAt);
+        var query = db.StudentVerificationApplications.AsQueryable();
+
+        if (status.HasValue)
+            query = query.Where(v => v.Status == (StudentVerificationStatus)status.Value);
+
+        query = query.OrderByDescending(v => v.CreatedAt);
 
         var totalCount = await query.CountAsync();
-        var verifications = await query
+        var pagedQuery = query
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(v => new
+            .Take(pageSize);
+
+        var verifications = await (
+            from v in pagedQuery
+            join u in db.Users on v.UserId equals u.Id into users
+            from u in users.DefaultIfEmpty()
+            select new
             {
                 v.Id,
                 v.UserId,
+                nickname = u.Nickname,
+                email = u.EmailAddress,
                 v.RealName,
                 v.StudentId,
                 v.CertificateImageUrl,
@@ -167,7 +181,6 @@ public class AdminController(AppDbContext db) : ControllerBase
 
         return Ok(new { code = 0, data = new { verifications, totalCount, page, pageSize } });
     }
-
     [HttpPatch("verifications/{id:guid}")]
     public async Task<IActionResult> HandleVerification(Guid id, [FromBody] HandleVerificationDTO dto)
     {

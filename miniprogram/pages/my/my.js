@@ -139,6 +139,10 @@ Page({
     wx.navigateTo({ url: '/pages/admin/admin?tab=reports' });
   },
 
+  goAdminVerifications() {
+    wx.navigateTo({ url: '/pages/admin/admin?tab=verifications' });
+  },
+
   goLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
   },
@@ -151,27 +155,45 @@ Page({
    * 编辑资料
    */
   onEditProfile() {
+    const actions = [
+      { label: '修改昵称', handler: () => this.updateNicknameFlow() },
+      { label: '修改头像', handler: () => this.updateAvatarFlow() }
+    ];
+
+    if ((this.data.authLevel || 0) < 1) {
+      actions.push({
+        label: '绑定邮箱认证',
+        handler: () => wx.navigateTo({ url: '/pages/register/register?step=email' })
+      });
+    }
+
+    if ((this.data.authLevel || 0) >= 1 && (this.data.authLevel || 0) < 2) {
+      actions.push({
+        label: 'L2 高级认证',
+        handler: () => wx.navigateTo({ url: '/pages/register/register?step=student' })
+      });
+    }
+
+    actions.push({
+      label: '设置安全密码',
+      handler: () => wx.navigateTo({ url: '/pages/register/register?step=password' })
+    });
+
+    if ((this.data.authLevel || 0) >= 1) {
+      actions.push({
+        label: '重置安全密码',
+        handler: () => wx.navigateTo({ url: '/pages/register/register?step=securityReset' })
+      });
+    }
+
     wx.showActionSheet({
-      itemList: ['修改昵称', '修改头像', '绑定邮箱认证', '设置安全密码'],
+      itemList: actions.map(item => item.label),
       success: (res) => {
-        switch (res.tapIndex) {
-          case 0:
-            this.updateNicknameFlow();
-            break;
-          case 1:
-            this.updateAvatarFlow();
-            break;
-          case 2:
-            wx.navigateTo({ url: '/pages/register/register?step=email' });
-            break;
-          case 3:
-            wx.navigateTo({ url: '/pages/register/register?step=password' });
-            break;
-        }
+        const action = actions[res.tapIndex];
+        if (action) action.handler();
       }
     });
   },
-
   /**
    * 修改头像流程
    */

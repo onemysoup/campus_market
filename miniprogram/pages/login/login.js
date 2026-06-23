@@ -241,7 +241,12 @@ Page({
 
   // ==================== 页面跳转 ====================
 
+  goResetPassword() {
+    wx.navigateTo({ url: '/pages/register/register?step=reset' });
+  },
+
   goRegister() {
-    wx.navigateTo({ url: '/pages/register/register' });
+    this.setData({ loginMode: 'wx' });
+    wx.showToast({ title: '请使用微信一键登录注册', icon: 'none' });
   }
 });

@@ -373,3 +373,63 @@
   font-size: 30rpx;
   color: #64748b;
 }
+
+.stat-card.verify-highlight {
+  background: #ecfdf5;
+}
+
+/* ==================== 认证审核 ==================== */
+.verification-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.verification-main {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.proof-thumb {
+  width: 150rpx;
+  height: 150rpx;
+  border-radius: 12rpx;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+
+.verification-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.verification-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8rpx;
+}
+
+.verification-meta {
+  display: block;
+  font-size: 24rpx;
+  color: #475569;
+  margin-bottom: 4rpx;
+  word-break: break-all;
+}
+
+.verification-time {
+  display: block;
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 8rpx;
+}
+
+.verification-actions {
+  display: flex;
+  gap: 12rpx;
+}
