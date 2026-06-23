@@ -5,14 +5,27 @@
  * 使用方式：
  *   1. 在微信开发者工具中：工具 → 构建 npm
  *   2. 在页面中引入：
- *      const signalr = require('../../services/signalr');
+ *      const signalr = require('../../utils/signalr');
  *      signalr.connect(token);
  *      signalr.onMessage((msg) => { ... });
+ *
+ * 若未构建 npm，SignalR 不可用，REST 收发消息仍正常工作。
+ *
+ * 采用 LongPolling 而非 WebSocket 的原因：
+ *   微信小程序的 WebSocket（wx.connectSocket）无法携带自定义请求头，
+ *   而 JWT 认证需要通过 Authorization header 传递。
+ *   LongPolling 使用标准 HTTP 请求，可正常携带 token 完成认证。
+ *   详见 SDD 4.4.2：「采用 wx.connectSocket 或长轮询」。
  */
 
-const signalr = require('signalr-for-wx');
+const BASE_URL = require('./constants').ENV_CONFIG.develop.baseURL;
 
-const BASE_URL = require('../utils/constants').ENV_CONFIG.develop.baseURL;
+let signalr = null;
+try {
+  signalr = require('signalr-for-wx');
+} catch (e) {
+  console.warn('[SignalR] signalr-for-wx 未构建，实时推送不可用');
+}
 
 let connection = null;
 let isConnected = false;
@@ -23,11 +36,11 @@ let messageHandler = null;
  * @param {string} token - JWT 令牌
  */
 function connect(token) {
+  if (!signalr) return;
   if (connection && isConnected) return;
 
   connection = new signalr.HubConnectionBuilder()
     .withUrl(`${BASE_URL}/hubs/chat?access_token=${token}`)
-    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
     .configureLogging(signalr.LogLevel.Warning)
     .build();
 

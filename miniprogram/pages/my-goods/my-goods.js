@@ -2,7 +2,6 @@
  * 我发布的商品页
  * 展示当前用户发布的所有商品，支持下架/编辑操作
  *
- * TODO: 待后端提供 GET /api/v1/items/my 接口后对接
  */
 
 const itemsApi = require('../../api/items');

@@ -1,6 +1,9 @@
+using CAUSecondHand.Domain.Entities;
+using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Infrastructure.BackgroundJobs;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.Infrastructure.Services;
+using CAUSecondHand.WebAPI.Helpers;
 using CAUSecondHand.WebAPI.Middleware;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -112,6 +115,29 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CAUSecondHand.Infrastructure.Data.AppDbContext>();
     await db.Database.MigrateAsync();
+
+    // Seed demo users on first run
+    if (!await db.Users.AnyAsync())
+    {
+        var admin = new User("admin-openid", "管理员");
+        admin.SetPassword(PasswordHelper.Hash("123456"));
+        admin.VerifyEmail("admin@cau.edu.cn");
+        admin.SetCampusArea(CampusArea.East);
+        admin.PromoteToAdmin();
+
+        var user1 = new User("demo1-openid", "演示用户一");
+        user1.SetPassword(PasswordHelper.Hash("123456"));
+        user1.VerifyEmail("demo1@cau.edu.cn");
+        user1.SetCampusArea(CampusArea.East);
+
+        var user2 = new User("demo2-openid", "演示用户二");
+        user2.SetPassword(PasswordHelper.Hash("123456"));
+        user2.VerifyEmail("demo2@cau.edu.cn");
+        user2.SetCampusArea(CampusArea.West);
+
+        db.Users.AddRange(admin, user1, user2);
+        await db.SaveChangesAsync();
+    }
 }
 
 app.UseSerilogRequestLogging();

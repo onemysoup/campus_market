@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<BlacklistEntry> BlacklistEntries => Set<BlacklistEntry>();
     public DbSet<Request> Requests => Set<Request>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<StudentVerificationApplication> StudentVerificationApplications => Set<StudentVerificationApplication>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

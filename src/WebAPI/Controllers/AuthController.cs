@@ -52,7 +52,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, isNewUser)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), isNewUser)
         });
     }
 
@@ -74,7 +74,7 @@ public class AuthController(
         {
             code = 0,
             data = new LoginResponse(token, user.Id, user.Nickname,
-                user.AvatarUrl, user.AuthLevel, false)
+                user.AvatarUrl, user.AuthLevel, user.RoleType.ToString(), false)
         });
     }
 
@@ -173,6 +173,35 @@ public class AuthController(
         return Ok(new { code = 0, message = "校区设置成功" });
     }
 
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        return Ok(new
+        {
+            code = 0,
+            data = new
+            {
+                userId = user.Id,
+                nickname = user.Nickname,
+                avatarUrl = user.AvatarUrl,
+                email = user.EmailAddress,
+                authLevel = (int)user.AuthLevel,
+                roleType = user.RoleType.ToString(),
+                creditScore = user.CreditScore,
+                campusArea = user.CampusArea.HasValue ? (int)user.CampusArea.Value : (int?)null
+            }
+        });
+    }
+
     [Authorize(Policy = "AuthLevelL1")]
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
@@ -193,6 +222,102 @@ public class AuthController(
             code = 0,
             data = new { nickname = user.Nickname, avatarUrl = user.AvatarUrl }
         });
+    }
+
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("set-security-password")]
+    public async Task<IActionResult> SetSecurityPassword([FromBody] SetSecurityPasswordRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        if (user.HasSecurityPassword())
+            return BadRequest(new { code = 4000, message = "已设置过安全密码" });
+
+        user.SetSecurityPassword(PasswordHelper.Hash(request.Password));
+        await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, message = "安全密码设置成功" });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("reset-security-password")]
+    public async Task<IActionResult> ResetSecurityPassword([FromBody] ResetSecurityPasswordRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        if (!string.Equals(request.Email, (await db.Users.FindAsync(userId))?.EmailAddress, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { code = 4000, message = "只能使用当前绑定邮箱重置安全密码" });
+
+        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{request.Email}");
+        if (cachedCode is null || cachedCode != request.Code)
+            return BadRequest(new { code = 4000, message = "验证码错误或已过期" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
+        user.SetSecurityPassword(PasswordHelper.Hash(request.NewPassword));
+        await db.SaveChangesAsync();
+
+        cache.Remove($"{EmailCodePrefix}{request.Email}");
+        return Ok(new { code = 0, message = "安全密码重置成功" });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpGet("student-verification")]
+    public async Task<IActionResult> GetStudentVerification()
+    {
+        var userId = User.GetUserId();
+        var app = await db.StudentVerificationApplications
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (app is null)
+            return Ok(new { code = 0, data = new { status = "None", statusCode = -1 } });
+
+        return Ok(new
+        {
+            code = 0,
+            data = new
+            {
+                app.Id,
+                app.RealName,
+                app.StudentId,
+                status = app.Status.ToString(),
+                statusCode = (int)app.Status,
+                app.AdminNote,
+                app.CreatedAt,
+                app.ReviewedAt
+            }
+        });
+    }
+
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("student-verification")]
+    public async Task<IActionResult> SubmitStudentVerification([FromBody] SubmitStudentVerificationRequest request)
+    {
+        var userId = User.GetUserId();
+
+        // Check if there's already a pending application
+        if (await db.StudentVerificationApplications.AnyAsync(a => a.UserId == userId && a.Status == StudentVerificationStatus.Pending))
+            return BadRequest(new { code = 4000, message = "已有审核中的申请" });
+
+        var app = new Domain.Entities.StudentVerificationApplication(
+            userId, request.RealName, request.StudentId, request.CertificateImageUrl);
+        db.StudentVerificationApplications.Add(app);
+        await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, message = "申请已提交" });
     }
 
     private string GenerateToken(User user)

@@ -136,7 +136,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
             return BadRequest(new { code = 4000, message = "当前认证等级无法发布商品" });
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
-            dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea);
+            dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
+            dto.IsRental, dto.RentalRate, dto.Deposit);
 
         item.TransitionTo(ItemStatus.Active);
         db.Items.Add(item);

@@ -152,6 +152,7 @@ Page({
 
     return {
       ...item,
+      pickupCode: item.secureToken || "",
       priceText: formatPrice(item.price),
       timeText: formatTime(item.createdAt),
       status,
@@ -197,8 +198,7 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          // TODO: 需要取货码，暂时提示
-          wx.showToast({ title: '请使用取货码核销', icon: 'none' });
+          wx.showToast({ title: "请将取货码出示给卖家核销", icon: "none" });
         } catch (error) {
           console.error('[MyOrders] confirmReceive error:', error);
         }
@@ -240,7 +240,7 @@ Page({
         if (!res.confirm) return;
         const pickupCode = res.content?.trim();
         if (!pickupCode) {
-          wx.showToast({ title: '请输入取货码', icon: 'none' });
+          wx.showToast({ title: "请将取货码出示给卖家核销", icon: "none" });
           return;
         }
 

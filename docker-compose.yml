@@ -10,7 +10,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./deploy/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--protocol=TCP"]
       interval: 5s
       timeout: 3s
       retries: 10

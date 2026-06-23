@@ -29,6 +29,7 @@ public sealed record TransactionVO
     public DateTime CreatedAt { get; init; }
     public decimal Price { get; init; }
     public string? ItemTitle { get; init; }
+    public string? SecureToken { get; init; }
     public int Status => TokenStatus switch
     {
         TokenStatus.Unused => 0,
@@ -37,7 +38,7 @@ public sealed record TransactionVO
         _ => 0
     };
 
-    public static TransactionVO FromEntity(Transaction transaction, decimal price = 0, string? itemTitle = null) => new()
+    public static TransactionVO FromEntity(Transaction transaction, decimal price = 0, string? itemTitle = null, string? secureToken = null) => new()
     {
         TransactionId = transaction.Id,
         ItemId = transaction.ItemId,
@@ -51,6 +52,7 @@ public sealed record TransactionVO
         TokenExpiredAt = transaction.TokenExpiredAt,
         CreatedAt = transaction.CreatedAt,
         Price = price,
-        ItemTitle = itemTitle ?? string.Empty
+        ItemTitle = itemTitle ?? string.Empty,
+        SecureToken = secureToken
     };
 }

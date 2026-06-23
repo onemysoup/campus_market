@@ -13,6 +13,32 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public class AdminController(AppDbContext db) : ControllerBase
 {
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var query = db.Users.OrderByDescending(u => u.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var users = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new
+            {
+                userId = u.Id,
+                nickname = u.Nickname,
+                email = u.EmailAddress,
+                authLevel = (int)u.AuthLevel,
+                roleType = (int)u.RoleType,
+                creditScore = u.CreditScore,
+                isBanned = u.IsBanned,
+                campusArea = u.CampusArea.HasValue ? (int)u.CampusArea.Value : (int?)null,
+                createdAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = new { users, totalCount, page, pageSize } });
+    }
+
     [HttpGet("stats/dashboard")]
     public async Task<IActionResult> GetDashboard()
     {
@@ -25,6 +51,7 @@ public class AdminController(AppDbContext db) : ControllerBase
             totalItems = await db.Items.CountAsync(),
             activeItems = await db.Items.CountAsync(i => i.Status == ItemStatus.Active),
             pendingReports = await db.ReportLogs.CountAsync(r => r.Status == ReportStatus.Pending),
+            pendingVerifications = await db.StudentVerificationApplications.CountAsync(v => v.Status == StudentVerificationStatus.Pending),
             todayNewUsers = await db.Users.CountAsync(u => u.CreatedAt >= todayStart),
             todayNewItems = await db.Items.CountAsync(i => i.CreatedAt >= todayStart),
             todayTransactions = await db.Transactions.CountAsync(t => t.CreatedAt >= todayStart)
@@ -113,6 +140,59 @@ public class AdminController(AppDbContext db) : ControllerBase
 
         return Ok(new { code = 0, data = new { user.CreditScore } });
     }
+
+    [HttpGet("verifications")]
+    public async Task<IActionResult> GetVerifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var query = db.StudentVerificationApplications
+            .OrderByDescending(v => v.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var verifications = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(v => new
+            {
+                v.Id,
+                v.UserId,
+                v.RealName,
+                v.StudentId,
+                v.CertificateImageUrl,
+                status = (int)v.Status,
+                v.AdminNote,
+                v.CreatedAt,
+                v.ReviewedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { code = 0, data = new { verifications, totalCount, page, pageSize } });
+    }
+
+    [HttpPatch("verifications/{id:guid}")]
+    public async Task<IActionResult> HandleVerification(Guid id, [FromBody] HandleVerificationDTO dto)
+    {
+        var adminId = User.GetUserId();
+        var app = await db.StudentVerificationApplications.FirstOrDefaultAsync(v => v.Id == id);
+        if (app is null)
+            return NotFound(new { code = 4004, message = "申请不存在" });
+
+        var user = await db.Users.FindAsync(app.UserId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户不存在" });
+
+        if (dto.Approve)
+        {
+            app.Approve(adminId);
+            user.VerifyStudent(app.StudentId);
+        }
+        else
+        {
+            app.Reject(adminId, dto.Reason);
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(new { code = 0, message = dto.Approve ? "认证已通过" : "已驳回" });
+    }
 }
 
 public sealed record HandleReportDTO(bool Accept, string? Note);
@@ -120,3 +200,5 @@ public sealed record HandleReportDTO(bool Accept, string? Note);
 public sealed record ToggleBanDTO(bool Ban);
 
 public sealed record AdjustCreditDTO(int Delta, string Reason);
+
+public sealed record HandleVerificationDTO(bool Approve, string? Reason);

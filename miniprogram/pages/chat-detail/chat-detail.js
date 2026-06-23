@@ -7,6 +7,7 @@
 
 const chatApi = require('../../api/chat');
 const itemsApi = require('../../api/items');
+const signalr = require('../../utils/signalr');
 const { formatPrice, formatTime } = require('../../utils/constants');
 
 Page({
@@ -58,6 +59,42 @@ Page({
 
     // 加载消息
     this.loadMessages();
+
+    // 建立 SignalR 实时连接，监听新消息
+    this.connectSignalR();
+  },
+
+  onUnload() {
+    signalr.offMessage();
+  },
+
+  // ==================== SignalR ====================
+
+  connectSignalR() {
+    const token = wx.getStorageSync('token');
+    if (!token) return;
+
+    signalr.connect(token);
+    signalr.onMessage((message) => {
+      // 只处理当前会话的消息，且不是自己发的
+      if (message.sessionId && message.sessionId === this.data.sessionId &&
+          message.senderId !== (wx.getStorageSync('userInfo') || {}).userId) {
+        const newMsg = {
+          messageId: message.messageId,
+          senderId: message.senderId,
+          content: message.content,
+          timestamp: message.timestamp,
+          isMine: false,
+          timeText: this.formatMsgTime(message.timestamp)
+        };
+
+        this.setData({
+          messages: [...this.data.messages, newMsg]
+        });
+
+        this.scrollToBottom();
+      }
+    });
   },
 
   // ==================== 数据加载 ====================
