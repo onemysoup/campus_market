@@ -107,6 +107,200 @@
   color: #64748b;
 }
 
+.analytics-panel {
+  margin-top: 24rpx;
+}
+
+.analytics-header,
+.filter-row,
+.date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.analytics-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.export-btn {
+  height: 58rpx;
+  line-height: 58rpx;
+  margin: 0;
+  padding: 0 20rpx;
+  border-radius: 8rpx;
+  background: #0f766e;
+  color: #fff;
+  font-size: 24rpx;
+}
+
+.period-tabs {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #e2e8f0;
+  border-radius: 8rpx;
+  padding: 4rpx;
+}
+
+.period-tab {
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: 24rpx;
+  color: #475569;
+  border-radius: 6rpx;
+}
+
+.period-tab.active {
+  background: #fff;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.campus-picker,
+.date-picker {
+  background: #fff;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 8rpx;
+  padding: 14rpx 18rpx;
+  font-size: 24rpx;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.date-row {
+  justify-content: flex-start;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.metric-card {
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 18rpx 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.metric-value {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #0f766e;
+  margin-bottom: 6rpx;
+  word-break: break-all;
+}
+
+.metric-label {
+  display: block;
+  font-size: 21rpx;
+  color: #64748b;
+}
+
+.report-block {
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 18rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.report-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 14rpx;
+}
+
+.campus-row,
+.category-row,
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 14rpx 0;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.campus-row:first-of-type,
+.category-row:first-of-type,
+.top-row:first-of-type {
+  border-top: 0;
+}
+
+.campus-name {
+  width: 110rpx;
+  font-size: 25rpx;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.campus-metric {
+  flex: 1;
+  font-size: 23rpx;
+  color: #475569;
+}
+
+.category-main,
+.top-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.category-name,
+.top-title {
+  display: block;
+  font-size: 25rpx;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-sub,
+.top-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.category-side {
+  width: 110rpx;
+  text-align: right;
+  font-size: 22rpx;
+  color: #475569;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.top-rank {
+  width: 42rpx;
+  height: 42rpx;
+  line-height: 42rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.empty.compact {
+  padding: 24rpx 0;
+  font-size: 24rpx;
+}
+
 /* ==================== 列表头部 ==================== */
 .list-header {
   margin-bottom: 16rpx;

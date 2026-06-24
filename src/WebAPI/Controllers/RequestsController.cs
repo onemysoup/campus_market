@@ -2,16 +2,22 @@ using CAUSecondHand.Domain.DTOs;
 using CAUSecondHand.Domain.Entities;
 using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Infrastructure.Data;
+using CAUSecondHand.Infrastructure.Services;
 using CAUSecondHand.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/requests")]
-public class RequestsController(AppDbContext db) : ControllerBase
+public class RequestsController(
+    AppDbContext db,
+    IWeChatApiClient weChat,
+    IOptions<WeChatOptions> weChatOptions) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetRequests([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -36,6 +42,13 @@ public class RequestsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> CreateRequest([FromBody] CreateRequestDTO dto)
     {
         var userId = User.GetUserId();
+        var recentTitles = await db.Requests
+            .Where(r => r.BuyerId == userId && r.CreatedAt >= DateTime.UtcNow.AddHours(-24))
+            .Select(r => r.Title)
+            .ToListAsync();
+        if (recentTitles.Any(title => CalculateJaccard(title, dto.Title) > 0.8))
+            return BadRequest(new { code = 4000, message = "24小时内已发布过相似求购，请勿重复发布" });
+
         var request = new Request(userId, dto.Title, dto.MaxPrice,
             dto.IsUrgent, dto.ResourceType, dto.CampusArea);
 
@@ -78,8 +91,7 @@ public class RequestsController(AppDbContext db) : ControllerBase
         request.IncrementMatchingCount();
         await db.SaveChangesAsync();
 
-        // TODO: 按 SDDD 5.3.1 应在此调用 WxNotifyService 推送买家「有人能提供该商品」通知；
-        //       依赖微信订阅消息基建，暂未接入。买家可通过 GET /responses 查看并经商品详情联系卖家。
+        await NotifyRequestOwnerAsync(request, item);
         return Ok(new { code = 0, message = "响应成功" });
     }
 
@@ -138,5 +150,45 @@ public class RequestsController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "求购帖已关闭" });
+    }
+
+    private static double CalculateJaccard(string left, string right)
+    {
+        var leftSet = NormalizeForSimilarity(left);
+        var rightSet = NormalizeForSimilarity(right);
+        if (leftSet.Count == 0 && rightSet.Count == 0)
+            return 1;
+        var intersection = leftSet.Intersect(rightSet).Count();
+        var union = leftSet.Union(rightSet).Count();
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
+    private static HashSet<char> NormalizeForSimilarity(string value) =>
+        value.Trim()
+            .ToLowerInvariant()
+            .Where(c => !char.IsWhiteSpace(c) && !char.IsPunctuation(c))
+            .ToHashSet();
+
+    private async Task NotifyRequestOwnerAsync(Request request, Item item)
+    {
+        var templateId = weChatOptions.Value.SubscribeTemplates.RequestResponse;
+        if (string.IsNullOrWhiteSpace(templateId))
+            return;
+
+        var buyer = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.BuyerId);
+        if (buyer is null || string.IsNullOrWhiteSpace(buyer.WeChatOpenId))
+            return;
+
+        await weChat.SendSubscribeMessageAsync(new SubscribeMessage(
+            buyer.WeChatOpenId,
+            templateId,
+            $"pages/goods-detail/goods-detail?id={item.Id}",
+            new Dictionary<string, string>
+            {
+                ["thing1"] = request.Title,
+                ["thing2"] = item.Title,
+                ["amount3"] = $"{item.Price.ToString("0.##", CultureInfo.InvariantCulture)}元",
+                ["time4"] = DateTime.UtcNow.AddHours(8).ToString("MM-dd HH:mm", CultureInfo.InvariantCulture)
+            }), HttpContext.RequestAborted);
     }
 }

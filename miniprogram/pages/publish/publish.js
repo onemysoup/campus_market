@@ -27,6 +27,7 @@ Page({
       campusArea: 0,
       images: [],
       isNegotiable: true,
+      isFree: false,
       // 租赁相关
       isRental: false,
       rentalRate: '',
@@ -94,7 +95,11 @@ Page({
         conditionLevel: 0,
         campusArea: 0,
         images: [],
-        isNegotiable: true
+        isNegotiable: true,
+        isFree: false,
+        isRental: false,
+        rentalRate: '',
+        deposit: ''
       },
       categoryIndex: 0,
       conditionIndex: 0,
@@ -126,6 +131,7 @@ Page({
           campusArea: detail.campusArea || 0,
           images: detail.images || [],
           isNegotiable: detail.isNegotiable !== false,
+          isFree: Number(detail.price || 0) === 0,
           isRental: detail.isRental === true,
           rentalRate: detail.rentalRate || '',
           deposit: detail.deposit != null ? String(detail.deposit) : ''
@@ -159,6 +165,14 @@ Page({
 
   onNegotiableChange(e) {
     this.setData({ 'form.isNegotiable': e.detail.value });
+  },
+
+  onFreeChange(e) {
+    const isFree = e.detail.value;
+    this.setData({
+      'form.isFree': isFree,
+      'form.price': isFree ? '0' : this.data.form.price
+    });
   },
 
   // ==================== 租赁 ====================
@@ -296,7 +310,7 @@ Page({
       return false;
     }
 
-    if (!form.price || Number(form.price) <= 0) {
+    if (form.price === '' || Number(form.price) < 0 || (!form.isFree && Number(form.price) <= 0)) {
       wx.showToast({ title: '请输入有效价格', icon: 'none' });
       return false;
     }
@@ -333,7 +347,7 @@ Page({
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
-        price: Number(form.price),
+        price: form.isFree ? 0 : Number(form.price),
         category: form.category,
         conditionLevel: form.conditionLevel,
         campusArea: form.campusArea,

@@ -37,16 +37,33 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(t => t.Item)
-            .Select(t => TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title, t.SecureToken))
             .ToListAsync();
 
-        return Ok(new { code = 0, data = new { transactions, totalCount, page, pageSize } });
+        var result = transactions
+            .Select(t =>
+            {
+                var pickupCode = t.BuyerId == userId && t.TokenStatus == TokenStatus.Unused
+                    ? GetDisplayPickupCode(t)
+                    : null;
+                return TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title, pickupCode);
+            })
+            .ToList();
+
+        return Ok(new { code = 0, data = new { transactions = result, totalCount, page, pageSize } });
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
     {
         var buyerId = User.GetUserId();
+        var securityResult = await ValidateSecurityPasswordAsync(buyerId, request.SecurityPassword);
+        if (securityResult is not null)
+            return securityResult;
+
+        var buyer = await db.Users.FindAsync(buyerId);
+        if (buyer is null || !buyer.IsEligibleToTransaction())
+            return BadRequest(new { code = 4000, message = "请完成 L2 认证后再购买商品" });
+
         var item = await db.Items.FirstOrDefaultAsync(i => i.Id == request.ItemId);
         if (item is null)
             return NotFound(new { code = 4004, message = "商品不存在" });
@@ -55,11 +72,12 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         if (item.SellerId == buyerId)
             return BadRequest(new { code = 4000, message = "不能购买自己的商品" });
 
-        var pickupCode = tokenService.GeneratePickupCode(item.Id, buyerId);
         var transaction = new Transaction(
             item.Id, buyerId, item.SellerId,
             item.IsRental ? TransactionType.Rental : TransactionType.Sale,
-            pickupCode, DateTime.UtcNow.AddDays(1));
+            string.Empty, DateTime.UtcNow.AddDays(1));
+        var pickupCode = tokenService.GeneratePickupCode(transaction.Id, buyerId);
+        transaction.SetSecureToken(tokenService.HashTransactionToken(transaction.Id, pickupCode));
 
         if (!string.IsNullOrWhiteSpace(request.AgreedLocation))
             transaction.SetLocation(request.AgreedLocation, request.IsCrossCampus);
@@ -75,6 +93,10 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
     public async Task<IActionResult> VerifyPickupCode(Guid id, [FromBody] VerifyTokenRequest request)
     {
         var userId = User.GetUserId();
+        var securityResult = await ValidateSecurityPasswordAsync(userId, request.SecurityPassword);
+        if (securityResult is not null)
+            return securityResult;
+
         var transaction = await db.Transactions.Include(t => t.Item).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
             return NotFound(new { code = 4004, message = "交易不存在" });
@@ -85,8 +107,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         if (!businessResult.IsSuccess)
             return BadRequest(new { code = 4000, message = businessResult.Error });
 
-        if (!TokenService.VerifyToken(request.PickupCode,
-                tokenService.GeneratePickupCode(transaction.ItemId, transaction.BuyerId)))
+        if (!tokenService.VerifyTransactionToken(transaction.Id, request.PickupCode, transaction.SecureToken))
             return BadRequest(new { code = 4000, message = "取货码错误" });
 
         transaction.ConfirmPickup();
@@ -101,6 +122,10 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
     public async Task<IActionResult> CancelTransaction(Guid id, [FromBody] CancelTransactionRequest request)
     {
         var userId = User.GetUserId();
+        var securityResult = await ValidateSecurityPasswordAsync(userId, request.SecurityPassword);
+        if (securityResult is not null)
+            return securityResult;
+
         var transaction = await db.Transactions
             .Include(t => t.Item)
             .FirstOrDefaultAsync(t => t.Id == id);
@@ -121,6 +146,10 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
     public async Task<IActionResult> StartRental(Guid id, [FromBody] RentStartRequest request)
     {
         var userId = User.GetUserId();
+        var securityResult = await ValidateSecurityPasswordAsync(userId, request.SecurityPassword);
+        if (securityResult is not null)
+            return securityResult;
+
         var transaction = await db.Transactions.Include(t => t.Item).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
             return NotFound(new { code = 4004, message = "交易不存在" });
@@ -128,7 +157,7 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             return Forbid();
 
         var returnCode = tokenService.GenerateReturnCode(id, userId);
-        transaction.SetReturnCode(returnCode);
+        transaction.SetReturnCode(tokenService.HashTransactionToken(id, returnCode));
         var result = transaction.StartRental(request.ExpectedReturnTime);
         if (!result.IsSuccess)
             return BadRequest(new { code = 4000, message = result.Error });
@@ -138,9 +167,13 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
     }
 
     [HttpPost("{id:guid}/rent-return")]
-    public async Task<IActionResult> CompleteReturn(Guid id)
+    public async Task<IActionResult> CompleteReturn(Guid id, [FromBody] CompleteReturnRequest? request)
     {
         var userId = User.GetUserId();
+        var securityResult = await ValidateSecurityPasswordAsync(userId, request?.SecurityPassword);
+        if (securityResult is not null)
+            return securityResult;
+
         var transaction = await db.Transactions.Include(t => t.Item).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
             return NotFound(new { code = 4004, message = "交易不存在" });
@@ -153,5 +186,23 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
 
         await db.SaveChangesAsync();
         return Ok(new { code = 0, message = "归还成功" });
+    }
+
+    private string GetDisplayPickupCode(Transaction transaction) =>
+        transaction.SecureToken.Length <= 8
+            ? transaction.SecureToken
+            : tokenService.GeneratePickupCode(transaction.Id, transaction.BuyerId);
+
+    private async Task<IActionResult?> ValidateSecurityPasswordAsync(Guid userId, string? securityPassword)
+    {
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+        if (!user.HasSecurityPassword())
+            return BadRequest(new { code = 4000, message = "请先设置安全密码" });
+        if (string.IsNullOrWhiteSpace(securityPassword)
+            || !PasswordHelper.Verify(securityPassword, user.SecurityPasswordHash!))
+            return Unauthorized(new { code = 4001, message = "安全密码错误" });
+        return null;
     }
 }

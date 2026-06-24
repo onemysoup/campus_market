@@ -22,8 +22,8 @@ const transactionsApi = {
    * @param {string} id         - 交易 GUID
    * @param {string} pickupCode - 取货码
    */
-  verifyPickupCode(id, pickupCode) {
-    return post(`/api/v1/transactions/${id}/verify`, { pickupCode });
+  verifyPickupCode(id, pickupCode, securityPassword) {
+    return post(`/api/v1/transactions/${id}/verify`, { pickupCode, securityPassword });
   },
 
   /**
@@ -31,8 +31,8 @@ const transactionsApi = {
    * @param {string} id     - 交易 GUID
    * @param {string} reason - 取消原因
    */
-  cancelTransaction(id, reason) {
-    return post(`/api/v1/transactions/${id}/cancel`, { reason });
+  cancelTransaction(id, reason, securityPassword) {
+    return post(`/api/v1/transactions/${id}/cancel`, { reason, securityPassword });
   },
 
   /**
@@ -40,16 +40,16 @@ const transactionsApi = {
    * @param {string} id               - 交易 GUID
    * @param {string} expectedReturnTime - 预计归还时间（ISO 格式）
    */
-  startRental(id, expectedReturnTime) {
-    return post(`/api/v1/transactions/${id}/rent-start`, { expectedReturnTime });
+  startRental(id, expectedReturnTime, securityPassword) {
+    return post(`/api/v1/transactions/${id}/rent-start`, { expectedReturnTime, securityPassword });
   },
 
   /**
    * 完成归还
    * @param {string} id - 交易 GUID
    */
-  completeReturn(id) {
-    return post(`/api/v1/transactions/${id}/rent-return`);
+  completeReturn(id, securityPassword) {
+    return post(`/api/v1/transactions/${id}/rent-return`, { securityPassword });
   },
 
   /**

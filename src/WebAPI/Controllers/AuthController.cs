@@ -46,6 +46,10 @@ public class AuthController(
             await db.SaveChangesAsync();
             isNewUser = true;
         }
+        else if (user.IsBanned)
+        {
+            return Unauthorized(new { code = 4001, message = "账号已被封禁" });
+        }
 
         var token = GenerateToken(user);
         return Ok(new

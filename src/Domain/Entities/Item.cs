@@ -101,7 +101,20 @@ public sealed class Item
         if (campusArea.HasValue) CampusArea = campusArea.Value;
         if (deliveryPoint != null) DeliveryPoint = deliveryPoint;
         if (isRental.HasValue) IsRental = isRental.Value;
-        if (deposit.HasValue) Deposit = deposit.Value;
-        if (rentalRate != null) RentalRate = rentalRate;
+        if (isRental == true)
+        {
+            Deposit = deposit;
+            RentalRate = rentalRate;
+        }
+        else if (isRental == false)
+        {
+            Deposit = null;
+            RentalRate = null;
+        }
+        else
+        {
+            if (deposit.HasValue) Deposit = deposit.Value;
+            if (rentalRate != null) RentalRate = rentalRate;
+        }
     }
 }

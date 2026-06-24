@@ -65,9 +65,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                         .GetRequiredService<AppDbContext>();
                     var isBanned = await db.Users
                         .Where(u => u.Id == userId)
-                        .Select(u => u.IsBanned)
+                        .Select(u => (bool?)u.IsBanned)
                         .FirstOrDefaultAsync();
-                    if (isBanned)
+                    if (isBanned is null)
+                        context.Fail("用户不存在");
+                    else if (isBanned.Value)
                         context.Fail("账号已被封禁");
                 }
             }
@@ -76,6 +78,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("AuthLevelL1", policy => policy.RequireClaim("authLevel", "1", "2"))
+    .AddPolicy("AuthLevelL2", policy => policy.RequireClaim("authLevel", "2"))
     .AddPolicy("AdminOnly", policy => policy.RequireClaim("roleType", "Admin"));
 
 builder.Services.AddSignalR();

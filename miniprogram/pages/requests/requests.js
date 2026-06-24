@@ -6,6 +6,7 @@
 const requestsApi = require('../../api/requests');
 const itemsApi = require('../../api/items');
 const { RESOURCE_TYPE, formatTime } = require('../../utils/constants');
+const { requestSubscribe } = require('../../utils/subscribe');
 
 Page({
   data: {
@@ -133,6 +134,7 @@ Page({
     this.setData({ submitting: true });
 
     try {
+      await requestSubscribe(['requestResponse', 'requestMatch']);
       await requestsApi.createRequest({
         title: form.title.trim(),
         maxPrice: form.maxPrice ? Number(form.maxPrice) : null,

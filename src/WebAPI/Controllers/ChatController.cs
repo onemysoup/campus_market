@@ -24,6 +24,11 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
             .OrderByDescending(s => s.LastMessageTime ?? s.CreatedAt)
             .ToListAsync();
 
+        var blockedUserIds = await GetBlockedUserIdsAsync(userId);
+        sessions = sessions
+            .Where(s => !blockedUserIds.Contains(s.GetOtherPartyId(userId)))
+            .ToList();
+
         var otherUserIds = sessions.Select(s => s.GetOtherPartyId(userId)).ToList();
         var otherUsers = await db.Users
             .Where(u => otherUserIds.Contains(u.Id))
@@ -64,6 +69,8 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
         var session = await db.ChatSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session is null || !session.Involves(userId))
             return NotFound(new { code = 4004, message = "会话不存在" });
+        if (await IsBlockedBetweenAsync(session.UserAId, session.UserBId))
+            return Forbid();
 
         var messages = await db.Messages
             .Where(m => m.SessionId == sessionId)
@@ -81,6 +88,10 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
     public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
     {
         var senderId = User.GetUserId();
+        if (senderId == request.ReceiverId)
+            return BadRequest(new { code = 4000, message = "不能给自己发送消息" });
+        if (await IsBlockedBetweenAsync(senderId, request.ReceiverId))
+            return BadRequest(new { code = 4000, message = "对方暂不可联系" });
 
         // 查找或创建会话
         var session = await db.ChatSessions
@@ -118,4 +129,21 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
 
         return Ok(new { code = 0, data = MessageVO.FromEntity(message) });
     }
+
+    private async Task<HashSet<Guid>> GetBlockedUserIdsAsync(Guid userId)
+    {
+        var blocked = await db.BlacklistEntries
+            .Where(b => b.UserId == userId)
+            .Select(b => b.BlockedId)
+            .Concat(db.BlacklistEntries
+                .Where(b => b.BlockedId == userId)
+                .Select(b => b.UserId))
+            .ToListAsync();
+        return blocked.ToHashSet();
+    }
+
+    private async Task<bool> IsBlockedBetweenAsync(Guid userAId, Guid userBId) =>
+        await db.BlacklistEntries.AnyAsync(b =>
+            (b.UserId == userAId && b.BlockedId == userBId)
+            || (b.UserId == userBId && b.BlockedId == userAId));
 }

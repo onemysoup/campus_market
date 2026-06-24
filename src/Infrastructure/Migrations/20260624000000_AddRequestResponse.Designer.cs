@@ -366,6 +366,37 @@ namespace CAUSecondHand.Infrastructure.Migrations
                     b.ToTable("t_request", (string)null);
                 });
 
+            modelBuilder.Entity("CAUSecondHand.Domain.Entities.RequestResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("ItemId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerId");
+
+                    b.HasIndex("RequestId", "SellerId", "ItemId")
+                        .IsUnique();
+
+                    b.ToTable("t_request_response", (string)null);
+                });
+
             modelBuilder.Entity("CAUSecondHand.Domain.Entities.StudentVerificationApplication", b =>
                 {
                     b.Property<Guid>("Id")

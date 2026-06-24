@@ -25,9 +25,16 @@
           type="digit"
           placeholder="0.00"
           value="{{form.price}}"
+          disabled="{{form.isFree}}"
           bindinput="onPriceInput"
         />
       </view>
+    </view>
+
+    <!-- 0元赠送 -->
+    <view class="form-item switch-item">
+      <text class="label">0元赠送</text>
+      <switch checked="{{form.isFree}}" bindchange="onFreeChange" color="#0f766e" />
     </view>
 
     <!-- 可议价 -->

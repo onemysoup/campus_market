@@ -51,6 +51,104 @@
         <text class="today-label">今日交易</text>
       </view>
     </view>
+
+    <view class="analytics-panel">
+      <view class="analytics-header">
+        <text class="analytics-title">运营报表</text>
+        <button class="export-btn" size="mini" bindtap="onExportStats">复制CSV</button>
+      </view>
+
+      <view class="filter-row">
+        <view class="period-tabs">
+          <view
+            class="period-tab {{statsFilter.period === item.key ? 'active' : ''}}"
+            wx:for="{{statsPeriods}}"
+            wx:key="key"
+            data-period="{{item.key}}"
+            bindtap="onStatsPeriodChange"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <picker mode="selector" range="{{statsCampusOptions}}" value="{{statsFilter.campusIndex}}" bindchange="onStatsCampusChange">
+          <view class="campus-picker">{{statsCampusOptions[statsFilter.campusIndex]}}</view>
+        </picker>
+      </view>
+
+      <view class="date-row" wx:if="{{statsFilter.period === 'day' || statsFilter.period === 'custom'}}">
+        <picker mode="date" value="{{statsFilter.startDate}}" data-field="startDate" bindchange="onStatsDateChange" wx:if="{{statsFilter.period === 'custom'}}">
+          <view class="date-picker">开始 {{statsFilter.startDate}}</view>
+        </picker>
+        <picker mode="date" value="{{statsFilter.endDate}}" data-field="endDate" bindchange="onStatsDateChange">
+          <view class="date-picker">{{statsFilter.period === 'day' ? '日期' : '结束'}} {{statsFilter.endDate}}</view>
+        </picker>
+      </view>
+
+      <view class="analytics-grid">
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.newUsers || 0}}</text>
+          <text class="metric-label">新增用户</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.newItems || 0}}</text>
+          <text class="metric-label">发布商品</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.completedTransactions || 0}}</text>
+          <text class="metric-label">完成交易</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.dealRateText || '0%'}}</text>
+          <text class="metric-label">成交率</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">¥{{analytics.summary.turnoverText || '0.00'}}</text>
+          <text class="metric-label">成交金额</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.activeUsers || 0}}</text>
+          <text class="metric-label">活跃用户</text>
+        </view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">校区对比</view>
+        <view class="campus-row" wx:for="{{analytics.campus}}" wx:key="campusArea">
+          <text class="campus-name">{{item.campusText}}</text>
+          <text class="campus-metric">用户 {{item.newUsers}}</text>
+          <text class="campus-metric">发布 {{item.newItems}}</text>
+          <text class="campus-metric">交易 {{item.completedTransactions}}</text>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.campus.length === 0}}">暂无校区数据</view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">分类表现</view>
+        <view class="category-row" wx:for="{{analytics.categories}}" wx:key="category">
+          <view class="category-main">
+            <text class="category-name">{{item.categoryText}}</text>
+            <text class="category-sub">浏览 {{item.viewCount}} · 收藏 {{item.favoriteCount}} · 私聊 {{item.chatCount}}</text>
+          </view>
+          <view class="category-side">
+            <text>{{item.publishedCount}} 发布</text>
+            <text>{{item.dealRateText}}</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.categories.length === 0}}">暂无分类数据</view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">热门商品</view>
+        <view class="top-row" wx:for="{{analytics.topItems}}" wx:key="itemId">
+          <text class="top-rank">{{index + 1}}</text>
+          <view class="top-main">
+            <text class="top-title">{{item.title}}</text>
+            <text class="top-sub">{{item.categoryText}} · 浏览 {{item.viewCount}} · 收藏 {{item.favoriteCount}} · 私聊 {{item.chatCount}}</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.topItems.length === 0}}">暂无热门商品</view>
+      </view>
+    </view>
   </view>
 
   <!-- 用户管理 -->

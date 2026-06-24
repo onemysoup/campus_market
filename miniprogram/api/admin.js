@@ -3,7 +3,7 @@
  * 对应后端: AdminController (/api/v1/admin)
  */
 
-const { get, patch, post } = require('../utils/request');
+const { get, patch, post, request } = require('../utils/request');
 
 const adminApi = {
   /**
@@ -24,10 +24,30 @@ const adminApi = {
   },
 
   /**
-   * 获取举报统计
+   * 获取运营统计报表
+   * @param {Object} params
+   * @param {string} params.period - day/week/month/custom
+   * @param {string} params.startDate - YYYY-MM-DD
+   * @param {string} params.endDate - YYYY-MM-DD
+   * @param {number} params.campusArea - 0=东校区, 1=西校区
    */
-  getReportStats() {
-    return get('/api/v1/admin/stats/reports');
+  getStatsReport(params = {}) {
+    return get('/api/v1/admin/stats/reports', params);
+  },
+
+  /**
+   * 导出运营统计 CSV
+   */
+  exportStats(params = {}) {
+    return request({
+      url: '/api/v1/admin/stats/export',
+      method: 'GET',
+      data: params,
+      raw: true,
+      header: {
+        Accept: 'text/csv'
+      }
+    });
   },
 
   /**

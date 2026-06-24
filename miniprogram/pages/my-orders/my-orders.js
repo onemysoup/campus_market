@@ -217,7 +217,9 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          await transactionsApi.cancelTransaction(transactionid, '用户主动取消');
+          const securityPassword = await this.promptSecurityPassword('取消交易');
+          if (!securityPassword) return;
+          await transactionsApi.cancelTransaction(transactionid, '用户主动取消', securityPassword);
           wx.showToast({ title: '已取消', icon: 'success' });
           this.fetchList(true);
         } catch (error) {
@@ -245,7 +247,9 @@ Page({
         }
 
         try {
-          await transactionsApi.verifyPickupCode(transactionid, pickupCode);
+          const securityPassword = await this.promptSecurityPassword('核销安全验证');
+          if (!securityPassword) return;
+          await transactionsApi.verifyPickupCode(transactionid, pickupCode, securityPassword);
           wx.showToast({ title: '核销成功', icon: 'success' });
           this.fetchList(true);
         } catch (error) {
@@ -272,5 +276,25 @@ Page({
       sellerNickname: othername || '对方'
     };
     wx.switchTab({ url: '/pages/chat/chat' });
+  },
+
+  promptSecurityPassword(title = '安全验证') {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title,
+        editable: true,
+        placeholderText: '请输入安全密码',
+        confirmText: '确认',
+        confirmColor: '#0f766e',
+        success: (res) => {
+          if (!res.confirm) {
+            resolve('');
+            return;
+          }
+          resolve((res.content || '').trim());
+        },
+        fail: () => resolve('')
+      });
+    });
   }
 });

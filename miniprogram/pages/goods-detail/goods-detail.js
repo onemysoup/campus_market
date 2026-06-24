@@ -154,7 +154,9 @@ Page({
       confirmColor: '#0f766e',
       success: async (res) => {
         if (!res.confirm) return;
-        await this.createTransaction();
+        const securityPassword = await this.promptSecurityPassword('确认购买');
+        if (!securityPassword) return;
+        await this.createTransaction(securityPassword);
       }
     });
   },
@@ -162,7 +164,7 @@ Page({
   /**
    * 创建交易（锁单）
    */
-  async createTransaction() {
+  async createTransaction(securityPassword) {
     const { itemId } = this.data;
 
     wx.showLoading({ title: '下单中', mask: true });
@@ -170,7 +172,8 @@ Page({
       const transaction = await transactionsApi.createTransaction({
         itemId: itemId,
         agreedLocation: '',
-        isCrossCampus: false
+        isCrossCampus: false,
+        securityPassword
       });
 
       wx.hideLoading();
@@ -197,6 +200,26 @@ Page({
       wx.hideLoading();
       console.error('[GoodsDetail] createTransaction error:', error);
     }
+  },
+
+  promptSecurityPassword(title = '安全验证') {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title,
+        editable: true,
+        placeholderText: '请输入安全密码',
+        confirmText: '确认',
+        confirmColor: '#0f766e',
+        success: (res) => {
+          if (!res.confirm) {
+            resolve('');
+            return;
+          }
+          resolve((res.content || '').trim());
+        },
+        fail: () => resolve('')
+      });
+    });
   },
 
   // ==================== 联系卖家 ====================

@@ -85,6 +85,8 @@ public sealed class Transaction
         return Result.Success();
     }
 
+    public void SetSecureToken(string tokenHash) => SecureToken = tokenHash;
+
     public Result StartRental(DateTime expectedReturnTime)
     {
         if (!IsRental())
@@ -95,7 +97,7 @@ public sealed class Transaction
         return Result.Success();
     }
 
-    public void SetReturnCode(string returnCode) => RentalReturnCode = returnCode;
+    public void SetReturnCode(string returnCodeHash) => RentalReturnCode = returnCodeHash;
 
     public Result CompleteReturn()
     {

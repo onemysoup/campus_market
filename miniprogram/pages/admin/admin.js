@@ -10,9 +10,32 @@ const {
   REPORT_REASON_MAP,
   ITEM_STATUS_MAP,
   CATEGORY_LIST,
+  CAMPUS_AREA_MAP,
   formatPrice,
   formatTime
 } = require('../../utils/constants');
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateOffset(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return formatDate(date);
+}
+
+function defaultStatsFilter() {
+  return {
+    period: 'week',
+    campusIndex: 0,
+    startDate: dateOffset(-6),
+    endDate: dateOffset(0)
+  };
+}
 
 Page({
   data: {
@@ -29,6 +52,21 @@ Page({
       todayNewItems: 0,
       todayTransactions: 0
     },
+    analytics: {
+      summary: {},
+      daily: [],
+      campus: [],
+      categories: [],
+      topItems: []
+    },
+    statsFilter: defaultStatsFilter(),
+    statsPeriods: [
+      { key: 'day', label: '日' },
+      { key: 'week', label: '周' },
+      { key: 'month', label: '月' },
+      { key: 'custom', label: '自定义' }
+    ],
+    statsCampusOptions: ['全部校区', '东校区', '西校区'],
     // Tab 切换
     activeTab: 'dashboard',
     tabs: [
@@ -133,14 +171,106 @@ Page({
   async loadDashboard() {
     this.setData({ loading: true });
     try {
-      const dashboard = await adminApi.getDashboard();
+      const [dashboard, analytics] = await Promise.all([
+        adminApi.getDashboard(),
+        adminApi.getStatsReport(this.buildStatsParams())
+      ]);
       this.setData({
         dashboard: dashboard || {},
+        analytics: this.formatAnalytics(analytics || {}),
         loading: false
       });
     } catch (error) {
       console.error('[Admin] loadDashboard error:', error);
       this.setData({ loading: false });
+    }
+  },
+
+  buildStatsParams() {
+    const { statsFilter } = this.data;
+    const params = {
+      period: statsFilter.period
+    };
+
+    if (statsFilter.period === 'day') {
+      params.startDate = statsFilter.endDate;
+    }
+
+    if (statsFilter.period === 'custom') {
+      params.startDate = statsFilter.startDate;
+      params.endDate = statsFilter.endDate;
+    }
+
+    if (Number(statsFilter.campusIndex) > 0) {
+      params.campusArea = Number(statsFilter.campusIndex) - 1;
+    }
+
+    return params;
+  },
+
+  formatAnalytics(report) {
+    const summary = report.summary || {};
+    const categories = (report.categories || []).map(item => ({
+      ...item,
+      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '未知分类',
+      dealRateText: `${Math.round(Number(item.dealRate || 0) * 100)}%`
+    }));
+    const topItems = (report.topItems || []).map(item => ({
+      ...item,
+      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '未知分类'
+    }));
+    const campus = (report.campus || []).map(item => ({
+      ...item,
+      campusText: CAMPUS_AREA_MAP[item.campusArea]?.label || '未知校区'
+    }));
+    const daily = (report.daily || []).map(item => ({
+      ...item,
+      turnoverText: formatPrice(item.turnoverAmount)
+    }));
+
+    return {
+      ...report,
+      summary: {
+        ...summary,
+        turnoverText: formatPrice(summary.turnoverAmount),
+        dealRateText: `${Math.round(Number(summary.dealRate || 0) * 100)}%`,
+        averageDealDaysText: Number(summary.averageDealDays || 0).toFixed(1)
+      },
+      daily,
+      campus,
+      categories,
+      topItems
+    };
+  },
+
+  onStatsPeriodChange(e) {
+    const { period } = e.currentTarget.dataset;
+    this.setData({ 'statsFilter.period': period });
+    this.loadDashboard();
+  },
+
+  onStatsCampusChange(e) {
+    this.setData({ 'statsFilter.campusIndex': Number(e.detail.value) });
+    this.loadDashboard();
+  },
+
+  onStatsDateChange(e) {
+    const { field } = e.currentTarget.dataset;
+    this.setData({ [`statsFilter.${field}`]: e.detail.value });
+    if (this.data.statsFilter.period === 'custom') {
+      this.loadDashboard();
+    }
+  },
+
+  async onExportStats() {
+    try {
+      const csv = await adminApi.exportStats(this.buildStatsParams());
+      wx.setClipboardData({
+        data: csv,
+        success: () => wx.showToast({ title: 'CSV已复制', icon: 'success' })
+      });
+    } catch (error) {
+      console.error('[Admin] exportStats error:', error);
     }
   },
 

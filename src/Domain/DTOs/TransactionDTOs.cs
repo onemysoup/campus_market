@@ -6,13 +6,16 @@ namespace CAUSecondHand.Domain.DTOs;
 public sealed record CreateTransactionRequest(
     Guid ItemId,
     string? AgreedLocation,
-    bool IsCrossCampus = false);
+    bool IsCrossCampus = false,
+    string? SecurityPassword = null);
 
-public sealed record VerifyTokenRequest(string PickupCode);
+public sealed record VerifyTokenRequest(string PickupCode, string? SecurityPassword = null);
 
-public sealed record CancelTransactionRequest(string? Reason);
+public sealed record CancelTransactionRequest(string? Reason, string? SecurityPassword = null);
 
-public sealed record RentStartRequest(DateTime ExpectedReturnTime);
+public sealed record RentStartRequest(DateTime ExpectedReturnTime, string? SecurityPassword = null);
+
+public sealed record CompleteReturnRequest(string? SecurityPassword = null);
 
 public sealed record TransactionVO
 {

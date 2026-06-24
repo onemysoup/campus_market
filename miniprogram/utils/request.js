@@ -43,6 +43,7 @@ const BASE_URL = getBaseURL();
  * @param {Object} options.data    - 请求数据
  * @param {boolean} options.showLoading - 是否显示 loading，默认 false
  * @param {boolean} options.showError   - 是否自动弹出错误提示，默认 true
+ * @param {boolean} options.raw         - 是否直接返回原始响应体，默认 false
  * @param {Object} options.header  - 自定义 header
  */
 function request(options = {}) {
@@ -52,6 +53,7 @@ function request(options = {}) {
     data = {},
     showLoading = false,
     showError = true,
+    raw = false,
     header = {}
   } = options;
 
@@ -89,6 +91,11 @@ function request(options = {}) {
         if (statusCode >= 400) {
           handleHttpError(statusCode, result, showError);
           reject(result);
+          return;
+        }
+
+        if (raw) {
+          resolve(res.data);
           return;
         }
 

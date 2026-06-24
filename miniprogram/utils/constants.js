@@ -19,6 +19,12 @@ const ENV_CONFIG = {
   }
 };
 
+// 微信订阅消息模板 ID。拿到小程序后台模板后填入；留空时本地自动跳过订阅授权。
+const SUBSCRIBE_TEMPLATE_IDS = {
+  requestResponse: '',
+  requestMatch: ''
+};
+
 // ==================== 后端枚举映射 ====================
 
 /**
@@ -203,11 +209,22 @@ function formatPrice(price) {
 /**
  * 格式化时间
  */
+function parseBackendTime(dateStr) {
+  if (!dateStr) return null;
+  if (typeof dateStr !== 'string') return new Date(dateStr);
+
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(dateStr);
+  const looksLikeDateTime = dateStr.includes('T');
+  return new Date(looksLikeDateTime && !hasTimezone ? `${dateStr}Z` : dateStr);
+}
+
 function formatTime(dateStr) {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const date = parseBackendTime(dateStr);
+  if (!date || Number.isNaN(date.getTime())) return '';
+
   const now = new Date();
-  const diff = now - date;
+  const diff = Math.max(0, now - date);
 
   // 1分钟内
   if (diff < 60000) return '刚刚';
@@ -226,6 +243,7 @@ function formatTime(dateStr) {
 
 module.exports = {
   ENV_CONFIG,
+  SUBSCRIBE_TEMPLATE_IDS,
   CATEGORY_LIST,
   ITEM_STATUS,
   ITEM_STATUS_MAP,

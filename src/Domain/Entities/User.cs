@@ -38,9 +38,13 @@ public sealed class User
     public DateOnly? AuthDate { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public bool IsEligibleToPublish() => CreditScore >= 40 && !IsBanned && AuthLevel >= Enums.AuthLevel.L1;
+    public bool IsEligibleToPublish(decimal price) =>
+        CreditScore >= 40
+        && !IsBanned
+        && AuthLevel >= Enums.AuthLevel.L1
+        && (AuthLevel >= Enums.AuthLevel.L2 || price < 200);
 
-    public bool IsEligibleToTransaction() => AuthLevel >= Enums.AuthLevel.L1 && !IsBanned;
+    public bool IsEligibleToTransaction() => AuthLevel >= Enums.AuthLevel.L2 && !IsBanned;
 
     public CreditTier GetCreditTier() => CreditScore switch
     {

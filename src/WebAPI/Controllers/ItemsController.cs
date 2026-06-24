@@ -2,23 +2,34 @@ using CAUSecondHand.Domain.DTOs;
 using CAUSecondHand.Domain.Entities;
 using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Infrastructure.Data;
+using CAUSecondHand.Infrastructure.Services;
 using CAUSecondHand.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/items")]
-public class ItemsController(AppDbContext db) : ControllerBase
+public class ItemsController(
+    AppDbContext db,
+    IWeChatApiClient weChat,
+    IOptions<WeChatOptions> weChatOptions) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetItems([FromQuery] ItemQuery query)
     {
+        var viewerId = User.GetUserId();
         var itemsQuery = db.Items
             .Include(i => i.Seller)
             .Where(i => i.Status == ItemStatus.Active && i.ExpiryDate > DateOnly.FromDateTime(DateTime.UtcNow));
+
+        if (viewerId != Guid.Empty)
+            itemsQuery = itemsQuery.Where(i => !db.BlacklistEntries
+                .Any(b => b.UserId == i.SellerId && b.BlockedId == viewerId));
 
         if (!string.IsNullOrWhiteSpace(query.Keyword))
             itemsQuery = itemsQuery.Where(i => i.Title.Contains(query.Keyword));
@@ -90,9 +101,13 @@ public class ItemsController(AppDbContext db) : ControllerBase
         if (item is null)
             return NotFound(new { code = 4004, message = "商品不存在" });
 
+        var userId = User.GetUserId();
+        if (userId != Guid.Empty && await db.BlacklistEntries
+                .AnyAsync(b => b.UserId == item.SellerId && b.BlockedId == userId))
+            return NotFound(new { code = 4004, message = "商品不存在" });
+
         item.IncrementViewCount();
 
-        var userId = User.GetUserId();
         var isFavorited = userId != Guid.Empty
             && await db.Favorites.AnyAsync(f => f.UserId == userId && f.ItemId == id);
         var canBuy = item.IsAvailableForBuying();
@@ -134,8 +149,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
     {
         var userId = User.GetUserId();
         var user = await db.Users.FindAsync(userId);
-        if (user is null || !user.IsEligibleToPublish())
-            return BadRequest(new { code = 4000, message = "当前认证等级无法发布商品" });
+        if (user is null || !user.IsEligibleToPublish(dto.Price))
+            return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
@@ -144,6 +159,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
         item.TransitionTo(ItemStatus.Active);
         db.Items.Add(item);
         await db.SaveChangesAsync();
+        await NotifyMatchedRequestsAsync(item);
 
         return CreatedAtAction(nameof(GetItem), new { id = item.Id },
             new { code = 0, data = ItemCardVO.FromEntity(item) });
@@ -159,6 +175,10 @@ public class ItemsController(AppDbContext db) : ControllerBase
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.CanBeEditedBy(userId))
             return Forbid();
+        var user = await db.Users.FindAsync(userId);
+        var targetPrice = dto.Price ?? item.Price;
+        if (user is null || !user.IsEligibleToPublish(targetPrice))
+            return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
 
         item.Edit(dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images,
@@ -221,4 +241,72 @@ public class ItemsController(AppDbContext db) : ControllerBase
 
         return Ok(new { code = 0, message = "取消收藏成功" });
     }
+
+    private async Task NotifyMatchedRequestsAsync(Item item)
+    {
+        var templateId = weChatOptions.Value.SubscribeTemplates.RequestMatch;
+        if (string.IsNullOrWhiteSpace(templateId))
+            return;
+
+        var resourceType = MapCategoryToResourceType(item.Category);
+        var candidates = await db.Requests.AsNoTracking()
+            .Where(r => r.BuyerId != item.SellerId
+                && r.ExpiryDate >= DateOnly.FromDateTime(DateTime.UtcNow)
+                && (r.CampusArea == item.CampusArea
+                    || r.CampusArea == CampusArea.Both
+                    || item.CampusArea == CampusArea.Both)
+                && (!r.MaxPrice.HasValue || item.Price <= r.MaxPrice.Value))
+            .Join(db.Users.AsNoTracking(),
+                request => request.BuyerId,
+                user => user.Id,
+                (request, user) => new { Request = request, User = user })
+            .ToListAsync();
+
+        var matches = candidates
+            .Where(x => x.Request.ResourceType == resourceType
+                || CalculateJaccard(x.Request.Title, item.Title) >= 0.25)
+            .Where(x => !string.IsNullOrWhiteSpace(x.User.WeChatOpenId))
+            .Take(5)
+            .ToList();
+
+        foreach (var match in matches)
+        {
+            await weChat.SendSubscribeMessageAsync(new SubscribeMessage(
+                match.User.WeChatOpenId,
+                templateId,
+                $"pages/goods-detail/goods-detail?id={item.Id}",
+                new Dictionary<string, string>
+                {
+                    ["thing1"] = match.Request.Title,
+                    ["thing2"] = item.Title,
+                    ["amount3"] = $"{item.Price.ToString("0.##", CultureInfo.InvariantCulture)}元",
+                    ["time4"] = DateTime.UtcNow.AddHours(8).ToString("MM-dd HH:mm", CultureInfo.InvariantCulture)
+                }), HttpContext.RequestAborted);
+        }
+    }
+
+    private static ResourceType MapCategoryToResourceType(ItemCategory category) => category switch
+    {
+        ItemCategory.Textbook => ResourceType.Textbook,
+        ItemCategory.Electronics => ResourceType.Electronics,
+        ItemCategory.Sports => ResourceType.Sports,
+        _ => ResourceType.Daily
+    };
+
+    private static double CalculateJaccard(string left, string right)
+    {
+        var leftSet = NormalizeForSimilarity(left);
+        var rightSet = NormalizeForSimilarity(right);
+        if (leftSet.Count == 0 && rightSet.Count == 0)
+            return 1;
+        var intersection = leftSet.Intersect(rightSet).Count();
+        var union = leftSet.Union(rightSet).Count();
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
+    private static HashSet<char> NormalizeForSimilarity(string value) =>
+        value.Trim()
+            .ToLowerInvariant()
+            .Where(c => !char.IsWhiteSpace(c) && !char.IsPunctuation(c))
+            .ToHashSet();
 }
