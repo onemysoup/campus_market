@@ -77,11 +77,14 @@ Page({
 
   formatItem(item) {
     const res = RESOURCE_TYPE.find(r => r.id === item.resourceType);
+    const responded = wx.getStorageSync('respondedRequests') || [];
     return {
       ...item,
       resourceText: res ? res.name : '其他',
       timeText: formatTime(item.createdAt),
-      isMine: item.buyerId === this.data.myUserId
+      isMine: item.buyerId === this.data.myUserId,
+      // 本机已响应过则标记，避免重复响应刷计数
+      hasResponded: responded.includes(item.requestId)
     };
   },
 
@@ -156,13 +159,23 @@ Page({
 
   onRespond(e) {
     const id = e.currentTarget.dataset.id;
+    // 本机已响应过则不再重复（防止计数器反复 +1）
+    const responded = wx.getStorageSync('respondedRequests') || [];
+    if (responded.includes(id)) {
+      wx.showToast({ title: '你已响应过该求购', icon: 'none' });
+      return;
+    }
     wx.showModal({
       title: '响应求购',
-      content: '确认你有这件商品并愿意联系对方？',
+      content: '响应后会让发布者看到「有人能提供该商品」（响应数 +1）。每条求购仅能响应一次。',
+      confirmText: '我有此物',
       success: async (res) => {
         if (!res.confirm) return;
         try {
           await requestsApi.respondRequest(id);
+          // 记录到本机，下次进入按钮显示「已响应」
+          responded.push(id);
+          wx.setStorageSync('respondedRequests', responded);
           wx.showToast({ title: '已响应', icon: 'success' });
           this.fetchList(true);
         } catch (error) {

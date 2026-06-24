@@ -20,8 +20,9 @@
       <view class="req-bottom">
         <text class="req-time">{{item.timeText}} · {{item.matchingCount}} 人响应</text>
         <view class="req-actions">
-          <!-- 别人的帖子：可响应 -->
-          <button wx:if="{{!item.isMine}}" class="req-btn primary" size="mini" data-id="{{item.requestId}}" bindtap="onRespond">我有</button>
+          <!-- 别人的帖子：可响应（已响应过则禁用） -->
+          <button wx:if="{{!item.isMine && !item.hasResponded}}" class="req-btn primary" size="mini" data-id="{{item.requestId}}" bindtap="onRespond">我有</button>
+          <button wx:if="{{!item.isMine && item.hasResponded}}" class="req-btn" size="mini" disabled>已响应</button>
           <!-- 自己的帖子：可续期、关闭 -->
           <block wx:if="{{item.isMine}}">
             <button class="req-btn" size="mini" data-id="{{item.requestId}}" bindtap="onRenew">续期</button>

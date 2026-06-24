@@ -48,11 +48,14 @@ public class RequestsController(AppDbContext db) : ControllerBase
     [HttpPost("{id:guid}/respond")]
     public async Task<IActionResult> Respond(Guid id)
     {
+        var userId = User.GetUserId();
         var request = await db.Requests.FirstOrDefaultAsync(r => r.Id == id);
         if (request is null)
             return NotFound(new { code = 4004, message = "求购帖不存在" });
         if (request.IsExpired())
             return BadRequest(new { code = 4000, message = "求购帖已过期" });
+        if (request.BuyerId == userId)
+            return BadRequest(new { code = 4000, message = "不能响应自己发布的求购" });
 
         request.IncrementMatchingCount();
         await db.SaveChangesAsync();
