@@ -31,6 +31,10 @@ Page({
     statusColor: '',
     priceText: '',
     timeText: '',
+    // 卖家信誉
+    sellerRating: 0,
+    sellerReviewCount: 0,
+    sellerReviews: [],
     // 交互状态
     isFavorited: false,
     canBuy: false,
@@ -85,6 +89,21 @@ Page({
         timeText: formatTime(detail.createdAt),
         loading: false
       });
+
+      // 拉取卖家信誉评价（失败不影响详情展示）
+      const sellerId = detail.seller && detail.seller.userId;
+      if (sellerId) {
+        transactionsApi.getUserReviews(sellerId).then((r) => {
+          this.setData({
+            sellerRating: r.average || 0,
+            sellerReviewCount: r.count || 0,
+            sellerReviews: (r.reviews || []).slice(0, 3).map(item => ({
+              ...item,
+              timeText: formatTime(item.createdAt)
+            }))
+          });
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('[GoodsDetail] loadDetail error:', error);
       this.setData({ loading: false });

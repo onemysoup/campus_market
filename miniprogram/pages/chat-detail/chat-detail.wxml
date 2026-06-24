@@ -12,6 +12,12 @@
     <text class="item-arrow">›</text>
   </view>
 
+  <!-- 安全交易贴士（F4.5.1） -->
+  <view class="safety-tip">🔔 本校仅限面交，请在食堂、图书馆等公共场合交易，切勿提前线上转账！</view>
+
+  <!-- 跨区交易提醒（F4.4.2） -->
+  <view class="cross-tip-bar" wx:if="{{showCrossTip}}">⚠️ 该商品位于不同校区，平台不提供配送，请双方私下协商交付，风险自担。</view>
+
   <!-- 消息列表 -->
   <scroll-view
     class="message-list"
@@ -60,6 +66,17 @@
 
     <!-- 底部锚点 -->
     <view id="msg_bottom"></view>
+  </scroll-view>
+
+  <!-- 校园快捷短语（F4.1.1） -->
+  <scroll-view class="quick-phrases" scroll-x show-scrollbar="{{false}}">
+    <text
+      class="quick-phrase"
+      wx:for="{{quickPhrases}}"
+      wx:key="*this"
+      data-text="{{item}}"
+      bindtap="onQuickPhrase"
+    >{{item}}</text>
   </scroll-view>
 
   <!-- 输入区域 -->

@@ -61,6 +61,24 @@ const transactionsApi = {
    */
   getTransactions(params = {}) {
     return get('/api/v1/transactions', params);
+  },
+
+  /**
+   * 提交交易评价（交易完成后，1-5 星 + 文字）
+   * @param {string} id      - 交易 GUID
+   * @param {number} rating  - 星级 1-5
+   * @param {string} comment - 评价文字（选填）
+   */
+  submitReview(id, rating, comment = '') {
+    return post(`/api/v1/transactions/${id}/review`, { rating, comment });
+  },
+
+  /**
+   * 查看某用户收到的评价与平均分（用于卖家信誉展示）
+   * @param {string} userId - 被评价用户 GUID
+   */
+  getUserReviews(userId) {
+    return get(`/api/v1/transactions/reviews/${userId}`);
   }
 };
 

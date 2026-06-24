@@ -112,6 +112,16 @@
               data-transactionid="{{item.transactionId}}"
               catchtap="onVerifyPickup"
             >核销取货码</button>
+            <!-- 买家取货凭证（可截图代领） -->
+            <button
+              class="btn-action btn-contact"
+              size="mini"
+              wx:if="{{mainTab === 'buyer' && item.pickupCode}}"
+              data-code="{{item.pickupCode}}"
+              data-title="{{item.itemTitle}}"
+              data-location="{{item.agreedLocation}}"
+              catchtap="onShowVoucher"
+            >取货凭证</button>
           </block>
           <!-- 已完成/已取消：可联系 -->
           <block wx:if="{{item.status !== 0}}">
@@ -123,6 +133,14 @@
               data-othername="{{item.otherNickname || '对方'}}"
               catchtap="onContact"
             >联系对方</button>
+            <!-- 已完成：可评价 -->
+            <button
+              class="btn-action btn-verify"
+              size="mini"
+              wx:if="{{item.status === 1}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onReview"
+            >评价</button>
           </block>
         </view>
       </view>
@@ -137,6 +155,20 @@
     <!-- 没有更多数据 -->
     <view class="no-more" wx:if="{{!hasMore && list.length > 0 && !loadingMore}}">
       <text>— 已经到底了 —</text>
+    </view>
+  </view>
+
+  <!-- 取货凭证卡片（F4.2.2，可截图发给代领人） -->
+  <view class="voucher-mask" wx:if="{{showVoucher}}" catchtap="onCloseVoucher">
+    <view class="voucher-card" catchtap="stopPropagation">
+      <view class="voucher-title">取货凭证</view>
+      <image class="voucher-image" wx:if="{{voucher.image}}" src="{{voucher.image}}" mode="aspectFill" />
+      <view class="voucher-goods">{{voucher.title}}</view>
+      <view class="voucher-code">{{voucher.code}}</view>
+      <view class="voucher-label">取货码</view>
+      <view class="voucher-location">📍 {{voucher.location}}</view>
+      <view class="voucher-hint">截图发给舍友/委托人即可凭码代领</view>
+      <view class="voucher-close" catchtap="onCloseVoucher">关闭</view>
     </view>
   </view>
 </view>

@@ -24,6 +24,15 @@ Page({
     // 输入框
     inputContent: '',
     canSend: false,
+    // 跨区提醒
+    showCrossTip: false,
+    // 校园场景快捷短语（F4.1.1）
+    quickPhrases: [
+      '同学你好，东西还在吗？',
+      '东校区哪里见面方便？',
+      '可以稍微便宜点吗？',
+      '我下课了，现在可以面交。'
+    ],
     // 滚动位置
     scrollToView: '',
     // 加载状态
@@ -114,7 +123,8 @@ Page({
           image: item.images?.[0] || '',
           status: item.status,
           statusText: item.status === 1 ? '在售' : item.status === 3 ? '已售出' : '已下架'
-        }
+        },
+        showCrossTip: item.supportCrossCampus === true
       });
     } catch (error) {
       console.error('[ChatDetail] loadItemInfo error:', error);
@@ -164,6 +174,12 @@ Page({
       inputContent: value,
       canSend: value.trim().length > 0
     });
+  },
+
+  // 点击快捷短语：填入输入框，由用户确认后发送
+  onQuickPhrase(e) {
+    const text = e.currentTarget.dataset.text || '';
+    this.setData({ inputContent: text, canSend: text.trim().length > 0 });
   },
 
   async onSend() {

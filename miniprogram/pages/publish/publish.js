@@ -36,7 +36,8 @@ Page({
       // 租赁相关
       isRental: false,
       rentalRate: '',
-      deposit: ''
+      deposit: '',
+      supportCrossCampus: false
     },
     // Picker 索引
     categoryIndex: 0,
@@ -65,6 +66,42 @@ Page({
       wx.navigateBack();
       return;
     }
+    // 发布模式下尝试恢复上次未提交的草稿（编辑模式由 onShow 接管，不恢复）
+    if (!app.globalData.editItemId) {
+      this.restoreDraft();
+    }
+  },
+
+  /**
+   * 保存草稿（仅发布模式，自动暂存表单到本地）
+   */
+  saveDraft() {
+    if (this.data.editMode) return;
+    wx.setStorageSync('publishDraft', {
+      form: this.data.form,
+      categoryIndex: this.data.categoryIndex,
+      conditionIndex: this.data.conditionIndex,
+      campusIndex: this.data.campusIndex,
+      collegeIndex: this.data.collegeIndex
+    });
+  },
+
+  /**
+   * 恢复草稿
+   */
+  restoreDraft() {
+    const draft = wx.getStorageSync('publishDraft');
+    if (!draft || !draft.form) return;
+    // 只有有实质内容时才恢复，避免空草稿打扰
+    if (!draft.form.title && !draft.form.description && (draft.form.images || []).length === 0) return;
+    this.setData({
+      form: { ...this.data.form, ...draft.form },
+      categoryIndex: draft.categoryIndex || 0,
+      conditionIndex: draft.conditionIndex || 0,
+      campusIndex: draft.campusIndex || 0,
+      collegeIndex: draft.collegeIndex || 0
+    });
+    wx.showToast({ title: '已恢复上次草稿', icon: 'none' });
   },
 
   onShow() {
@@ -146,7 +183,8 @@ Page({
           isFree: Number(detail.price || 0) === 0,
           isRental: detail.isRental === true,
           rentalRate: detail.rentalRate || '',
-          deposit: detail.deposit != null ? String(detail.deposit) : ''
+          deposit: detail.deposit != null ? String(detail.deposit) : '',
+          supportCrossCampus: detail.supportCrossCampus === true
         },
         categoryIndex: categoryIndex >= 0 ? categoryIndex : 0,
         conditionIndex: conditionIndex >= 0 ? conditionIndex : 0,
@@ -166,10 +204,12 @@ Page({
 
   onTitleInput(e) {
     this.setData({ 'form.title': e.detail.value });
+    this.saveDraft();
   },
 
   onDescInput(e) {
     this.setData({ 'form.description': e.detail.value });
+    this.saveDraft();
   },
 
   /**
@@ -262,6 +302,10 @@ Page({
       collegeIndex: index,
       'form.targetCollege': this.data.colleges[index].id
     });
+  },
+
+  onCrossCampusChange(e) {
+    this.setData({ 'form.supportCrossCampus': e.detail.value });
   },
 
   // ==================== 图片上传（Mock 方案） ====================
@@ -401,6 +445,7 @@ Page({
         conditionLevel: form.conditionLevel,
         campusArea: form.campusArea,
         targetCollege: form.targetCollege,
+        supportCrossCampus: form.supportCrossCampus,
         images: form.images,
         isNegotiable: form.isNegotiable,
         isRental: form.isRental
@@ -420,6 +465,7 @@ Page({
       } else {
         // 新增模式：POST
         await itemsApi.createItem(payload);
+        wx.removeStorageSync('publishDraft');  // 发布成功清除草稿
         wx.showToast({ title: '发布成功', icon: 'success' });
       }
 

@@ -59,3 +59,9 @@ public sealed record TransactionVO
         SecureToken = secureToken
     };
 }
+
+/// <summary>提交交易评价（SRS Could 评价系统）。</summary>
+public sealed record SubmitReviewDTO(int Rating, string? Comment);
+
+/// <summary>交易评价展示对象。</summary>
+public sealed record ReviewVO(int Rating, string? Comment, DateTime CreatedAt);

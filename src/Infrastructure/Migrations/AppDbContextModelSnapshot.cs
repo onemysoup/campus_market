@@ -260,6 +260,11 @@ namespace CAUSecondHand.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<bool>("SupportCrossCampus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
                     b.Property<int?>("TargetCollege")
                         .HasColumnType("int");
 
@@ -586,6 +591,40 @@ namespace CAUSecondHand.Infrastructure.Migrations
                     b.HasIndex("SellerId");
 
                     b.ToTable("t_transaction", (string)null);
+                });
+
+            modelBuilder.Entity("CAUSecondHand.Domain.Entities.TransactionReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RevieweeId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RevieweeId");
+
+                    b.HasIndex("TransactionId", "ReviewerId")
+                        .IsUnique();
+
+                    b.ToTable("t_transaction_review", (string)null);
                 });
 
             modelBuilder.Entity("CAUSecondHand.Domain.Entities.User", b =>

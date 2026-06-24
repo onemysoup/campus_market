@@ -57,6 +57,7 @@ public sealed record ItemDetailVO
     public ConditionLevel ConditionLevel { get; init; }
     public CampusArea CampusArea { get; init; }
     public CollegeTag? TargetCollege { get; init; }
+    public bool SupportCrossCampus { get; init; }
     public string? DeliveryPoint { get; init; }
     public required List<string> Images { get; init; }
     public ItemStatus Status { get; init; }
@@ -82,6 +83,7 @@ public sealed record ItemDetailVO
             ConditionLevel = item.ConditionLevel,
             CampusArea = item.CampusArea,
             TargetCollege = item.TargetCollege,
+            SupportCrossCampus = item.SupportCrossCampus,
             DeliveryPoint = item.DeliveryPoint,
             Images = [.. item.Images],
             Status = item.Status,
@@ -106,7 +108,8 @@ public sealed record ItemPublishDTO(
     bool IsRental = false,
     string? RentalRate = null,
     decimal? Deposit = null,
-    CollegeTag? TargetCollege = null);
+    CollegeTag? TargetCollege = null,
+    bool SupportCrossCampus = false);
 
 public sealed record ItemEditDTO(
     string? Title,
@@ -121,7 +124,8 @@ public sealed record ItemEditDTO(
     string? RentalRate = null,
     decimal? Deposit = null,
     CollegeTag? TargetCollege = null,
-    bool ClearCollege = false);
+    bool ClearCollege = false,
+    bool? SupportCrossCampus = null);
 
 public sealed record ItemStatusChangeDTO(ItemStatus Status);
 

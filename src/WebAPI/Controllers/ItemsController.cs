@@ -179,6 +179,10 @@ public class ItemsController(
     [HttpPost]
     public async Task<IActionResult> CreateItem([FromBody] ItemPublishDTO dto)
     {
+        var banned = ContentFilter.FindBanned(dto.Title, dto.Description);
+        if (banned is not null)
+            return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
+
         var userId = User.GetUserId();
         var user = await db.Users.FindAsync(userId);
         if (user is null || !user.IsEligibleToPublish(dto.Price))
@@ -186,7 +190,8 @@ public class ItemsController(
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
-            dto.IsRental, dto.RentalRate, dto.Deposit, dto.TargetCollege);
+            dto.IsRental, dto.RentalRate, dto.Deposit, dto.TargetCollege,
+            dto.SupportCrossCampus);
 
         item.TransitionTo(ItemStatus.Active);
         db.Items.Add(item);
@@ -207,6 +212,9 @@ public class ItemsController(
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.CanBeEditedBy(userId))
             return Forbid();
+        var banned = ContentFilter.FindBanned(dto.Title, dto.Description);
+        if (banned is not null)
+            return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
         var user = await db.Users.FindAsync(userId);
         var targetPrice = dto.Price ?? item.Price;
         if (user is null || !user.IsEligibleToPublish(targetPrice))
@@ -216,7 +224,7 @@ public class ItemsController(
             dto.Category, dto.ConditionLevel, dto.Images,
             dto.CampusArea, dto.DeliveryPoint,
             dto.IsRental, dto.RentalRate, dto.Deposit,
-            dto.TargetCollege, dto.ClearCollege);
+            dto.TargetCollege, dto.ClearCollege, dto.SupportCrossCampus);
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "修改成功" });

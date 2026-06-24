@@ -13,7 +13,7 @@ public sealed class Item
         ItemCategory category, ConditionLevel condition, List<string> images,
         CampusArea campusArea, bool isRental = false,
         string? rentalRate = null, decimal? deposit = null,
-        CollegeTag? targetCollege = null)
+        CollegeTag? targetCollege = null, bool supportCrossCampus = false)
     {
         Id = Guid.NewGuid();
         SellerId = sellerId;
@@ -28,6 +28,7 @@ public sealed class Item
         IsRental = isRental;
         RentalRate = rentalRate;
         Deposit = deposit;
+        SupportCrossCampus = supportCrossCampus;
         Status = ItemStatus.Draft;
         ViewCount = 0;
         ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30));
@@ -49,6 +50,7 @@ public sealed class Item
     public ConditionLevel ConditionLevel { get; private set; }
     public CampusArea CampusArea { get; private set; }
     public CollegeTag? TargetCollege { get; private set; }
+    public bool SupportCrossCampus { get; private set; }
     public string? DeliveryPoint { get; private set; }
     public IReadOnlyList<string> Images => _images.AsReadOnly();
     public ItemStatus Status { get; private set; }
@@ -94,7 +96,8 @@ public sealed class Item
         ItemCategory? category, ConditionLevel? condition, List<string>? images,
         CampusArea? campusArea, string? deliveryPoint,
         bool? isRental = null, string? rentalRate = null, decimal? deposit = null,
-        CollegeTag? targetCollege = null, bool clearCollege = false)
+        CollegeTag? targetCollege = null, bool clearCollege = false,
+        bool? supportCrossCampus = null)
     {
         if (title != null) Title = title;
         if (description != null) Description = description;
@@ -105,6 +108,7 @@ public sealed class Item
         if (campusArea.HasValue) CampusArea = campusArea.Value;
         if (clearCollege) TargetCollege = null;
         else if (targetCollege.HasValue) TargetCollege = targetCollege.Value;
+        if (supportCrossCampus.HasValue) SupportCrossCampus = supportCrossCampus.Value;
         if (deliveryPoint != null) DeliveryPoint = deliveryPoint;
         if (isRental.HasValue) IsRental = isRental.Value;
         if (isRental == true)

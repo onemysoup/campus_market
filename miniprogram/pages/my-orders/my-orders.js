@@ -52,7 +52,10 @@ Page({
       trading: 0,
       completed: 0,
       cancelled: 0
-    }
+    },
+    // 取货凭证卡片（F4.2.2 离线凭证/代领）
+    showVoucher: false,
+    voucher: null
   },
 
   onLoad(options) {
@@ -276,6 +279,57 @@ Page({
       sellerNickname: othername || '对方'
     };
     wx.switchTab({ url: '/pages/chat/chat' });
+  },
+
+  /**
+   * 展示取货凭证卡片（可截图发给代领人）
+   */
+  onShowVoucher(e) {
+    const { code, title, location, image } = e.currentTarget.dataset;
+    this.setData({
+      showVoucher: true,
+      voucher: {
+        code: code || '',
+        title: title || '',
+        location: location || '约定交易地点',
+        image: image || ''
+      }
+    });
+  },
+
+  onCloseVoucher() {
+    this.setData({ showVoucher: false });
+  },
+
+  // 阻止凭证卡片内部点击冒泡到遮罩导致关闭
+  stopPropagation() {},
+
+  /**
+   * 评价交易（完成后，先选星级再写文字）
+   */
+  onReview(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    wx.showActionSheet({
+      itemList: ['⭐⭐⭐⭐⭐ 非常满意', '⭐⭐⭐⭐ 满意', '⭐⭐⭐ 一般', '⭐⭐ 不满意', '⭐ 很差'],
+      success: (r) => {
+        const rating = 5 - r.tapIndex;
+        wx.showModal({
+          title: `评价（${rating} 星）`,
+          editable: true,
+          placeholderText: '说说这次交易体验（选填）',
+          success: async (m) => {
+            if (!m.confirm) return;
+            try {
+              await transactionsApi.submitReview(transactionid, rating, (m.content || '').trim());
+              wx.showToast({ title: '评价成功', icon: 'success' });
+              this.fetchList(true);
+            } catch (error) {
+              console.error('[MyOrders] review error:', error);
+            }
+          }
+        });
+      }
+    });
   },
 
   promptSecurityPassword(title = '安全验证') {

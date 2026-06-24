@@ -48,6 +48,7 @@
         <view class="price-tags">
           <text class="tag" wx:if="{{goods.isNegotiable}}">可议价</text>
           <text class="tag" wx:if="{{goods.isRental}}">可租赁</text>
+          <text class="tag tag-cross" wx:if="{{goods.supportCrossCampus}}">支持东西校区互带</text>
         </view>
       </view>
       <view class="title">{{goods.title}}</view>
@@ -92,6 +93,11 @@
       </view>
     </view>
 
+    <!-- 跨区交易提醒（F4.4.2） -->
+    <view class="cross-tip" wx:if="{{goods.supportCrossCampus}}">
+      ⚠️ 该商品可跨东西校区互带。平台不提供配送服务，请双方私下协商交付方式，跨区交易风险自担。
+    </view>
+
     <!-- 商品描述 -->
     <view class="info-card">
       <view class="section-title">商品描述</view>
@@ -112,6 +118,21 @@
           <view class="seller-auth" wx:if="{{goods.seller.authLevel > 0}}">
             <text class="auth-badge">✅ 已认证</text>
           </view>
+          <view class="seller-rating" wx:if="{{sellerReviewCount > 0}}">
+            ⭐ {{sellerRating}} 分 · {{sellerReviewCount}} 条评价
+          </view>
+          <view class="seller-rating muted" wx:else>暂无评价</view>
+        </view>
+      </view>
+
+      <!-- 最近评价 -->
+      <view class="review-list" wx:if="{{sellerReviews.length > 0}}">
+        <view class="review-item" wx:for="{{sellerReviews}}" wx:key="createdAt">
+          <view class="review-head">
+            <text class="review-stars">{{['','⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][item.rating]}}</text>
+            <text class="review-time">{{item.timeText}}</text>
+          </view>
+          <view class="review-comment" wx:if="{{item.comment}}">{{item.comment}}</view>
         </view>
       </view>
     </view>

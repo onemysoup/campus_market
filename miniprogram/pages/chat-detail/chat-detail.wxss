@@ -212,3 +212,39 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* 安全交易贴士 */
+.safety-tip {
+  padding: 12rpx 24rpx;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.cross-tip-bar {
+  padding: 12rpx 24rpx;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+/* 校园快捷短语 */
+.quick-phrases {
+  white-space: nowrap;
+  padding: 12rpx 16rpx;
+  background: #f8fafc;
+  border-top: 1rpx solid #eef2f7;
+}
+
+.quick-phrase {
+  display: inline-block;
+  margin-right: 14rpx;
+  padding: 10rpx 22rpx;
+  background: #fff;
+  border: 1rpx solid #cbd5e1;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  color: #334155;
+}

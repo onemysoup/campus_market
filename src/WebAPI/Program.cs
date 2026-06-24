@@ -124,6 +124,11 @@ builder.Services.AddQuartz(options =>
     options.AddJob<DailyEtlJob>(j => j.WithIdentity("DailyEtlJob"))
         .AddTrigger(t => t.ForJob("DailyEtlJob")
             .WithCronSchedule("0 0 1 * * ?"));
+
+    // 防鸽子：每小时检查超 24h 未核销的交易，自动释放商品
+    options.AddJob<AntiGhostJob>(j => j.WithIdentity("AntiGhostJob"))
+        .AddTrigger(t => t.ForJob("AntiGhostJob")
+            .WithCronSchedule("0 0 * * * ?"));
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 

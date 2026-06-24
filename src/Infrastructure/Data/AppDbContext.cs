@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<StudentVerificationApplication> StudentVerificationApplications => Set<StudentVerificationApplication>();
     public DbSet<SearchLog> SearchLogs => Set<SearchLog>();
     public DbSet<EventLog> EventLogs => Set<EventLog>();
+    public DbSet<TransactionReview> TransactionReviews => Set<TransactionReview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

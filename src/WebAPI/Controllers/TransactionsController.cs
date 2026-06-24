@@ -188,6 +188,47 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         return Ok(new { code = 0, message = "归还成功" });
     }
 
+    // 交易评价（SRS Could 评价系统）：交易完成后买卖双方可互评一次，1-5 星 + 文字
+    [HttpPost("{id:guid}/review")]
+    public async Task<IActionResult> SubmitReview(Guid id, [FromBody] SubmitReviewDTO dto)
+    {
+        var userId = User.GetUserId();
+        var transaction = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id);
+        if (transaction is null)
+            return NotFound(new { code = 4004, message = "交易不存在" });
+        if (transaction.BuyerId != userId && transaction.SellerId != userId)
+            return Forbid();
+        if (!transaction.FinishTime.HasValue)
+            return BadRequest(new { code = 4000, message = "交易完成后才能评价" });
+
+        var exists = await db.TransactionReviews
+            .AnyAsync(r => r.TransactionId == id && r.ReviewerId == userId);
+        if (exists)
+            return BadRequest(new { code = 4000, message = "你已评价过本次交易" });
+
+        var revieweeId = transaction.BuyerId == userId ? transaction.SellerId : transaction.BuyerId;
+        db.TransactionReviews.Add(new TransactionReview(id, userId, revieweeId, dto.Rating, dto.Comment));
+        await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, message = "评价成功" });
+    }
+
+    // 查看某用户（作为被评价方）收到的评价与平均分，用于商品详情卖家信誉展示
+    [AllowAnonymous]
+    [HttpGet("reviews/{userId:guid}")]
+    public async Task<IActionResult> GetUserReviews(Guid userId)
+    {
+        var reviews = await db.TransactionReviews
+            .Where(r => r.RevieweeId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(50)
+            .Select(r => new ReviewVO(r.Rating, r.Comment, r.CreatedAt))
+            .ToListAsync();
+
+        var average = reviews.Count == 0 ? 0 : Math.Round(reviews.Average(r => r.Rating), 1);
+        return Ok(new { code = 0, data = new { average, count = reviews.Count, reviews } });
+    }
+
     private string GetDisplayPickupCode(Transaction transaction) =>
         transaction.SecureToken.Length <= 8
             ? transaction.SecureToken

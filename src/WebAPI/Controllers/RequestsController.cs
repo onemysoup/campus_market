@@ -51,12 +51,19 @@ public class RequestsController(
     [HttpPost]
     public async Task<IActionResult> CreateRequest([FromBody] CreateRequestDTO dto)
     {
+        var banned = ContentFilter.FindBanned(dto.Title);
+        if (banned is not null)
+            return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
+
         var userId = User.GetUserId();
-        var recentTitles = await db.Requests
+        var recentRequests = await db.Requests
             .Where(r => r.BuyerId == userId && r.CreatedAt >= DateTime.UtcNow.AddHours(-24))
             .Select(r => r.Title)
             .ToListAsync();
-        if (recentTitles.Any(title => CalculateJaccard(title, dto.Title) > 0.8))
+        // 每日发布频率限制（F3.3.3：每日 ≤ 5 条）
+        if (recentRequests.Count >= 5)
+            return BadRequest(new { code = 4000, message = "24小时内最多发布 5 条求购，请明天再试" });
+        if (recentRequests.Any(title => CalculateJaccard(title, dto.Title) > 0.8))
             return BadRequest(new { code = 4000, message = "24小时内已发布过相似求购，请勿重复发布" });
 
         var request = new Request(userId, dto.Title, dto.MaxPrice,
