@@ -68,7 +68,7 @@ public class AuthController(
             return NotFound(new { code = 4004, message = "用户不存在" });
 
         if (!user.HasPassword() || !PasswordHelper.Verify(request.Password, user.PasswordHash!))
-            return Unauthorized(new { code = 4001, message = "邮箱或密码错误" });
+            return BadRequest(new { code = 4000, message = "邮箱或密码错误" });
 
         if (user.IsBanned)
             return Unauthorized(new { code = 4001, message = "账号已被封禁" });
@@ -331,13 +331,22 @@ public class AuthController(
     public async Task<IActionResult> SubmitStudentVerification([FromBody] SubmitStudentVerificationRequest request)
     {
         var userId = User.GetUserId();
+        var studentId = request.StudentId.Trim();
+        if (string.IsNullOrWhiteSpace(studentId))
+            return BadRequest(new { code = 4000, message = "请填写学号" });
 
         // Check if there's already a pending application
         if (await db.StudentVerificationApplications.AnyAsync(a => a.UserId == userId && a.Status == StudentVerificationStatus.Pending))
             return BadRequest(new { code = 4000, message = "已有审核中的申请" });
+        if (await db.Users.AnyAsync(u => u.Id != userId && u.StudentId == studentId))
+            return BadRequest(new { code = 4000, message = "该学号已完成认证，不能重复提交" });
+        if (await db.StudentVerificationApplications.AnyAsync(a => a.UserId != userId
+                && a.StudentId == studentId
+                && (a.Status == StudentVerificationStatus.Pending || a.Status == StudentVerificationStatus.Approved)))
+            return BadRequest(new { code = 4000, message = "该学号已有认证申请或已认证" });
 
         var app = new Domain.Entities.StudentVerificationApplication(
-            userId, request.RealName, request.StudentId, request.CertificateImageUrl);
+            userId, request.RealName.Trim(), studentId, request.CertificateImageUrl);
         db.StudentVerificationApplications.Add(app);
         await db.SaveChangesAsync();
 

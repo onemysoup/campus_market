@@ -4,6 +4,7 @@
  */
 
 const transactionsApi = require('../../api/transactions');
+const securityPrefs = require('../../utils/security');
 const {
   ITEM_STATUS_MAP,
   TRANSACTION_TYPE,
@@ -20,6 +21,12 @@ const TX_STATUS_MAP = {
   1: { label: '已完成', color: '#22c55e', bg: '#dcfce7' },
   2: { label: '已取消', color: '#94a3b8', bg: '#f1f5f9' }
 };
+
+function formatPriceDisplay(item) {
+  const isRental = item.isRental || item.transactionType === TRANSACTION_TYPE.RENTAL;
+  if (isRental) return item.rentalRate || '租金面议';
+  return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
 
 Page({
   data: {
@@ -116,13 +123,18 @@ Page({
     try {
       const { mainTab, pageSize } = this.data;
 
-      const result = await transactionsApi.getTransactions({
+      const params = {
         role: mainTab,
         page,
         pageSize
-      });
+      };
+      if (this.data.statusTab >= 0) {
+        params.status = this.data.statusTab;
+      }
 
-      const items = (result.transactions || []).map(this.formatTransaction);
+      const result = await transactionsApi.getTransactions(params);
+
+      const items = (result.transactions || []).map(item => this.formatTransaction(item));
       const totalCount = result.totalCount || 0;
 
       // 计算统计
@@ -155,14 +167,20 @@ Page({
 
     return {
       ...item,
+      title: item.title || item.itemTitle || '商品',
+      firstImage: item.firstImage || '',
       pickupCode: item.secureToken || "",
       priceText: formatPrice(item.price),
+      priceDisplay: formatPriceDisplay(item),
       timeText: formatTime(item.createdAt),
       status,
       statusText: statusInfo.label,
       statusColor: statusInfo.color,
       statusBg: statusInfo.bg,
-      transactionTypeText: item.transactionType === 1 ? '租赁' : '出售'
+      transactionTypeText: item.transactionType === 1 ? '租赁' : '出售',
+      otherNickname: this.data.mainTab === 'buyer'
+        ? (item.sellerNickname || '卖家')
+        : (item.buyerNickname || '买家')
     };
   },
 
@@ -220,8 +238,8 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          const securityPassword = await this.promptSecurityPassword('取消交易');
-          if (!securityPassword) return;
+          const securityPassword = await securityPrefs.maybePromptSecurityPassword('cancelOrder', '取消交易');
+          if (securityPassword === null) return;
           await transactionsApi.cancelTransaction(transactionid, '用户主动取消', securityPassword);
           wx.showToast({ title: '已取消', icon: 'success' });
           this.fetchList(true);
@@ -243,15 +261,15 @@ Page({
       placeholderText: '请输入买家提供的取货码',
       success: async (res) => {
         if (!res.confirm) return;
-        const pickupCode = res.content?.trim();
+        const pickupCode = (res.content || '').trim();
         if (!pickupCode) {
           wx.showToast({ title: "请将取货码出示给卖家核销", icon: "none" });
           return;
         }
 
         try {
-          const securityPassword = await this.promptSecurityPassword('核销安全验证');
-          if (!securityPassword) return;
+          const securityPassword = await securityPrefs.maybePromptSecurityPassword('verifyPickup', '核销安全验证');
+          if (securityPassword === null) return;
           await transactionsApi.verifyPickupCode(transactionid, pickupCode, securityPassword);
           wx.showToast({ title: '核销成功', icon: 'success' });
           this.fetchList(true);
@@ -332,23 +350,7 @@ Page({
     });
   },
 
-  promptSecurityPassword(title = '安全验证') {
-    return new Promise((resolve) => {
-      wx.showModal({
-        title,
-        editable: true,
-        placeholderText: '请输入安全密码',
-        confirmText: '确认',
-        confirmColor: '#0f766e',
-        success: (res) => {
-          if (!res.confirm) {
-            resolve('');
-            return;
-          }
-          resolve((res.content || '').trim());
-        },
-        fail: () => resolve('')
-      });
-    });
+  promptSecurityPassword() {
+    return Promise.resolve('');
   }
 });

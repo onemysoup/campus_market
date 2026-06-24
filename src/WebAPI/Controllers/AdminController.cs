@@ -15,6 +15,8 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public class AdminController(AppDbContext db) : ControllerBase
 {
+    private static readonly TimeSpan ReportTimeOffset = TimeSpan.FromHours(8);
+
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
@@ -44,8 +46,7 @@ public class AdminController(AppDbContext db) : ControllerBase
     [HttpGet("stats/dashboard")]
     public async Task<IActionResult> GetDashboard()
     {
-        var now = DateTime.UtcNow;
-        var todayStart = now.Date;
+        var todayStart = ToUtcStart(DateOnly.FromDateTime(DateTime.UtcNow.Add(ReportTimeOffset)));
 
         var data = new
         {
@@ -345,7 +346,7 @@ public class AdminController(AppDbContext db) : ControllerBase
     private static (string Period, DateOnly StartDate, DateOnly EndDate, DateTime Start, DateTime EndExclusive)
         ResolveStatsRange(StatsReportQuery query)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.Add(ReportTimeOffset));
         var period = string.IsNullOrWhiteSpace(query.Period)
             ? "week"
             : query.Period.Trim().ToLowerInvariant();
@@ -384,7 +385,7 @@ public class AdminController(AppDbContext db) : ControllerBase
     }
 
     private static DateTime ToUtcStart(DateOnly date) =>
-        DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+        DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue).Subtract(ReportTimeOffset), DateTimeKind.Utc);
 
     private static string BuildStatsCsv(StatsReportResult report)
     {
@@ -407,15 +408,21 @@ public class AdminController(AppDbContext db) : ControllerBase
                 item.NewUsers, item.NewItems, item.CompletedTransactions, item.TurnoverAmount, item.ActiveUsers));
 
         sb.AppendLine();
+        sb.AppendLine("Campus,CampusArea,NewUsers,NewItems,CompletedTransactions,ActiveUsers");
+        foreach (var item in report.Campus)
+            sb.AppendLine(Csv("Campus", item.CampusArea.ToString(), item.NewUsers, item.NewItems,
+                item.CompletedTransactions, item.ActiveUsers));
+
+        sb.AppendLine();
         sb.AppendLine("Category,Category,PublishedCount,SoldCount,ViewCount,FavoriteCount,ChatCount,DealRate");
         foreach (var item in report.Categories)
-            sb.AppendLine(Csv("Category", (int)item.Category, item.PublishedCount, item.SoldCount,
+            sb.AppendLine(Csv("Category", item.Category.ToString(), item.PublishedCount, item.SoldCount,
                 item.ViewCount, item.FavoriteCount, item.ChatCount, item.DealRate));
 
         sb.AppendLine();
         sb.AppendLine("TopItem,ItemId,Title,Category,ViewCount,FavoriteCount,ChatCount,Score");
         foreach (var item in report.TopItems)
-            sb.AppendLine(Csv("TopItem", item.ItemId, item.Title, (int)item.Category,
+            sb.AppendLine(Csv("TopItem", item.ItemId, item.Title, item.Category.ToString(),
                 item.ViewCount, item.FavoriteCount, item.ChatCount, item.Score));
 
         sb.AppendLine();
@@ -431,7 +438,7 @@ public class AdminController(AppDbContext db) : ControllerBase
         sb.AppendLine();
         sb.AppendLine("College,College,PublishedCount,RequestCount,TotalCount");
         foreach (var item in report.Colleges)
-            sb.AppendLine(Csv("College", (int)item.College, item.PublishedCount, item.RequestCount, item.TotalCount));
+            sb.AppendLine(Csv("College", item.College.ToString(), item.PublishedCount, item.RequestCount, item.TotalCount));
 
         return sb.ToString();
     }
@@ -599,6 +606,14 @@ public class AdminController(AppDbContext db) : ControllerBase
 
         if (dto.Approve)
         {
+            if (await db.Users.AnyAsync(u => u.Id != app.UserId && u.StudentId == app.StudentId))
+                return BadRequest(new { code = 4000, message = "该学号已被其他用户认证，不能通过此申请" });
+            if (await db.StudentVerificationApplications.AnyAsync(v => v.Id != app.Id
+                    && v.UserId != app.UserId
+                    && v.StudentId == app.StudentId
+                    && v.Status == StudentVerificationStatus.Approved))
+                return BadRequest(new { code = 4000, message = "该学号已有通过的认证申请" });
+
             app.Approve(adminId);
             user.VerifyStudent(app.StudentId);
         }

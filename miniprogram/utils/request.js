@@ -184,6 +184,14 @@ function handleBusinessError(result, showError) {
 function handleUnauthorized() {
   wx.removeStorageSync('token');
   wx.removeStorageSync('userInfo');
+  try {
+    const app = getApp();
+    if (app && typeof app.onLogout === 'function') {
+      app.onLogout();
+    }
+  } catch (e) {
+    // getApp 在极早期初始化阶段可能不可用，忽略即可。
+  }
 
   // 避免多次跳转
   const pages = getCurrentPages();

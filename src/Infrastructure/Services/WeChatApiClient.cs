@@ -132,4 +132,5 @@ public sealed class SubscribeTemplateOptions
 {
     public string RequestResponse { get; init; } = string.Empty;
     public string RequestMatch { get; init; } = string.Empty;
+    public string PurchaseSuccess { get; init; } = string.Empty;
 }

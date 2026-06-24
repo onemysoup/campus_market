@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace CAUSecondHand.WebAPI.Controllers;
 
@@ -18,8 +19,11 @@ public class ItemsController(
     AppDbContext db,
     IWeChatApiClient weChat,
     IOptions<WeChatOptions> weChatOptions,
-    IAiDescriptionGenerator aiGenerator) : ControllerBase
+    IAiDescriptionGenerator aiGenerator,
+    IAiContentModerator contentModerator) : ControllerBase
 {
+    private static readonly Regex MoneyPattern = new(@"^(0|[1-9]\d{0,4})(\.\d{1,2})?$", RegexOptions.Compiled);
+
     // AI 辅助生成商品描述（SRS F2.1.7 预留接口）：外部模型可用时调用，否则本地降级生成
     [Authorize(Policy = "AuthLevelL1")]
     [HttpPost("ai-describe")]
@@ -29,7 +33,7 @@ public class ItemsController(
             return BadRequest(new { code = 4000, message = "请先填写商品标题" });
 
         var description = await aiGenerator.GenerateAsync(
-            new AiDescribeInput(dto.Title, dto.Category, dto.ConditionLevel, dto.Keywords),
+            new AiDescribeInput(dto.Title, dto.Category, dto.ConditionLevel, dto.Keywords, dto.Images ?? []),
             HttpContext.RequestAborted);
 
         return Ok(new { code = 0, data = new { description } });
@@ -179,7 +183,7 @@ public class ItemsController(
     [HttpPost]
     public async Task<IActionResult> CreateItem([FromBody] ItemPublishDTO dto)
     {
-        var banned = ContentFilter.FindBanned(dto.Title, dto.Description);
+        var banned = await FindBannedAsync("商品发布", dto.Title, dto.Description);
         if (banned is not null)
             return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
 
@@ -195,6 +199,11 @@ public class ItemsController(
         if (!user.IsEligibleToPublish(dto.Price))
             return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
 
+        var rentalValidation = ValidateRentalFields(dto.IsRental, dto.RentalRate, dto.Deposit,
+            out var normalizedRentalRate);
+        if (rentalValidation is not null)
+            return BadRequest(new { code = 4000, message = rentalValidation });
+
         // SRS F5.2.2：60-79 分受限用户在售商品数量上限为 2
         var activeLimit = user.GetActiveItemLimit();
         if (activeLimit > 0)
@@ -207,7 +216,7 @@ public class ItemsController(
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
-            dto.IsRental, dto.RentalRate, dto.Deposit, dto.TargetCollege,
+            dto.IsNegotiable, dto.IsRental, normalizedRentalRate, dto.Deposit, dto.TargetCollege,
             dto.SupportCrossCampus);
 
         item.TransitionTo(ItemStatus.Active);
@@ -229,7 +238,7 @@ public class ItemsController(
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.CanBeEditedBy(userId))
             return Forbid();
-        var banned = ContentFilter.FindBanned(dto.Title, dto.Description);
+        var banned = await FindBannedAsync("商品编辑", dto.Title, dto.Description);
         if (banned is not null)
             return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
         var user = await db.Users.FindAsync(userId);
@@ -237,10 +246,18 @@ public class ItemsController(
         if (user is null || !user.IsEligibleToPublish(targetPrice))
             return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
 
+        var targetIsRental = dto.IsRental ?? item.IsRental;
+        var targetRentalRate = dto.RentalRate ?? item.RentalRate;
+        var targetDeposit = dto.Deposit ?? item.Deposit;
+        var rentalValidation = ValidateRentalFields(targetIsRental, targetRentalRate, targetDeposit,
+            out var normalizedRentalRate);
+        if (rentalValidation is not null)
+            return BadRequest(new { code = 4000, message = rentalValidation });
+
         item.Edit(dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images,
             dto.CampusArea, dto.DeliveryPoint,
-            dto.IsRental, dto.RentalRate, dto.Deposit,
+            dto.IsNegotiable, dto.IsRental, dto.IsRental == true || item.IsRental ? normalizedRentalRate : dto.RentalRate, dto.Deposit,
             dto.TargetCollege, dto.ClearCollege, dto.SupportCrossCampus);
         await db.SaveChangesAsync();
 
@@ -367,4 +384,52 @@ public class ItemsController(
             .ToLowerInvariant()
             .Where(c => !char.IsWhiteSpace(c) && !char.IsPunctuation(c))
             .ToHashSet();
+
+    private async Task<string?> FindBannedAsync(string scene, params string?[] texts)
+    {
+        var local = ContentFilter.FindBanned(texts);
+        if (local is not null)
+            return local;
+
+        var candidates = texts
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t!.Trim())
+            .ToList();
+        if (candidates.Count == 0)
+            return null;
+
+        return await contentModerator.FindViolationAsync(
+            new ContentModerationInput(scene, candidates),
+            HttpContext.RequestAborted);
+    }
+
+    private static string? ValidateRentalFields(bool isRental, string? rentalRate, decimal? deposit,
+        out string? normalizedRentalRate)
+    {
+        normalizedRentalRate = null;
+        if (!isRental)
+            return null;
+
+        if (!TryNormalizeMoney(rentalRate, allowZero: false, out normalizedRentalRate))
+            return "请填写合法租金，租金必须为大于 0 的数字，最多两位小数";
+
+        if (deposit.HasValue && (deposit.Value < 0 || deposit.Value > 99999 || decimal.Round(deposit.Value, 2) != deposit.Value))
+            return "押金必须为 0 到 99999 之间的合法数字，最多两位小数";
+
+        return null;
+    }
+
+    private static bool TryNormalizeMoney(string? value, bool allowZero, out string? normalized)
+    {
+        normalized = null;
+        var text = value?.Trim();
+        if (string.IsNullOrWhiteSpace(text) || !MoneyPattern.IsMatch(text))
+            return false;
+        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+            return false;
+        if (amount > 99999 || (!allowZero && amount <= 0) || (allowZero && amount < 0))
+            return false;
+        normalized = amount.ToString("0.##", CultureInfo.InvariantCulture);
+        return true;
+    }
 }

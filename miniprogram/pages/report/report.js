@@ -16,10 +16,11 @@ Page({
 
   onLoad(options) {
     const { targetId, reason } = options;
+    const reasonInfo = REPORT_REASON_MAP[Number(reason)] || {};
     this.setData({
       targetId: targetId || '',
       reason: Number(reason) || 0,
-      reasonText: REPORT_REASON_MAP[Number(reason)]?.label || '未知原因'
+      reasonText: reasonInfo.label || '未知原因'
     });
   },
 

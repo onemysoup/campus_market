@@ -58,6 +58,7 @@ Page({
    * 格式化商品数据（适配 WXML 绑定）
    */
   formatItem(item) {
+    const category = CATEGORY_LIST.find(c => c.id === item.category);
     return {
       ...item,
       priceText: formatPrice(item.price),
@@ -65,7 +66,7 @@ Page({
         ? (item.rentalRate || '租金面议')
         : (Number(item.price) === 0 ? '免费' : '¥' + formatPrice(item.price)),
       timeText: formatTime(item.createdAt),
-      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || ''
+      categoryText: category ? category.name : ''
     };
   },
 

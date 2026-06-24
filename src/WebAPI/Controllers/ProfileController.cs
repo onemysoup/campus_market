@@ -62,6 +62,8 @@ public class ProfileController(AppDbContext db) : ControllerBase
                 browsedAt = h.BrowsedAt,
                 title = item?.Title,
                 price = item?.Price,
+                isRental = item?.IsRental ?? false,
+                rentalRate = item?.RentalRate,
                 image = item is not null && item.Images.Count > 0 ? item.Images[0] : null,
                 status = item is not null ? (int)item.Status : (int?)null
             };

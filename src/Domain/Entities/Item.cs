@@ -11,7 +11,7 @@ public sealed class Item
 
     public Item(Guid sellerId, string title, string description, decimal price,
         ItemCategory category, ConditionLevel condition, List<string> images,
-        CampusArea campusArea, bool isRental = false,
+        CampusArea campusArea, bool isNegotiable = true, bool isRental = false,
         string? rentalRate = null, decimal? deposit = null,
         CollegeTag? targetCollege = null, bool supportCrossCampus = false)
     {
@@ -25,6 +25,7 @@ public sealed class Item
         _images = images;
         CampusArea = campusArea;
         TargetCollege = targetCollege;
+        IsNegotiable = !isRental && price > 0 && isNegotiable;
         IsRental = isRental;
         RentalRate = rentalRate;
         Deposit = deposit;
@@ -95,9 +96,9 @@ public sealed class Item
     public void Edit(string? title, string? description, decimal? price,
         ItemCategory? category, ConditionLevel? condition, List<string>? images,
         CampusArea? campusArea, string? deliveryPoint,
-        bool? isRental = null, string? rentalRate = null, decimal? deposit = null,
-        CollegeTag? targetCollege = null, bool clearCollege = false,
-        bool? supportCrossCampus = null)
+        bool? isNegotiable = null, bool? isRental = null, string? rentalRate = null,
+        decimal? deposit = null, CollegeTag? targetCollege = null,
+        bool clearCollege = false, bool? supportCrossCampus = null)
     {
         if (title != null) Title = title;
         if (description != null) Description = description;
@@ -111,6 +112,7 @@ public sealed class Item
         if (supportCrossCampus.HasValue) SupportCrossCampus = supportCrossCampus.Value;
         if (deliveryPoint != null) DeliveryPoint = deliveryPoint;
         if (isRental.HasValue) IsRental = isRental.Value;
+        if (isNegotiable.HasValue) IsNegotiable = isNegotiable.Value;
         if (isRental == true)
         {
             Deposit = deposit;
@@ -126,5 +128,8 @@ public sealed class Item
             if (deposit.HasValue) Deposit = deposit.Value;
             if (rentalRate != null) RentalRate = rentalRate;
         }
+
+        if (IsRental || Price == 0)
+            IsNegotiable = false;
     }
 }

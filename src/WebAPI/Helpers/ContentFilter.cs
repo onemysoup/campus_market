@@ -10,6 +10,7 @@ public static class ContentFilter
     private static readonly string[] AcademicAndOffline =
     [
         "代写", "代考", "代做", "代课", "代上课", "代签",
+        "代购", "代买", "代售", "倒卖", "黄牛",
         "快递", "邮寄", "包邮", "发货",
         "刷单", "兼职", "招嫖", "贷款", "博彩", "赌博", "外围"
     ];
@@ -34,9 +35,17 @@ public static class ContentFilter
         "反动", "邪教", "颠覆国家", "分裂国家", "暴乱", "煽动", "法轮"
     ];
 
+    // 基础辱骂/攻击性表达，覆盖测试中提到的常见脏话变体
+    private static readonly string[] Abuse =
+    [
+        "操你妈", "草你妈", "艹你妈", "日你妈", "你妈死了", "妈的",
+        "傻逼", "煞笔", "傻屄", "傻b", "sb", "nmsl", "cnm",
+        "滚你妈", "去死", "废物", "脑残"
+    ];
+
     private static readonly string[][] AllGroups =
     [
-        AcademicAndOffline, Pornographic, ViolenceAndContraband, PoliticalSensitive
+        AcademicAndOffline, Pornographic, ViolenceAndContraband, PoliticalSensitive, Abuse
     ];
 
     /// <summary>命中返回违规词，否则返回 null。用于商品发布、私聊消息、交易评价等文本审核。</summary>
@@ -46,11 +55,17 @@ public static class ContentFilter
         {
             if (string.IsNullOrWhiteSpace(text))
                 continue;
+            var normalized = Normalize(text);
             foreach (var group in AllGroups)
                 foreach (var word in group)
-                    if (text.Contains(word, StringComparison.OrdinalIgnoreCase))
+                    if (text.Contains(word, StringComparison.OrdinalIgnoreCase)
+                        || normalized.Contains(Normalize(word), StringComparison.OrdinalIgnoreCase))
                         return word;
         }
         return null;
     }
+
+    private static string Normalize(string value) => new(value
+        .Where(c => !char.IsWhiteSpace(c) && !char.IsPunctuation(c) && !char.IsSymbol(c))
+        .ToArray());
 }

@@ -108,6 +108,7 @@ builder.Services.AddHttpClient<IWeChatApiClient, WeChatApiClient>();
 builder.Services.Configure<WeChatOptions>(
     builder.Configuration.GetSection(WeChatOptions.SectionName));
 builder.Services.AddHttpClient<IAiDescriptionGenerator, AiDescriptionService>();
+builder.Services.AddHttpClient<IAiContentModerator, AiContentModerationService>();
 builder.Services.Configure<AiOptions>(
     builder.Configuration.GetSection(AiOptions.SectionName));
 
@@ -144,28 +145,58 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CAUSecondHand.Infrastructure.Data.AppDbContext>();
     await db.Database.MigrateAsync();
 
-    // Seed demo users on first run
-    if (!await db.Users.AnyAsync())
+    async Task EnsureDemoUserAsync(
+        string email,
+        string openId,
+        string nickname,
+        CampusArea campusArea,
+        bool isAdmin = false,
+        string? studentId = null)
     {
-        var admin = new User("admin-openid", "管理员");
-        admin.SetPassword(PasswordHelper.Hash("123456"));
-        admin.VerifyEmail("admin@cau.edu.cn");
-        admin.SetCampusArea(CampusArea.East);
-        admin.PromoteToAdmin();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailAddress == email)
+            ?? await db.Users.FirstOrDefaultAsync(u => u.WeChatOpenId == openId);
 
-        var user1 = new User("demo1-openid", "演示用户一");
-        user1.SetPassword(PasswordHelper.Hash("123456"));
-        user1.VerifyEmail("demo1@cau.edu.cn");
-        user1.SetCampusArea(CampusArea.East);
+        if (user is null)
+        {
+            user = new User(openId, nickname);
+            db.Users.Add(user);
+        }
 
-        var user2 = new User("demo2-openid", "演示用户二");
-        user2.SetPassword(PasswordHelper.Hash("123456"));
-        user2.VerifyEmail("demo2@cau.edu.cn");
-        user2.SetCampusArea(CampusArea.West);
+        user.UpdateProfile(nickname, user.AvatarUrl);
+        user.SetPassword(PasswordHelper.Hash("123456"));
+        user.VerifyEmail(email);
+        user.SetCampusArea(campusArea);
+        user.Unban();
 
-        db.Users.AddRange(admin, user1, user2);
-        await db.SaveChangesAsync();
+        if (!string.IsNullOrWhiteSpace(studentId))
+        {
+            var duplicateStudentId = await db.Users
+                .AnyAsync(u => u.Id != user.Id && u.StudentId == studentId);
+            if (!duplicateStudentId)
+                user.VerifyStudent(studentId);
+        }
+
+        if (isAdmin)
+            user.PromoteToAdmin();
     }
+
+    await EnsureDemoUserAsync("admin@cau.edu.cn", "admin-openid", "管理员", CampusArea.East, isAdmin: true);
+    await EnsureDemoUserAsync("demo1@cau.edu.cn", "demo1-openid", "普通用户A", CampusArea.East,
+        studentId: "202300000001");
+    await EnsureDemoUserAsync("demo2@cau.edu.cn", "demo2-openid", "普通用户B", CampusArea.West,
+        studentId: "202300000002");
+    await EnsureDemoUserAsync("l1user@cau.edu.cn", "l1user-openid", "L1备用用户", CampusArea.East);
+
+    var activeItems = await db.Items
+        .Where(i => i.Status == ItemStatus.Active)
+        .ToListAsync();
+    foreach (var item in activeItems)
+    {
+        if (ContentFilter.FindBanned(item.Title, item.Description) is not null)
+            item.TransitionTo(ItemStatus.Inactive);
+    }
+
+    await db.SaveChangesAsync();
 }
 
 app.UseSerilogRequestLogging();

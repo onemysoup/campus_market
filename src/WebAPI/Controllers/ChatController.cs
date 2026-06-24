@@ -1,5 +1,6 @@
 using CAUSecondHand.Domain.DTOs;
 using CAUSecondHand.Domain.Entities;
+using CAUSecondHand.Infrastructure.Services;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.WebAPI.Helpers;
 using CAUSecondHand.WebAPI.Hubs;
@@ -13,7 +14,10 @@ namespace CAUSecondHand.WebAPI.Controllers;
 [ApiController]
 [Route("api/v1/chats")]
 [Authorize(Policy = "AuthLevelL1")]
-public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : ControllerBase
+public class ChatController(
+    AppDbContext db,
+    IHubContext<ChatHub> hubContext,
+    IAiContentModerator contentModerator) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetSessions()
@@ -52,6 +56,9 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
                 ItemId = s.ItemId,
                 ItemTitle = item?.Title,
                 ItemPrice = item?.Price ?? 0,
+                SellerId = item?.SellerId,
+                ItemIsRental = item?.IsRental ?? false,
+                ItemRentalRate = item?.RentalRate,
                 ItemImage = item?.Images.Count > 0 ? item.Images[0] : null,
                 LastMessagePreview = s.LastMessagePreview,
                 LastMessageTime = s.LastMessageTime,
@@ -96,7 +103,7 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
         // 文本消息内容审核（黄暴/政治/违禁等关键词过滤）
         if (request.MsgType == Domain.Enums.MsgType.Text)
         {
-            var banned = ContentFilter.FindBanned(request.Content);
+            var banned = await FindBannedAsync(request.Content);
             if (banned is not null)
                 return BadRequest(new { code = 4000, message = $"消息包含违规内容「{banned}」，请修改后再发送" });
         }
@@ -157,4 +164,15 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
         await db.BlacklistEntries.AnyAsync(b =>
             (b.UserId == userAId && b.BlockedId == userBId)
             || (b.UserId == userBId && b.BlockedId == userAId));
+
+    private async Task<string?> FindBannedAsync(string content)
+    {
+        var local = ContentFilter.FindBanned(content);
+        if (local is not null)
+            return local;
+
+        return await contentModerator.FindViolationAsync(
+            new ContentModerationInput("聊天消息", new[] { content }),
+            HttpContext.RequestAborted);
+    }
 }

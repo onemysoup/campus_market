@@ -55,7 +55,7 @@
     <block wx:if="{{form.isRental}}">
       <view class="form-item">
         <text class="label">租金 <text class="required">*</text></text>
-        <input class="input" placeholder="如：3元/天" value="{{form.rentalRate}}" bindinput="onRentalRateInput" />
+        <input class="input" type="digit" placeholder="如：3.00" value="{{form.rentalRate}}" bindinput="onRentalRateInput" />
       </view>
       <view class="form-item">
         <text class="label">押金</text>

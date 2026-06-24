@@ -15,6 +15,54 @@ const {
 
 // 学院为可选项，列表首位提供「不关联学院」(id=null)
 const COLLEGE_OPTIONS = [{ id: null, name: '不关联学院' }, ...COLLEGE_LIST];
+const MONEY_FINAL_PATTERN = /^(0|[1-9]\d{0,4})(\.\d{1,2})?$/;
+
+function createInitialForm() {
+  return {
+    title: '',
+    description: '',
+    price: '',
+    category: 0,
+    conditionLevel: 0,
+    campusArea: 0,
+    targetCollege: null,
+    images: [],
+    isNegotiable: true,
+    isFree: false,
+    // 租赁相关
+    isRental: false,
+    rentalRate: '',
+    deposit: '',
+    supportCrossCampus: false
+  };
+}
+
+function sanitizeMoneyInput(value) {
+  let text = String(value || '').replace(/[^\d.]/g, '');
+  const firstDot = text.indexOf('.');
+  if (firstDot >= 0) {
+    text = text.slice(0, firstDot + 1) + text.slice(firstDot + 1).replace(/\./g, '');
+  }
+  if (text.startsWith('.')) text = '0' + text;
+  const parts = text.split('.');
+  parts[0] = parts[0].replace(/^0+(?=\d)/, '');
+  if (parts[0].length > 5) parts[0] = parts[0].slice(0, 5);
+  if (parts.length > 1) {
+    parts[1] = parts[1].slice(0, 2);
+    text = `${parts[0] || '0'}.${parts[1]}`;
+  } else {
+    text = parts[0];
+  }
+  return text;
+}
+
+function isValidMoney(value, allowZero) {
+  const text = String(value || '').trim();
+  if (!MONEY_FINAL_PATTERN.test(text)) return false;
+  const amount = Number(text);
+  if (!Number.isFinite(amount) || amount > 99999) return false;
+  return allowZero ? amount >= 0 : amount > 0;
+}
 
 Page({
   data: {
@@ -22,23 +70,7 @@ Page({
     editMode: false,
     itemId: null,
     // 表单数据
-    form: {
-      title: '',
-      description: '',
-      price: '',
-      category: 0,
-      conditionLevel: 0,
-      campusArea: 0,
-      targetCollege: null,
-      images: [],
-      isNegotiable: true,
-      isFree: false,
-      // 租赁相关
-      isRental: false,
-      rentalRate: '',
-      deposit: '',
-      supportCrossCampus: false
-    },
+    form: createInitialForm(),
     // Picker 索引
     categoryIndex: 0,
     conditionIndex: 0,
@@ -95,6 +127,14 @@ Page({
     });
   },
 
+  setDataAndSaveDraft(data) {
+    this.setData(data, () => this.saveDraft());
+  },
+
+  clearDraft() {
+    wx.removeStorageSync(this.getDraftKey());
+  },
+
   /**
    * 恢复草稿
    */
@@ -148,22 +188,7 @@ Page({
     this.setData({
       editMode: false,
       itemId: null,
-      form: {
-        title: '',
-        description: '',
-        price: '',
-        category: 0,
-        conditionLevel: 0,
-        campusArea: 0,
-        targetCollege: null,
-        images: [],
-        isNegotiable: true,
-        isFree: false,
-        isRental: false,
-        rentalRate: '',
-        deposit: '',
-        supportCrossCampus: false
-      },
+      form: createInitialForm(),
       categoryIndex: 0,
       conditionIndex: 0,
       campusIndex: 0,
@@ -221,13 +246,11 @@ Page({
   // ==================== 表单输入 ====================
 
   onTitleInput(e) {
-    this.setData({ 'form.title': e.detail.value });
-    this.saveDraft();
+    this.setDataAndSaveDraft({ 'form.title': e.detail.value });
   },
 
   onDescInput(e) {
-    this.setData({ 'form.description': e.detail.value });
-    this.saveDraft();
+    this.setDataAndSaveDraft({ 'form.description': e.detail.value });
   },
 
   /**
@@ -245,10 +268,11 @@ Page({
         title: form.title.trim(),
         category: form.category,
         conditionLevel: form.conditionLevel,
-        keywords: form.description.trim() || ''
+        keywords: form.description.trim() || '',
+        images: form.images || []
       });
       if (res && res.description) {
-        this.setData({ 'form.description': res.description });
+        this.setDataAndSaveDraft({ 'form.description': res.description });
         wx.showToast({ title: '已生成，可继续编辑', icon: 'none' });
       }
     } catch (error) {
@@ -259,20 +283,20 @@ Page({
   },
 
   onPriceInput(e) {
-    this.setData({ 'form.price': e.detail.value });
+    this.setDataAndSaveDraft({ 'form.price': sanitizeMoneyInput(e.detail.value) });
   },
 
   // 可议价：与「0元赠送」「租赁」互斥（赠送/租赁场景无单一售价可议）
   onNegotiableChange(e) {
     const isNegotiable = e.detail.value;
     if (isNegotiable) {
-      this.setData({
+      this.setDataAndSaveDraft({
         'form.isNegotiable': true,
         'form.isFree': false,
         'form.isRental': false
       });
     } else {
-      this.setData({ 'form.isNegotiable': false });
+      this.setDataAndSaveDraft({ 'form.isNegotiable': false });
     }
   },
 
@@ -280,14 +304,14 @@ Page({
   onFreeChange(e) {
     const isFree = e.detail.value;
     if (isFree) {
-      this.setData({
+      this.setDataAndSaveDraft({
         'form.isFree': true,
         'form.price': '0',
         'form.isNegotiable': false,
         'form.isRental': false
       });
     } else {
-      this.setData({ 'form.isFree': false, 'form.price': '' });
+      this.setDataAndSaveDraft({ 'form.isFree': false, 'form.price': '' });
     }
   },
 
@@ -297,30 +321,30 @@ Page({
   onRentalChange(e) {
     const isRental = e.detail.value;
     if (isRental) {
-      this.setData({
+      this.setDataAndSaveDraft({
         'form.isRental': true,
         'form.isFree': false,
         'form.isNegotiable': false,
         'form.price': ''
       });
     } else {
-      this.setData({ 'form.isRental': false });
+      this.setDataAndSaveDraft({ 'form.isRental': false });
     }
   },
 
   onRentalRateInput(e) {
-    this.setData({ 'form.rentalRate': e.detail.value });
+    this.setDataAndSaveDraft({ 'form.rentalRate': sanitizeMoneyInput(e.detail.value) });
   },
 
   onDepositInput(e) {
-    this.setData({ 'form.deposit': e.detail.value });
+    this.setDataAndSaveDraft({ 'form.deposit': sanitizeMoneyInput(e.detail.value) });
   },
 
   // ==================== Picker 选择 ====================
 
   onCategoryChange(e) {
     const index = Number(e.detail.value);
-    this.setData({
+    this.setDataAndSaveDraft({
       categoryIndex: index,
       'form.category': CATEGORY_LIST[index].id
     });
@@ -328,7 +352,7 @@ Page({
 
   onConditionChange(e) {
     const index = Number(e.detail.value);
-    this.setData({
+    this.setDataAndSaveDraft({
       conditionIndex: index,
       'form.conditionLevel': CONDITION_LIST[index].id
     });
@@ -336,7 +360,7 @@ Page({
 
   onCampusChange(e) {
     const index = Number(e.detail.value);
-    this.setData({
+    this.setDataAndSaveDraft({
       campusIndex: index,
       'form.campusArea': this.data.campusOptions[index].value
     });
@@ -344,14 +368,14 @@ Page({
 
   onCollegeChange(e) {
     const index = Number(e.detail.value);
-    this.setData({
+    this.setDataAndSaveDraft({
       collegeIndex: index,
       'form.targetCollege': this.data.colleges[index].id
     });
   },
 
   onCrossCampusChange(e) {
-    this.setData({ 'form.supportCrossCampus': e.detail.value });
+    this.setDataAndSaveDraft({ 'form.supportCrossCampus': e.detail.value });
   },
 
   // ==================== 图片上传（Mock 方案） ====================
@@ -402,7 +426,7 @@ Page({
 
       this.setData({
         'form.images': [...this.data.form.images, ...uploadedUrls]
-      });
+      }, () => this.saveDraft());
 
       wx.showToast({ title: '上传成功', icon: 'success' });
     } catch (error) {
@@ -420,7 +444,7 @@ Page({
     const index = e.currentTarget.dataset.index;
     const images = [...this.data.form.images];
     images.splice(index, 1);
-    this.setData({ 'form.images': images });
+    this.setDataAndSaveDraft({ 'form.images': images });
   },
 
   /**
@@ -451,11 +475,15 @@ Page({
 
     // 租赁商品：校验租金（无售价）；非租赁：校验售价
     if (form.isRental) {
-      if (!String(form.rentalRate).trim()) {
-        wx.showToast({ title: '请填写租金', icon: 'none' });
+      if (!isValidMoney(form.rentalRate, false)) {
+        wx.showToast({ title: '请填写合法租金', icon: 'none' });
         return false;
       }
-    } else if (form.price === '' || Number(form.price) < 0 || (!form.isFree && Number(form.price) <= 0)) {
+      if (form.deposit !== '' && !isValidMoney(form.deposit, true)) {
+        wx.showToast({ title: '请填写合法押金', icon: 'none' });
+        return false;
+      }
+    } else if (form.price === '' || !isValidMoney(form.price, form.isFree) || (!form.isFree && Number(form.price) <= 0)) {
       wx.showToast({ title: '请输入有效价格', icon: 'none' });
       return false;
     }
@@ -514,7 +542,8 @@ Page({
       } else {
         // 新增模式：POST
         await itemsApi.createItem(payload);
-        wx.removeStorageSync(this.getDraftKey());  // 发布成功清除草稿
+        this.clearDraft();  // 发布成功清除本地草稿
+        this.resetForm();   // tabBar 页面会复用实例，需要同步清掉内存表单
         wx.showToast({ title: '发布成功', icon: 'success' });
       }
 

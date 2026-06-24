@@ -124,6 +124,7 @@ public sealed record ItemEditDTO(
     List<string>? Images,
     CampusArea? CampusArea,
     string? DeliveryPoint,
+    bool? IsNegotiable = null,
     bool? IsRental = null,
     string? RentalRate = null,
     decimal? Deposit = null,
@@ -138,7 +139,8 @@ public sealed record AiDescribeDTO(
     string Title,
     ItemCategory Category,
     ConditionLevel ConditionLevel,
-    string? Keywords);
+    string? Keywords,
+    List<string>? Images = null);
 
 public sealed record ItemQuery(
     string? Keyword,

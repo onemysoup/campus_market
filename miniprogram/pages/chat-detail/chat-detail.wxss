@@ -87,12 +87,14 @@
 
 .message-item {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 24rpx;
   padding: 0 24rpx;
 }
 
 .message-item.mine {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 /* 时间分割线 */

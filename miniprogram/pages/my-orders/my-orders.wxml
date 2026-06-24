@@ -68,7 +68,7 @@
         <view class="order-meta">
           <view class="order-title">{{item.title}}</view>
           <view class="order-info">
-            <text class="order-price">¥{{item.priceText}}</text>
+            <text class="order-price">{{item.priceDisplay}}</text>
             <text class="order-type">{{item.transactionType === 1 ? '租赁' : '出售'}}</text>
           </view>
         </view>

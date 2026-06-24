@@ -6,6 +6,7 @@
 const authApi = require('../../api/auth');
 const profileApi = require('../../api/profile');
 const { AUTH_LEVEL_MAP, CAMPUS_AREA_MAP } = require('../../utils/constants');
+const securityPrefs = require('../../utils/security');
 
 Page({
   data: {
@@ -68,6 +69,7 @@ Page({
     const authLevel = userInfo.authLevel || app.globalData.authLevel || 0;
     const roleType = userInfo.roleType || app.globalData.roleType || '';
     const isAdmin = roleType === 'Admin';
+    const authConfig = AUTH_LEVEL_MAP[authLevel] || {};
 
     // 先用本地缓存快速渲染
     this.setData({
@@ -75,9 +77,15 @@ Page({
       user: userInfo,
       isAdmin: isAdmin,
       authLevel: authLevel,
-      authLevelLabel: AUTH_LEVEL_MAP[authLevel]?.label || '未认证',
-      authLevelColor: AUTH_LEVEL_MAP[authLevel]?.color || '#94a3b8'
+      authLevelLabel: authConfig.label || '未认证',
+      authLevelColor: authConfig.color || '#94a3b8'
     });
+
+    // L0 新用户还没有信用接口权限，避免进入“我的”时误弹无权限。
+    if ((authLevel || 0) < 1) {
+      this.setData({ creditScore: 0, creditTier: '' });
+      return;
+    }
 
     // 再从远端拉取最新信用分
     try {
@@ -194,6 +202,11 @@ Page({
       handler: () => wx.navigateTo({ url: '/pages/register/register?step=password' })
     });
 
+    actions.push({
+      label: '安全密码使用设置',
+      handler: () => this.openSecurityUsageSettings()
+    });
+
     if ((this.data.authLevel || 0) >= 1) {
       actions.push({
         label: '重置安全密码',
@@ -206,6 +219,28 @@ Page({
       success: (res) => {
         const action = actions[res.tapIndex];
         if (action) action.handler();
+      }
+    });
+  },
+
+  openSecurityUsageSettings() {
+    const prefs = securityPrefs.getSecurityPrefs();
+    const actions = [
+      { key: 'purchase', label: `购买商品：${prefs.purchase ? '开' : '关'}` },
+      { key: 'cancelOrder', label: `取消订单：${prefs.cancelOrder ? '开' : '关'}` },
+      { key: 'verifyPickup', label: `核销取货码：${prefs.verifyPickup ? '开' : '关'}` }
+    ];
+
+    wx.showActionSheet({
+      itemList: actions.map(item => item.label),
+      success: (res) => {
+        const action = actions[res.tapIndex];
+        if (!action) return;
+        const next = securityPrefs.toggleSecurityPref(action.key);
+        wx.showToast({
+          title: `${action.label.split('：')[0]}已${next[action.key] ? '开启' : '关闭'}`,
+          icon: 'none'
+        });
       }
     });
   },
@@ -277,7 +312,7 @@ Page({
       placeholderText: this.data.user.nickname || '请输入新昵称',
       success: async (res) => {
         if (!res.confirm) return;
-        const nickname = res.content?.trim();
+        const nickname = (res.content || '').trim();
         if (!nickname) {
           wx.showToast({ title: '昵称不能为空', icon: 'none' });
           return;

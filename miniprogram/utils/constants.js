@@ -22,7 +22,8 @@ const ENV_CONFIG = {
 // 微信订阅消息模板 ID。拿到小程序后台模板后填入；留空时本地自动跳过订阅授权。
 const SUBSCRIBE_TEMPLATE_IDS = {
   requestResponse: '',
-  requestMatch: ''
+  requestMatch: '',
+  purchaseSuccess: 'p4v3_MtvaO3e0WHc6xCZAXRvuEt1O2UDAW_uOA4fqgA'
 };
 
 // ==================== 后端枚举映射 ====================

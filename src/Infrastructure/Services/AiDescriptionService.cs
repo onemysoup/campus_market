@@ -10,7 +10,8 @@ public sealed record AiDescribeInput(
     string Title,
     ItemCategory Category,
     ConditionLevel ConditionLevel,
-    string? Keywords);
+    string? Keywords,
+    IReadOnlyList<string> Images);
 
 public interface IAiDescriptionGenerator
 {
@@ -68,9 +69,13 @@ public sealed class AiDescriptionService(
         var keywords = string.IsNullOrWhiteSpace(input.Keywords)
             ? string.Empty
             : $"主要特点：{input.Keywords.Trim()}。";
+        var imageHint = input.Images.Count > 0
+            ? "已上传图片，可结合图片补充外观细节。"
+            : string.Empty;
 
         return
             $"【{input.Title.Trim()}】{categoryName}，{conditionText}。{keywords}"
+            + imageHint
             + "诚信出售，校内当面交易、当面验货，支持东/西校区交付点自提。"
             + "有意者欢迎私聊议价，非诚勿扰～";
     }
@@ -80,16 +85,27 @@ public sealed class AiDescriptionService(
         var prompt =
             $"请为校园二手交易平台生成一段简洁友好的商品描述（80字以内，含成色评估和规格建议，不要使用 Markdown）。"
             + $"标题：{input.Title}；分类：{(int)input.Category}；成色等级(0最好-4最差)：{(int)input.ConditionLevel}；"
-            + $"关键词：{input.Keywords}";
+            + $"关键词：{input.Keywords}；"
+            + (input.Images.Count > 0
+                ? $"图片地址：{string.Join("，", input.Images.Take(3))}。请优先结合图片中的外观、颜色、数量和磨损情况。"
+                : string.Empty);
 
-        var request = new
-        {
-            model = string.IsNullOrWhiteSpace(opt.Model) ? "gpt-3.5-turbo" : opt.Model,
-            messages = new[]
+        var messages = input.Images.Count > 0
+            ? new object[]
+            {
+                new { role = "system", content = "你是校园二手交易平台的商品文案助手。" },
+                new { role = "user", content = BuildVisionContent(prompt, input.Images) }
+            }
+            : new object[]
             {
                 new { role = "system", content = "你是校园二手交易平台的商品文案助手。" },
                 new { role = "user", content = prompt }
-            }
+            };
+
+        var request = new
+        {
+            model = string.IsNullOrWhiteSpace(opt.Model) ? "gpt-4o-mini" : opt.Model,
+            messages
         };
 
         using var msg = new HttpRequestMessage(HttpMethod.Post, opt.Endpoint);
@@ -110,6 +126,25 @@ public sealed class AiDescriptionService(
         return string.IsNullOrWhiteSpace(content) ? BuildLocalDescription(input) : content.Trim();
     }
 
+    private static object[] BuildVisionContent(string prompt, IReadOnlyList<string> images)
+    {
+        var content = new List<object>
+        {
+            new { type = "text", text = prompt }
+        };
+
+        foreach (var image in images.Where(i => !string.IsNullOrWhiteSpace(i)).Take(3))
+        {
+            content.Add(new
+            {
+                type = "image_url",
+                image_url = new { url = image }
+            });
+        }
+
+        return content.ToArray();
+    }
+
     private static int CategoryIndex(ItemCategory category) => (int)category;
 }
 
@@ -121,4 +156,6 @@ public sealed class AiOptions
     public string? Endpoint { get; init; }
     public string? ApiKey { get; init; }
     public string? Model { get; init; }
+    public string? ModerationEndpoint { get; init; }
+    public string? ModerationModel { get; init; }
 }

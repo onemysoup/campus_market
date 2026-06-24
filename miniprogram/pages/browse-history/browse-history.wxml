@@ -18,7 +18,7 @@
       <image class="thumb" src="{{item.image}}" mode="aspectFill" />
       <view class="meta">
         <text class="title {{item.available ? '' : 'gray'}}">{{item.title}}</text>
-        <text class="price" wx:if="{{item.priceText}}">¥{{item.priceText}}</text>
+        <text class="price" wx:if="{{item.priceDisplay}}">{{item.priceDisplay}}</text>
         <text class="time">{{item.timeText}}</text>
       </view>
       <text class="offline-tag" wx:if="{{!item.available}}">已下架</text>

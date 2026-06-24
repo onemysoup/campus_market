@@ -12,6 +12,11 @@ const profileApi = require('../../api/profile');
 const signalr = require('../../utils/signalr');
 const { formatPrice, formatTime } = require('../../utils/constants');
 
+function formatItemPrice(item) {
+  if (item.isRental) return item.rentalRate || '租金面议';
+  return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
+
 Page({
   data: {
     // 会话信息
@@ -58,7 +63,7 @@ Page({
       targetUserId: targetUserId || '',
       itemId: itemId || '',
       targetNickname: targetNickname ? decodeURIComponent(targetNickname) : '用户',
-      myUserId: this.normId(app.getUserId())
+      myUserId: this.getCurrentUserId()
     });
 
     // 设置页面标题
@@ -87,6 +92,27 @@ Page({
   // 规范化 ID 比较（GUID 大小写/类型不一致兜底，避免气泡左右错位）
   normId(id) {
     return String(id || '').toLowerCase();
+  },
+
+  getCurrentUserId() {
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    const app = getApp();
+    const appUserId = app.getUserId ? app.getUserId() : '';
+    return this.normId(userInfo.userId || appUserId);
+  },
+
+  inferIsMine(msg, myUserId) {
+    const senderId = this.normId(msg.senderId);
+    const receiverId = this.normId(msg.receiverId);
+    const targetUserId = this.normId(this.data.targetUserId);
+
+    // 优先按当前聊天对象判断，避免本地 userInfo 短暂不同步导致首条消息左右错位。
+    if (targetUserId) {
+      if (senderId === targetUserId) return false;
+      if (receiverId === targetUserId) return true;
+    }
+
+    return senderId === myUserId;
   },
 
   connectSignalR() {
@@ -125,13 +151,15 @@ Page({
   async loadItemInfo(itemId) {
     try {
       const item = await itemsApi.getItem(itemId);
+      const images = item.images || [];
       this.setData({
         itemInfo: {
           itemId: item.itemId,
           title: item.title,
           price: formatPrice(item.price),
           priceText: formatPrice(item.price),
-          image: item.images?.[0] || '',
+          priceDisplay: formatItemPrice(item),
+          image: images[0] || '',
           status: item.status,
           statusText: item.status === 1 ? '在售' : item.status === 3 ? '已售出' : '已下架'
         },
@@ -155,11 +183,15 @@ Page({
       const result = await chatApi.getMessages(sessionId, { page: 1, pageSize: 50 });
 
       // 处理消息数据（统一用 myUserId 规范化比较，修正首条消息归属错位）
-      const myUserId = this.data.myUserId || this.normId(getApp().getUserId());
+      const myUserId = this.getCurrentUserId();
+      if (myUserId !== this.data.myUserId) {
+        this.setData({ myUserId });
+      }
 
-      const messages = (result?.messages || result || []).map(msg => ({
+      const rawMessages = result && result.messages ? result.messages : (result || []);
+      const messages = rawMessages.map(msg => ({
         ...msg,
-        isMine: this.normId(msg.senderId) === myUserId,
+        isMine: this.inferIsMine(msg, myUserId),
         timeText: this.formatMsgTime(msg.timestamp)
       }));
 
@@ -221,12 +253,15 @@ Page({
     // 调用后端接口发送消息
     try {
       console.log('[ChatDetail] 发送消息:', { receiverId: targetUserId, itemId, content });
-      await chatApi.sendMessage({
+      const sent = await chatApi.sendMessage({
         receiverId: targetUserId,
         itemId: itemId,
         content: content,
         msgType: 0  // 文本消息
       });
+      if (sent && sent.sessionId && !this.data.sessionId) {
+        this.setData({ sessionId: sent.sessionId });
+      }
     } catch (error) {
       console.error('[ChatDetail] sendMessage error:', error);
       wx.showToast({ title: '发送失败', icon: 'none' });
@@ -262,12 +297,15 @@ Page({
           this.setData({ messages: [...this.data.messages, newMsg] });
           this.scrollToBottom();
 
-          await chatApi.sendMessage({
+          const sent = await chatApi.sendMessage({
             receiverId: targetUserId,
             itemId: itemId,
             content: imageUrl,
             msgType: 1
           });
+          if (sent && sent.sessionId && !this.data.sessionId) {
+            this.setData({ sessionId: sent.sessionId });
+          }
         } catch (error) {
           console.error('[ChatDetail] sendImage error:', error);
           wx.showToast({ title: '图片发送失败', icon: 'none' });

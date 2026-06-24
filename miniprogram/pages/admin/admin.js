@@ -38,6 +38,11 @@ function defaultStatsFilter() {
   };
 }
 
+function formatPriceDisplay(item) {
+  if (item.isRental) return item.rentalRate || '租金面议';
+  return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
+
 Page({
   data: {
     // 权限
@@ -214,19 +219,28 @@ Page({
 
   formatAnalytics(report) {
     const summary = report.summary || {};
-    const categories = (report.categories || []).map(item => ({
-      ...item,
-      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '未知分类',
-      dealRateText: `${Math.round(Number(item.dealRate || 0) * 100)}%`
-    }));
-    const topItems = (report.topItems || []).map(item => ({
-      ...item,
-      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '未知分类'
-    }));
-    const campus = (report.campus || []).map(item => ({
-      ...item,
-      campusText: CAMPUS_AREA_MAP[item.campusArea]?.label || '未知校区'
-    }));
+    const categories = (report.categories || []).map(item => {
+      const category = CATEGORY_LIST.find(c => c.id === item.category);
+      return {
+        ...item,
+        categoryText: category ? category.name : '未知分类',
+        dealRateText: `${Math.round(Number(item.dealRate || 0) * 100)}%`
+      };
+    });
+    const topItems = (report.topItems || []).map(item => {
+      const category = CATEGORY_LIST.find(c => c.id === item.category);
+      return {
+        ...item,
+        categoryText: category ? category.name : '未知分类'
+      };
+    });
+    const campus = (report.campus || []).map(item => {
+      const campusInfo = CAMPUS_AREA_MAP[item.campusArea];
+      return {
+        ...item,
+        campusText: campusInfo ? campusInfo.label : '未知校区'
+      };
+    });
     const daily = (report.daily || []).map(item => ({
       ...item,
       turnoverText: formatPrice(item.turnoverAmount)
@@ -266,10 +280,13 @@ Page({
         fontSize: 24 + Math.round((Number(k.count || 0) / maxKeywordCount) * 16)
       })),
       pageClicks,
-      colleges: (report.colleges || []).map(item => ({
-        ...item,
-        collegeText: COLLEGE_LIST.find(c => c.id === item.college)?.name || '其他'
-      }))
+      colleges: (report.colleges || []).map(item => {
+        const college = COLLEGE_LIST.find(c => c.id === item.college);
+        return {
+          ...item,
+          collegeText: college ? college.name : '其他'
+        };
+      })
     };
   },
 
@@ -371,13 +388,18 @@ Page({
 
     try {
       const result = await itemsApi.getItems({ page, pageSize: 20 });
-      const items = (result.items || []).map(item => ({
-        ...item,
-        priceText: formatPrice(item.price),
-        categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '',
-        statusText: ITEM_STATUS_MAP[item.status]?.label || '',
-        statusColor: ITEM_STATUS_MAP[item.status]?.color || ''
-      }));
+      const items = (result.items || []).map(item => {
+        const category = CATEGORY_LIST.find(c => c.id === item.category);
+        const statusInfo = ITEM_STATUS_MAP[item.status] || {};
+        return {
+          ...item,
+          priceText: formatPrice(item.price),
+          priceDisplay: formatPriceDisplay(item),
+          categoryText: category ? category.name : '',
+          statusText: statusInfo.label || '',
+          statusColor: statusInfo.color || ''
+        };
+      });
 
       this.setData({
         items: reset ? items : [...this.data.items, ...items],
@@ -490,7 +512,7 @@ Page({
       const result = await adminApi.getReports({ page, pageSize: 20 });
       const reports = (result.reports || []).map(r => ({
         ...r,
-        reasonText: REPORT_REASON_MAP[r.reason]?.label || '未知',
+        reasonText: (REPORT_REASON_MAP[r.reason] || {}).label || '未知',
         timeText: formatTime(r.createdAt)
       }));
 

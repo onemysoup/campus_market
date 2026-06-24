@@ -5,7 +5,7 @@
     <view class="item-info">
       <text class="item-title">{{itemInfo.title}}</text>
       <view class="item-meta">
-        <text class="item-price">¥{{itemInfo.priceText}}</text>
+        <text class="item-price">{{itemInfo.priceDisplay}}</text>
         <text class="item-status {{itemInfo.status === 1 ? 'on-sale' : 'sold'}}">{{itemInfo.statusText}}</text>
       </view>
     </view>

@@ -6,6 +6,8 @@
 const itemsApi = require('../../api/items');
 const transactionsApi = require('../../api/transactions');
 const profileApi = require('../../api/profile');
+const { requestSubscribe } = require('../../utils/subscribe');
+const securityPrefs = require('../../utils/security');
 const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
@@ -74,20 +76,27 @@ Page({
     this.setData({ loading: true });
     try {
       const detail = await itemsApi.getItem(this.data.itemId);
+      const category = CATEGORY_LIST.find(c => c.id === detail.category);
+      const condition = CONDITION_LIST.find(c => c.id === detail.conditionLevel);
+      const campus = CAMPUS_AREA_MAP[detail.campusArea];
+      const college = detail.targetCollege != null
+        ? COLLEGE_LIST.find(c => c.id === detail.targetCollege)
+        : null;
+      const statusInfo = ITEM_STATUS_MAP[detail.status] || {};
 
       // 格式化展示数据
       this.setData({
         goods: detail,
         isFavorited: detail.isFavorited || false,
         canBuy: detail.canBuy || false,
-        categoryText: CATEGORY_LIST.find(c => c.id === detail.category)?.name || '',
-        conditionText: CONDITION_LIST.find(c => c.id === detail.conditionLevel)?.name || '',
-        campusText: CAMPUS_AREA_MAP[detail.campusArea]?.label || '',
+        categoryText: category ? category.name : '',
+        conditionText: condition ? condition.name : '',
+        campusText: campus ? campus.label : '',
         collegeText: detail.targetCollege != null
-          ? (COLLEGE_LIST.find(c => c.id === detail.targetCollege)?.name || '')
+          ? (college ? college.name : '')
           : '',
-        statusText: ITEM_STATUS_MAP[detail.status]?.label || '',
-        statusColor: ITEM_STATUS_MAP[detail.status]?.color || '',
+        statusText: statusInfo.label || '',
+        statusColor: statusInfo.color || '',
         priceText: formatPrice(detail.price),
         timeText: formatTime(detail.createdAt),
         loading: false
@@ -198,8 +207,12 @@ Page({
       confirmColor: '#0f766e',
       success: async (res) => {
         if (!res.confirm) return;
-        const securityPassword = await this.promptSecurityPassword(`确认${actionWord}`);
-        if (!securityPassword) return;
+        await requestSubscribe(['purchaseSuccess']);
+        const securityPassword = await securityPrefs.maybePromptSecurityPassword(
+          'purchase',
+          `确认${actionWord}`
+        );
+        if (securityPassword === null) return;
         await this.createTransaction(securityPassword);
       }
     });
@@ -243,42 +256,7 @@ Page({
     } catch (error) {
       wx.hideLoading();
       console.error('[GoodsDetail] createTransaction error:', error);
-      // 未设置安全密码：引导用户先去设置（购买/租赁必须有安全密码）
-      const msg = (error && error.message) || '';
-      if (/设置安全密码/.test(msg)) {
-        wx.showModal({
-          title: '需要安全密码',
-          content: '交易需要安全密码保护。你还没有设置安全密码，现在去设置吗？',
-          confirmText: '去设置',
-          confirmColor: '#0f766e',
-          success: (res) => {
-            if (res.confirm) {
-              wx.navigateTo({ url: '/pages/register/register?step=password' });
-            }
-          }
-        });
-      }
     }
-  },
-
-  promptSecurityPassword(title = '安全验证') {
-    return new Promise((resolve) => {
-      wx.showModal({
-        title,
-        editable: true,
-        placeholderText: '请输入安全密码',
-        confirmText: '确认',
-        confirmColor: '#0f766e',
-        success: (res) => {
-          if (!res.confirm) {
-            resolve('');
-            return;
-          }
-          resolve((res.content || '').trim());
-        },
-        fail: () => resolve('')
-      });
-    });
   },
 
   // ==================== 联系卖家 ====================
@@ -365,7 +343,7 @@ Page({
   onShareAppMessage() {
     const { goods } = this.data;
     return {
-      title: goods?.title || '校园二手好物',
+      title: goods && goods.title ? goods.title : '校园二手好物',
       path: `/pages/goods-detail/goods-detail?id=${this.data.itemId}`
     };
   }

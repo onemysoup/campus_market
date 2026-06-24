@@ -74,7 +74,7 @@
           src="{{item.itemImage}}"
           mode="aspectFill"
         />
-        <text class="item-price">¥{{item.itemPrice}}</text>
+        <text class="item-price">{{item.itemPriceDisplay}}</text>
       </view>
     </view>
 

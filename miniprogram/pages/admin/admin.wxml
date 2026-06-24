@@ -239,7 +239,7 @@
         <view class="item-info">
           <text class="item-title">{{item.title}}</text>
           <view class="item-meta">
-            <text class="item-price">¥{{item.priceText}}</text>
+            <text class="item-price">{{item.priceDisplay}}</text>
             <text class="item-category">{{item.categoryText}}</text>
             <text class="item-status" style="color: {{item.statusColor}};">{{item.statusText}}</text>
           </view>

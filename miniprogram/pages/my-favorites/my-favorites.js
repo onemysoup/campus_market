@@ -58,6 +58,8 @@ Page({
    * 格式化商品数据
    */
   formatItem(item) {
+    const category = CATEGORY_LIST.find(c => c.id === item.category);
+    const statusInfo = ITEM_STATUS_MAP[item.status] || {};
     return {
       ...item,
       priceText: formatPrice(item.price),
@@ -65,9 +67,9 @@ Page({
         ? (item.rentalRate || '租金面议')
         : (Number(item.price) === 0 ? '免费' : '¥' + formatPrice(item.price)),
       timeText: formatTime(item.createdAt),
-      categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '',
-      statusText: ITEM_STATUS_MAP[item.status]?.label || '',
-      statusColor: ITEM_STATUS_MAP[item.status]?.color || ''
+      categoryText: category ? category.name : '',
+      statusText: statusInfo.label || '',
+      statusColor: statusInfo.color || ''
     };
   },
 

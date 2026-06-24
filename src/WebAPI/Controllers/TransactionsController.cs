@@ -7,17 +7,24 @@ using CAUSecondHand.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/transactions")]
 [Authorize(Policy = "AuthLevelL1")]
-public class TransactionsController(AppDbContext db, TokenService tokenService) : ControllerBase
+public class TransactionsController(
+    AppDbContext db,
+    TokenService tokenService,
+    IWeChatApiClient weChat,
+    IOptions<WeChatOptions> weChatOptions) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetTransactions(
         [FromQuery] string? role,
+        [FromQuery] TokenStatus? status = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
@@ -31,6 +38,9 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             _ => query.Where(t => t.BuyerId == userId || t.SellerId == userId)
         };
 
+        if (status.HasValue)
+            query = query.Where(t => t.TokenStatus == status.Value);
+
         var totalCount = await query.CountAsync();
         var transactions = await query
             .OrderByDescending(t => t.CreatedAt)
@@ -39,13 +49,26 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
             .Include(t => t.Item)
             .ToListAsync();
 
+        var userIds = transactions
+            .SelectMany(t => new[] { t.BuyerId, t.SellerId })
+            .Distinct()
+            .ToList();
+        var users = await db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id);
+
         var result = transactions
             .Select(t =>
             {
                 var pickupCode = t.BuyerId == userId && t.TokenStatus == TokenStatus.Unused
                     ? GetDisplayPickupCode(t)
                     : null;
-                return TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title, pickupCode);
+                users.TryGetValue(t.BuyerId, out var buyer);
+                users.TryGetValue(t.SellerId, out var seller);
+                return TransactionVO.FromEntity(t, t.Item!.Price, t.Item.Title, pickupCode,
+                    t.Item.IsRental, t.Item.RentalRate, t.Item.Deposit,
+                    t.Item.Images.Count > 0 ? t.Item.Images[0] : null,
+                    buyer?.Nickname, seller?.Nickname);
             })
             .ToList();
 
@@ -85,8 +108,17 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         item.TransitionTo(ItemStatus.Reserved);
         db.Transactions.Add(transaction);
         await db.SaveChangesAsync();
+        await NotifyPurchaseSuccessAsync(buyer, item);
+        var seller = await db.Users.FindAsync(item.SellerId);
 
-        return Ok(new { code = 0, data = TransactionVO.FromEntity(transaction, item.Price, item.Title, pickupCode) });
+        return Ok(new
+        {
+            code = 0,
+            data = TransactionVO.FromEntity(transaction, item.Price, item.Title, pickupCode,
+                item.IsRental, item.RentalRate, item.Deposit,
+                item.Images.Count > 0 ? item.Images[0] : null,
+                buyer.Nickname, seller?.Nickname)
+        });
     }
 
     [HttpPost("{id:guid}/verify")]
@@ -244,11 +276,45 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         var user = await db.Users.FindAsync(userId);
         if (user is null)
             return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        // 安全密码是可选的二次确认：不设置、不填写都不阻塞交易。
+        if (string.IsNullOrWhiteSpace(securityPassword))
+            return null;
         if (!user.HasSecurityPassword())
-            return BadRequest(new { code = 4000, message = "请先设置安全密码" });
-        if (string.IsNullOrWhiteSpace(securityPassword)
-            || !PasswordHelper.Verify(securityPassword, user.SecurityPasswordHash!))
-            return Unauthorized(new { code = 4001, message = "安全密码错误" });
+            return BadRequest(new { code = 4000, message = "尚未设置安全密码，请留空或先设置后再使用" });
+        if (!PasswordHelper.Verify(securityPassword, user.SecurityPasswordHash!))
+            return BadRequest(new { code = 4000, message = "安全密码错误" });
         return null;
+    }
+
+    private async Task NotifyPurchaseSuccessAsync(User buyer, Item item)
+    {
+        try
+        {
+            var templateId = weChatOptions.Value.SubscribeTemplates.PurchaseSuccess;
+            if (string.IsNullOrWhiteSpace(templateId)
+                || string.IsNullOrWhiteSpace(buyer.WeChatOpenId))
+                return;
+
+            var price = item.IsRental && item.Deposit.HasValue
+                ? item.Deposit.Value
+                : item.Price;
+
+            await weChat.SendSubscribeMessageAsync(new SubscribeMessage(
+                buyer.WeChatOpenId,
+                templateId,
+                "pages/my-orders/my-orders",
+                new Dictionary<string, string>
+                {
+                    ["thing6"] = "校园二手购买",
+                    ["thing1"] = item.Title,
+                    ["amount10"] = $"{price.ToString("0.##", CultureInfo.InvariantCulture)}元",
+                    ["date3"] = DateTime.UtcNow.AddHours(8).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+                }), HttpContext.RequestAborted);
+        }
+        catch
+        {
+            // 订阅消息失败不能回滚已经创建成功的交易。
+        }
     }
 }

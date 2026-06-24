@@ -4,6 +4,12 @@
 const profileApi = require('../../api/profile');
 const { formatPrice, formatTime } = require('../../utils/constants');
 
+function formatPriceDisplay(item) {
+  if (item.isRental) return item.rentalRate || '租金面议';
+  if (item.price == null) return '';
+  return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
+
 Page({
   data: {
     list: [],
@@ -34,7 +40,7 @@ Page({
       const list = (data || []).map(h => ({
         itemId: h.itemId,
         title: h.title || '商品已下架',
-        priceText: h.price != null ? formatPrice(h.price) : '',
+        priceDisplay: formatPriceDisplay(h),
         image: h.image || '',
         status: h.status,
         available: h.status === 1,

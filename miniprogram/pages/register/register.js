@@ -381,7 +381,9 @@ Page({
     try {
       const result = await authApi.getStudentVerification();
       const status = result.status || 'None';
-      const authLevel = result.authLevel ?? this.data.authLevel;
+      const authLevel = result.authLevel !== null && result.authLevel !== undefined
+        ? result.authLevel
+        : this.data.authLevel;
 
       if (result.token) {
         wx.setStorageSync('token', result.token);
