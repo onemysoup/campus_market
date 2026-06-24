@@ -4,6 +4,7 @@
  */
 
 const requestsApi = require('../../api/requests');
+const itemsApi = require('../../api/items');
 const { RESOURCE_TYPE, formatTime } = require('../../utils/constants');
 
 Page({
@@ -77,14 +78,11 @@ Page({
 
   formatItem(item) {
     const res = RESOURCE_TYPE.find(r => r.id === item.resourceType);
-    const responded = wx.getStorageSync('respondedRequests') || [];
     return {
       ...item,
       resourceText: res ? res.name : '其他',
       timeText: formatTime(item.createdAt),
-      isMine: item.buyerId === this.data.myUserId,
-      // 本机已响应过则标记，避免重复响应刷计数
-      hasResponded: responded.includes(item.requestId)
+      isMine: item.buyerId === this.data.myUserId
     };
   },
 
@@ -157,32 +155,78 @@ Page({
 
   // ==================== 列表操作 ====================
 
-  onRespond(e) {
+  /**
+   * "我有它"：选一件自己在售的商品来响应求购帖
+   */
+  async onRespond(e) {
     const id = e.currentTarget.dataset.id;
-    // 本机已响应过则不再重复（防止计数器反复 +1）
-    const responded = wx.getStorageSync('respondedRequests') || [];
-    if (responded.includes(id)) {
-      wx.showToast({ title: '你已响应过该求购', icon: 'none' });
+    wx.showLoading({ title: '加载我的商品', mask: true });
+    let activeItems = [];
+    try {
+      const myItems = await itemsApi.getMyItems();
+      // 只能用在售（status===1 Active）的商品响应
+      activeItems = (myItems || []).filter(i => i.status === 1);
+    } catch (error) {
+      wx.hideLoading();
+      console.error('[Requests] getMyItems error:', error);
       return;
     }
-    wx.showModal({
-      title: '响应求购',
-      content: '响应后会让发布者看到「有人能提供该商品」（响应数 +1）。每条求购仅能响应一次。',
-      confirmText: '我有此物',
+    wx.hideLoading();
+
+    if (activeItems.length === 0) {
+      wx.showModal({
+        title: '暂无在售商品',
+        content: '“我有它”需要选一件你正在出售的商品。要先去发布一件商品吗？',
+        confirmText: '去发布',
+        success: (res) => {
+          if (res.confirm) wx.switchTab({ url: '/pages/publish/publish' });
+        }
+      });
+      return;
+    }
+
+    // 弹出商品选择列表
+    wx.showActionSheet({
+      itemList: activeItems.map(i => `${i.title}（¥${i.price}）`),
       success: async (res) => {
-        if (!res.confirm) return;
+        const item = activeItems[res.tapIndex];
         try {
-          await requestsApi.respondRequest(id);
-          // 记录到本机，下次进入按钮显示「已响应」
-          responded.push(id);
-          wx.setStorageSync('respondedRequests', responded);
-          wx.showToast({ title: '已响应', icon: 'success' });
+          const r = await requestsApi.respondRequest(id, item.itemId);
+          wx.showToast({ title: r.message || '已响应', icon: 'none' });
           this.fetchList(true);
         } catch (error) {
           console.error('[Requests] respond error:', error);
         }
       }
     });
+  },
+
+  /**
+   * 发布者查看自己求购帖收到的响应商品，点击可进商品详情联系卖家
+   */
+  async onViewResponses(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showLoading({ title: '加载中', mask: true });
+    try {
+      const result = await requestsApi.getResponses(id);
+      const items = result.items || [];
+      wx.hideLoading();
+      if (items.length === 0) {
+        wx.showToast({ title: '还没有人响应', icon: 'none' });
+        return;
+      }
+      wx.showActionSheet({
+        itemList: items.map(i => `${i.title}（¥${i.price}）`),
+        success: (res) => {
+          const item = items[res.tapIndex];
+          // 进商品详情，那里有“联系卖家”
+          wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${item.itemId}` });
+        }
+      });
+    } catch (error) {
+      wx.hideLoading();
+      console.error('[Requests] getResponses error:', error);
+    }
   },
 
   onRenew(e) {

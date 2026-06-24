@@ -10,6 +10,11 @@ public sealed record CreateRequestDTO(
     ResourceType ResourceType,
     CampusArea CampusArea);
 
+/// <summary>"我有它"响应请求：卖家用一件自己在售的商品响应求购帖。</summary>
+public sealed record RespondRequestDTO(
+    Guid ItemId,
+    string? Message);
+
 public sealed record RequestVO
 {
     public required Guid RequestId { get; init; }
