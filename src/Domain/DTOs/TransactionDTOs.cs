@@ -51,28 +51,28 @@ public sealed record TransactionVO
         string? itemTitle = null, string? secureToken = null, bool isRental = false,
         string? rentalRate = null, decimal? deposit = null, string? firstImage = null,
         string? buyerNickname = null, string? sellerNickname = null) => new()
-    {
-        TransactionId = transaction.Id,
-        ItemId = transaction.ItemId,
-        BuyerId = transaction.BuyerId,
-        SellerId = transaction.SellerId,
-        BuyerNickname = buyerNickname,
-        SellerNickname = sellerNickname,
-        TransactionType = transaction.TransactionType,
-        TokenStatus = transaction.TokenStatus,
-        RentalStatus = transaction.RentalStatus,
-        AgreedLocation = transaction.AgreedLocation,
-        IsCrossCampus = transaction.IsCrossCampus,
-        TokenExpiredAt = transaction.TokenExpiredAt,
-        CreatedAt = transaction.CreatedAt,
-        Price = price,
-        ItemTitle = itemTitle ?? string.Empty,
-        FirstImage = firstImage,
-        IsRental = isRental || transaction.TransactionType == TransactionType.Rental,
-        RentalRate = rentalRate,
-        Deposit = deposit,
-        SecureToken = secureToken
-    };
+        {
+            TransactionId = transaction.Id,
+            ItemId = transaction.ItemId,
+            BuyerId = transaction.BuyerId,
+            SellerId = transaction.SellerId,
+            BuyerNickname = buyerNickname,
+            SellerNickname = sellerNickname,
+            TransactionType = transaction.TransactionType,
+            TokenStatus = transaction.TokenStatus,
+            RentalStatus = transaction.RentalStatus,
+            AgreedLocation = transaction.AgreedLocation,
+            IsCrossCampus = transaction.IsCrossCampus,
+            TokenExpiredAt = transaction.TokenExpiredAt,
+            CreatedAt = transaction.CreatedAt,
+            Price = price,
+            ItemTitle = itemTitle ?? string.Empty,
+            FirstImage = firstImage,
+            IsRental = isRental || transaction.TransactionType == TransactionType.Rental,
+            RentalRate = rentalRate,
+            Deposit = deposit,
+            SecureToken = secureToken
+        };
 }
 
 /// <summary>提交交易评价（SRS Could 评价系统）。</summary>
