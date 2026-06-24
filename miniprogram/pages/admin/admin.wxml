@@ -172,6 +172,21 @@
         </view>
         <view class="empty compact" wx:if="{{analytics.pageClicks.length === 0}}">暂无点击数据</view>
       </view>
+
+      <!-- 学院热度排行 -->
+      <view class="report-block">
+        <view class="report-title">学院热度排行</view>
+        <view class="category-row" wx:for="{{analytics.colleges}}" wx:key="college">
+          <view class="category-main">
+            <text class="category-name">{{index + 1}}. {{item.collegeText}}</text>
+            <text class="category-sub">发布 {{item.publishedCount}} · 求购 {{item.requestCount}}</text>
+          </view>
+          <view class="category-side">
+            <text>{{item.totalCount}} 热度</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.colleges.length === 0}}">暂无学院数据</view>
+      </view>
     </view>
   </view>
 

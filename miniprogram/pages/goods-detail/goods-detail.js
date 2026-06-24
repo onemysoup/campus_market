@@ -9,6 +9,7 @@ const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
   CONDITION_LIST,
+  COLLEGE_LIST,
   ITEM_STATUS,
   ITEM_STATUS_MAP,
   formatPrice,
@@ -25,6 +26,7 @@ Page({
     categoryText: '',
     conditionText: '',
     campusText: '',
+    collegeText: '',
     statusText: '',
     statusColor: '',
     priceText: '',
@@ -74,6 +76,9 @@ Page({
         categoryText: CATEGORY_LIST.find(c => c.id === detail.category)?.name || '',
         conditionText: CONDITION_LIST.find(c => c.id === detail.conditionLevel)?.name || '',
         campusText: CAMPUS_AREA_MAP[detail.campusArea]?.label || '',
+        collegeText: detail.targetCollege != null
+          ? (COLLEGE_LIST.find(c => c.id === detail.targetCollege)?.name || '')
+          : '',
         statusText: ITEM_STATUS_MAP[detail.status]?.label || '',
         statusColor: ITEM_STATUS_MAP[detail.status]?.color || '',
         priceText: formatPrice(detail.price),

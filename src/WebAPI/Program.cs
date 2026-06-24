@@ -107,6 +107,9 @@ builder.Services.Configure<SmtpOptions>(
 builder.Services.AddHttpClient<IWeChatApiClient, WeChatApiClient>();
 builder.Services.Configure<WeChatOptions>(
     builder.Configuration.GetSection(WeChatOptions.SectionName));
+builder.Services.AddHttpClient<IAiDescriptionGenerator, AiDescriptionService>();
+builder.Services.Configure<AiOptions>(
+    builder.Configuration.GetSection(AiOptions.SectionName));
 
 builder.Services.AddQuartz(options =>
 {

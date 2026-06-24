@@ -113,7 +113,10 @@
 
   <!-- 商品描述 -->
   <view class="section">
-    <view class="section-title">商品描述</view>
+    <view class="section-title">
+      商品描述
+      <text class="ai-describe-btn" bindtap="onAiDescribe">✨ 智能生成</text>
+    </view>
     <textarea
       class="textarea"
       placeholder="请详细描述商品的成色、使用情况、交易方式等..."

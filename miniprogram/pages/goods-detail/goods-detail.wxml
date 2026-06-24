@@ -73,6 +73,10 @@
           <text class="attr-label">校区</text>
           <text class="attr-value">{{campusText}}</text>
         </view>
+        <view class="attr-item" wx:if="{{collegeText}}">
+          <text class="attr-label">学院</text>
+          <text class="attr-value">{{collegeText}}</text>
+        </view>
         <view class="attr-item" wx:if="{{goods.deliveryPoint}}">
           <text class="attr-label">交易地点</text>
           <text class="attr-value">{{goods.deliveryPoint}}</text>

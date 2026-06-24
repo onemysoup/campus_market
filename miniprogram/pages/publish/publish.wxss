@@ -23,6 +23,16 @@
   gap: 8rpx;
 }
 
+.ai-describe-btn {
+  margin-left: auto;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #0f766e;
+  background: #ccfbf1;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+}
+
 .required {
   color: #ef4444;
   font-size: 28rpx;

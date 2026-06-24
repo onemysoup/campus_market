@@ -11,6 +11,7 @@ const {
   ITEM_STATUS_MAP,
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
+  COLLEGE_LIST,
   formatPrice,
   formatTime
 } = require('../../utils/constants');
@@ -59,7 +60,8 @@ Page({
       categories: [],
       topItems: [],
       searchKeywords: [],
-      pageClicks: []
+      pageClicks: [],
+      colleges: []
     },
     statsFilter: defaultStatsFilter(),
     statsPeriods: [
@@ -263,7 +265,11 @@ Page({
         // 热词云字号：按频次在 24~40rpx 之间线性缩放
         fontSize: 24 + Math.round((Number(k.count || 0) / maxKeywordCount) * 16)
       })),
-      pageClicks
+      pageClicks,
+      colleges: (report.colleges || []).map(item => ({
+        ...item,
+        collegeText: COLLEGE_LIST.find(c => c.id === item.college)?.name || '其他'
+      }))
     };
   },
 

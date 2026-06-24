@@ -125,6 +125,13 @@ public sealed record ItemEditDTO(
 
 public sealed record ItemStatusChangeDTO(ItemStatus Status);
 
+/// <summary>AI 辅助生成商品描述请求（SRS F2.1.7）。</summary>
+public sealed record AiDescribeDTO(
+    string Title,
+    ItemCategory Category,
+    ConditionLevel ConditionLevel,
+    string? Keywords);
+
 public sealed record ItemQuery(
     string? Keyword,
     ItemCategory? Category,

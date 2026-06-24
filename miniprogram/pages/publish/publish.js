@@ -172,6 +172,34 @@ Page({
     this.setData({ 'form.description': e.detail.value });
   },
 
+  /**
+   * AI 智能生成描述（SRS F2.1.7）：依据标题/分类/成色生成描述并填入
+   */
+  async onAiDescribe() {
+    const { form } = this.data;
+    if (!form.title.trim()) {
+      wx.showToast({ title: '请先填写标题', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: 'AI 生成中', mask: true });
+    try {
+      const res = await itemsApi.aiDescribe({
+        title: form.title.trim(),
+        category: form.category,
+        conditionLevel: form.conditionLevel,
+        keywords: form.description.trim() || ''
+      });
+      if (res && res.description) {
+        this.setData({ 'form.description': res.description });
+        wx.showToast({ title: '已生成，可继续编辑', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('[Publish] aiDescribe error:', error);
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
   onPriceInput(e) {
     this.setData({ 'form.price': e.detail.value });
   },

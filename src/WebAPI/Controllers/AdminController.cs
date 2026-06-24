@@ -113,6 +113,7 @@ public class AdminController(AppDbContext db) : ControllerBase
                 i.Title,
                 i.Category,
                 i.CampusArea,
+                i.TargetCollege,
                 i.CreatedAt,
                 i.ViewCount,
                 i.SellerId,
@@ -276,6 +277,28 @@ public class AdminController(AppDbContext db) : ControllerBase
             .Take(10)
             .ToList();
 
+        // 学院热度排行（SRS 638）：区间内各学院的发布量与求购量
+        var requestColleges = await db.Requests.AsNoTracking()
+            .Where(r => r.CreatedAt >= start && r.CreatedAt < endExclusive && r.TargetCollege != null)
+            .GroupBy(r => r.TargetCollege!.Value)
+            .Select(g => new { College = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var requestCollegeMap = requestColleges.ToDictionary(x => x.College, x => x.Count);
+        var publishCollegeMap = items
+            .Where(i => i.TargetCollege != null)
+            .GroupBy(i => i.TargetCollege!.Value)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var colleges = publishCollegeMap.Keys.Union(requestCollegeMap.Keys)
+            .Select(college =>
+            {
+                var published = publishCollegeMap.TryGetValue(college, out var p) ? p : 0;
+                var requested = requestCollegeMap.TryGetValue(college, out var r) ? r : 0;
+                return new CollegeStatsPoint(college, published, requested, published + requested);
+            })
+            .OrderByDescending(c => c.TotalCount)
+            .ThenByDescending(c => c.PublishedCount)
+            .ToList();
+
         // 搜索关键词云（DDD 6.14 t_search_log）：区间内关键词 TopN，可用于热词云展示
         var searchLogQuery = db.SearchLogs.AsNoTracking()
             .Where(s => s.CreatedAt >= start && s.CreatedAt < endExclusive);
@@ -315,7 +338,8 @@ public class AdminController(AppDbContext db) : ControllerBase
             Categories: categories,
             TopItems: topItems,
             SearchKeywords: searchKeywords,
-            PageClicks: pageClicks);
+            PageClicks: pageClicks,
+            Colleges: colleges);
     }
 
     private static (string Period, DateOnly StartDate, DateOnly EndDate, DateTime Start, DateTime EndExclusive)
@@ -403,6 +427,11 @@ public class AdminController(AppDbContext db) : ControllerBase
         sb.AppendLine("PageClick,PageCode,Clicks");
         foreach (var item in report.PageClicks)
             sb.AppendLine(Csv("PageClick", item.PageCode, item.Clicks));
+
+        sb.AppendLine();
+        sb.AppendLine("College,College,PublishedCount,RequestCount,TotalCount");
+        foreach (var item in report.Colleges)
+            sb.AppendLine(Csv("College", (int)item.College, item.PublishedCount, item.RequestCount, item.TotalCount));
 
         return sb.ToString();
     }
@@ -610,11 +639,18 @@ public sealed record StatsReportResult(
     IReadOnlyList<CategoryStatsPoint> Categories,
     IReadOnlyList<TopItemStats> TopItems,
     IReadOnlyList<SearchKeywordStat> SearchKeywords,
-    IReadOnlyList<PageClickStat> PageClicks);
+    IReadOnlyList<PageClickStat> PageClicks,
+    IReadOnlyList<CollegeStatsPoint> Colleges);
 
 public sealed record SearchKeywordStat(string Keyword, int Count);
 
 public sealed record PageClickStat(string PageCode, int Clicks);
+
+public sealed record CollegeStatsPoint(
+    CollegeTag College,
+    int PublishedCount,
+    int RequestCount,
+    int TotalCount);
 
 public sealed record StatsSummary(
     int NewUsers,

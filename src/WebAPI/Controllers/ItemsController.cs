@@ -17,8 +17,24 @@ namespace CAUSecondHand.WebAPI.Controllers;
 public class ItemsController(
     AppDbContext db,
     IWeChatApiClient weChat,
-    IOptions<WeChatOptions> weChatOptions) : ControllerBase
+    IOptions<WeChatOptions> weChatOptions,
+    IAiDescriptionGenerator aiGenerator) : ControllerBase
 {
+    // AI 辅助生成商品描述（SRS F2.1.7 预留接口）：外部模型可用时调用，否则本地降级生成
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("ai-describe")]
+    public async Task<IActionResult> AiDescribe([FromBody] AiDescribeDTO dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return BadRequest(new { code = 4000, message = "请先填写商品标题" });
+
+        var description = await aiGenerator.GenerateAsync(
+            new AiDescribeInput(dto.Title, dto.Category, dto.ConditionLevel, dto.Keywords),
+            HttpContext.RequestAborted);
+
+        return Ok(new { code = 0, data = new { description } });
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetItems([FromQuery] ItemQuery query)
     {
