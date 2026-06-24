@@ -23,6 +23,8 @@ Page({
   },
 
   onShow() {
+    // 首页访问埋点（DDD 6.15 页面点击量统计）
+    require('../../api/events').track('PAGE_VIEW', 'home');
     // 每次显示时刷新（可能从详情页返回时商品状态变了）
   },
 

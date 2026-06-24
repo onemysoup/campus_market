@@ -22,6 +22,7 @@ public sealed record ItemCardVO
     public ItemCategory Category { get; init; }
     public ConditionLevel ConditionLevel { get; init; }
     public CampusArea CampusArea { get; init; }
+    public CollegeTag? TargetCollege { get; init; }
     public ItemStatus Status { get; init; }
     public int ViewCount { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -35,6 +36,7 @@ public sealed record ItemCardVO
         Category = item.Category,
         ConditionLevel = item.ConditionLevel,
         CampusArea = item.CampusArea,
+        TargetCollege = item.TargetCollege,
         Status = item.Status,
         ViewCount = item.ViewCount,
         CreatedAt = item.CreatedAt
@@ -54,6 +56,7 @@ public sealed record ItemDetailVO
     public ItemCategory Category { get; init; }
     public ConditionLevel ConditionLevel { get; init; }
     public CampusArea CampusArea { get; init; }
+    public CollegeTag? TargetCollege { get; init; }
     public string? DeliveryPoint { get; init; }
     public required List<string> Images { get; init; }
     public ItemStatus Status { get; init; }
@@ -78,6 +81,7 @@ public sealed record ItemDetailVO
             Category = item.Category,
             ConditionLevel = item.ConditionLevel,
             CampusArea = item.CampusArea,
+            TargetCollege = item.TargetCollege,
             DeliveryPoint = item.DeliveryPoint,
             Images = [.. item.Images],
             Status = item.Status,
@@ -101,7 +105,8 @@ public sealed record ItemPublishDTO(
     bool IsNegotiable = true,
     bool IsRental = false,
     string? RentalRate = null,
-    decimal? Deposit = null);
+    decimal? Deposit = null,
+    CollegeTag? TargetCollege = null);
 
 public sealed record ItemEditDTO(
     string? Title,
@@ -114,7 +119,9 @@ public sealed record ItemEditDTO(
     string? DeliveryPoint,
     bool? IsRental = null,
     string? RentalRate = null,
-    decimal? Deposit = null);
+    decimal? Deposit = null,
+    CollegeTag? TargetCollege = null,
+    bool ClearCollege = false);
 
 public sealed record ItemStatusChangeDTO(ItemStatus Status);
 
@@ -123,6 +130,7 @@ public sealed record ItemQuery(
     ItemCategory? Category,
     ConditionLevel? ConditionLevel,
     CampusArea? CampusArea,
+    CollegeTag? TargetCollege,
     ItemStatus? Status,
     decimal? MinPrice,
     decimal? MaxPrice,

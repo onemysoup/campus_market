@@ -276,6 +276,34 @@ public class AdminController(AppDbContext db) : ControllerBase
             .Take(10)
             .ToList();
 
+        // 搜索关键词云（DDD 6.14 t_search_log）：区间内关键词 TopN，可用于热词云展示
+        var searchLogQuery = db.SearchLogs.AsNoTracking()
+            .Where(s => s.CreatedAt >= start && s.CreatedAt < endExclusive);
+        if (campusArea.HasValue)
+            searchLogQuery = searchLogQuery.Where(s => s.CampusArea == campusArea.Value);
+        var searchKeywords = (await searchLogQuery
+                .GroupBy(s => s.Keyword)
+                .Select(g => new { Keyword = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(30)
+                .ToListAsync())
+            .Select(x => new SearchKeywordStat(x.Keyword, x.Count))
+            .ToList();
+
+        // 页面点击量（DDD 6.15 t_event_log）：区间内各页面/功能入口点击分布
+        var eventLogQuery = db.EventLogs.AsNoTracking()
+            .Where(e => e.CreatedAt >= start && e.CreatedAt < endExclusive);
+        if (campusArea.HasValue)
+            eventLogQuery = eventLogQuery.Where(e => e.CampusArea == campusArea.Value);
+        var pageClicks = (await eventLogQuery
+                .GroupBy(e => new { e.PageCode, e.EventType })
+                .Select(g => new { g.Key.PageCode, g.Key.EventType, Count = g.Count() })
+                .ToListAsync())
+            .GroupBy(x => x.PageCode ?? x.EventType)
+            .Select(g => new PageClickStat(g.Key, g.Sum(x => x.Count)))
+            .OrderByDescending(x => x.Clicks)
+            .ToList();
+
         return new StatsReportResult(
             Period: period,
             StartDate: startDate,
@@ -285,7 +313,9 @@ public class AdminController(AppDbContext db) : ControllerBase
             Daily: daily,
             Campus: campus,
             Categories: categories,
-            TopItems: topItems);
+            TopItems: topItems,
+            SearchKeywords: searchKeywords,
+            PageClicks: pageClicks);
     }
 
     private static (string Period, DateOnly StartDate, DateOnly EndDate, DateTime Start, DateTime EndExclusive)
@@ -363,6 +393,16 @@ public class AdminController(AppDbContext db) : ControllerBase
         foreach (var item in report.TopItems)
             sb.AppendLine(Csv("TopItem", item.ItemId, item.Title, (int)item.Category,
                 item.ViewCount, item.FavoriteCount, item.ChatCount, item.Score));
+
+        sb.AppendLine();
+        sb.AppendLine("SearchKeyword,Keyword,Count");
+        foreach (var item in report.SearchKeywords)
+            sb.AppendLine(Csv("SearchKeyword", item.Keyword, item.Count));
+
+        sb.AppendLine();
+        sb.AppendLine("PageClick,PageCode,Clicks");
+        foreach (var item in report.PageClicks)
+            sb.AppendLine(Csv("PageClick", item.PageCode, item.Clicks));
 
         return sb.ToString();
     }
@@ -568,7 +608,13 @@ public sealed record StatsReportResult(
     IReadOnlyList<DailyStatsPoint> Daily,
     IReadOnlyList<CampusStatsPoint> Campus,
     IReadOnlyList<CategoryStatsPoint> Categories,
-    IReadOnlyList<TopItemStats> TopItems);
+    IReadOnlyList<TopItemStats> TopItems,
+    IReadOnlyList<SearchKeywordStat> SearchKeywords,
+    IReadOnlyList<PageClickStat> PageClicks);
+
+public sealed record SearchKeywordStat(string Keyword, int Count);
+
+public sealed record PageClickStat(string PageCode, int Clicks);
 
 public sealed record StatsSummary(
     int NewUsers,

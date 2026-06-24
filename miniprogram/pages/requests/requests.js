@@ -5,8 +5,11 @@
 
 const requestsApi = require('../../api/requests');
 const itemsApi = require('../../api/items');
-const { RESOURCE_TYPE, formatTime } = require('../../utils/constants');
+const { RESOURCE_TYPE, COLLEGE_LIST, formatTime } = require('../../utils/constants');
 const { requestSubscribe } = require('../../utils/subscribe');
+
+// 学院可选，列表首位为「不关联学院」(id=null)
+const COLLEGE_OPTIONS = [{ id: null, name: '不关联学院' }, ...COLLEGE_LIST];
 
 Page({
   data: {
@@ -27,12 +30,14 @@ Page({
       { value: 1, label: '西校区' },
       { value: 2, label: '两校区' }
     ],
+    colleges: COLLEGE_OPTIONS,
     form: {
       title: '',
       maxPrice: '',
       isUrgent: false,
       resourceIndex: 0,
-      campusIndex: 0
+      campusIndex: 0,
+      collegeIndex: 0
     }
   },
 
@@ -40,6 +45,11 @@ Page({
     const userInfo = wx.getStorageSync('userInfo') || {};
     this.setData({ myUserId: userInfo.userId || '' });
     this.fetchList(true);
+  },
+
+  onShow() {
+    // 求购大厅页面访问埋点（DDD 6.15 页面点击量统计）
+    require('../../api/events').track('PAGE_VIEW', 'requests');
   },
 
   onPullDownRefresh() {
@@ -124,8 +134,12 @@ Page({
     this.setData({ 'form.campusIndex': Number(e.detail.value) });
   },
 
+  onCollegeChange(e) {
+    this.setData({ 'form.collegeIndex': Number(e.detail.value) });
+  },
+
   async onSubmit() {
-    const { form, resourceTypes, campusOptions } = this.data;
+    const { form, resourceTypes, campusOptions, colleges } = this.data;
     if (!form.title.trim()) {
       wx.showToast({ title: '请输入求购标题', icon: 'none' });
       return;
@@ -140,12 +154,13 @@ Page({
         maxPrice: form.maxPrice ? Number(form.maxPrice) : null,
         isUrgent: form.isUrgent,
         resourceType: resourceTypes[form.resourceIndex].id,
-        campusArea: campusOptions[form.campusIndex].value
+        campusArea: campusOptions[form.campusIndex].value,
+        targetCollege: colleges[form.collegeIndex].id
       });
       wx.showToast({ title: '发布成功', icon: 'success' });
       this.setData({
         showPublish: false,
-        form: { title: '', maxPrice: '', isUrgent: false, resourceIndex: 0, campusIndex: 0 }
+        form: { title: '', maxPrice: '', isUrgent: false, resourceIndex: 0, campusIndex: 0, collegeIndex: 0 }
       });
       this.fetchList(true);
     } catch (error) {

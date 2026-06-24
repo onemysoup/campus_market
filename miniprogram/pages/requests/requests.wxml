@@ -70,6 +70,13 @@
       </picker>
     </view>
 
+    <view class="sheet-item">
+      <text class="sheet-label">关联学院</text>
+      <picker mode="selector" range="{{colleges}}" range-key="name" value="{{form.collegeIndex}}" bindchange="onCollegeChange">
+        <view class="sheet-picker">{{colleges[form.collegeIndex].name}} ▼</view>
+      </picker>
+    </view>
+
     <view class="sheet-item switch-item">
       <text class="sheet-label">急求</text>
       <switch checked="{{form.isUrgent}}" bindchange="onUrgentChange" color="#0f766e" />

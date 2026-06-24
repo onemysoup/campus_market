@@ -220,6 +220,19 @@
   margin-bottom: 14rpx;
 }
 
+/* 搜索热词云 */
+.keyword-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12rpx 16rpx;
+}
+
+.keyword-tag {
+  color: #0f766e;
+  line-height: 1.4;
+}
+
 .campus-row,
 .category-row,
 .top-row {

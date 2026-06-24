@@ -98,6 +98,17 @@
         </view>
       </picker>
     </view>
+
+    <!-- 学院标签（可选） -->
+    <view class="form-item">
+      <text class="label">关联学院</text>
+      <picker mode="selector" range="{{colleges}}" range-key="name" value="{{collegeIndex}}" bindchange="onCollegeChange">
+        <view class="picker-value">
+          {{colleges[collegeIndex].name}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
   </view>
 
   <!-- 商品描述 -->

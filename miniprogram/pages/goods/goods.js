@@ -4,10 +4,12 @@
  */
 
 const itemsApi = require('../../api/items');
+const { track } = require('../../api/events');
 const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
   CONDITION_LIST,
+  COLLEGE_LIST,
   ITEM_STATUS_MAP,
   formatPrice,
   formatTime
@@ -30,6 +32,7 @@ Page({
     category: null,
     condition: null,
     campusArea: null,
+    college: null,
     minPrice: '',
     maxPrice: '',
     // 筛选选项
@@ -46,12 +49,17 @@ Page({
       { value: 0, label: '东校区' },
       { value: 1, label: '西校区' }
     ],
+    colleges: [
+      { id: null, name: '全部学院' },
+      ...COLLEGE_LIST
+    ],
     // 筛选器显示状态
     showFilter: false,
     // 当前选中的筛选标签
     categoryLabel: '全部分类',
     conditionLabel: '全部成色',
     campusLabel: '全部校区',
+    collegeLabel: '全部学院',
     // UI
     defaultImage: ''
   },
@@ -65,6 +73,8 @@ Page({
   },
 
   onShow() {
+    // 闲置广场页面访问埋点（DDD 6.15 页面点击量统计）
+    track('PAGE_VIEW', 'goods');
     // 商品页是 Tab 页，从首页再次点分类切回时只会触发 onShow（不会重新 onLoad）
     // 因此这里也要读取预设分类，发现有新预设就重新拉取列表
     if (this.applyPresetCategory()) {
@@ -129,6 +139,7 @@ Page({
       if (this.data.category !== null) params.category = this.data.category;
       if (this.data.condition !== null) params.conditionLevel = this.data.condition;
       if (this.data.campusArea !== null) params.campusArea = this.data.campusArea;
+      if (this.data.college !== null) params.targetCollege = this.data.college;
       if (this.data.minPrice) params.minPrice = Number(this.data.minPrice);
       if (this.data.maxPrice) params.maxPrice = Number(this.data.maxPrice);
 
@@ -221,6 +232,17 @@ Page({
     this.fetchList(true);
   },
 
+  onCollegeChange(e) {
+    const idx = Number(e.detail.value);
+    const selected = this.data.colleges[idx];
+    this.setData({
+      college: selected.id,
+      collegeLabel: selected.name,
+      showFilter: false
+    });
+    this.fetchList(true);
+  },
+
   onMinPriceInput(e) {
     this.setData({ minPrice: e.detail.value });
   },
@@ -239,11 +261,13 @@ Page({
       category: null,
       condition: null,
       campusArea: null,
+      college: null,
       minPrice: '',
       maxPrice: '',
       categoryLabel: '全部分类',
       conditionLabel: '全部成色',
       campusLabel: '全部校区',
+      collegeLabel: '全部学院',
       showFilter: false
     });
     this.fetchList(true);

@@ -17,6 +17,11 @@ RUN dotnet publish WebAPI/CAUSecondHand.WebAPI.csproj -c Release -o /app --no-re
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# 安装中文字体，供商品图片水印「CAU 二手交易专用」渲染（SRS 686）。
+# 加 `|| true` 使字体源不可用时不阻断构建；缺字体时水印逻辑会自动跳过、不影响上传。
+RUN (apt-get update && apt-get install -y --no-install-recommends fonts-wqy-zenhei \
+    && rm -rf /var/lib/apt/lists/*) || true
+
 # Copy published files (owned by root)
 COPY --from=build /app .
 

@@ -136,6 +136,47 @@ namespace CAUSecondHand.Infrastructure.Migrations
                     b.ToTable("t_credit_log", (string)null);
                 });
 
+            modelBuilder.Entity("CAUSecondHand.Domain.Entities.EventLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("CampusArea")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid?>("ItemId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("PageCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("EventType", "CreatedAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("t_event_log", (string)null);
+                });
+
             modelBuilder.Entity("CAUSecondHand.Domain.Entities.Favorite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -218,6 +259,9 @@ namespace CAUSecondHand.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<int?>("TargetCollege")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -351,6 +395,9 @@ namespace CAUSecondHand.Infrastructure.Migrations
                     b.Property<int>("ResourceType")
                         .HasColumnType("int");
 
+                    b.Property<int?>("TargetCollege")
+                        .HasColumnType("int");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -392,6 +439,38 @@ namespace CAUSecondHand.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("t_request_response", (string)null);
+                });
+
+            modelBuilder.Entity("CAUSecondHand.Domain.Entities.SearchLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("CampusArea")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Keyword")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("ResultCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt", "Keyword");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("t_search_log", (string)null);
                 });
 
             modelBuilder.Entity("CAUSecondHand.Domain.Entities.StudentVerificationApplication", b =>

@@ -52,6 +52,17 @@
       </picker>
     </view>
 
+    <!-- 学院筛选 -->
+    <view class="filter-row">
+      <text class="filter-label">学院</text>
+      <picker mode="selector" range="{{colleges}}" range-key="name" value="0" bindchange="onCollegeChange">
+        <view class="filter-picker">
+          {{collegeLabel}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
     <!-- 价格区间 -->
     <view class="filter-row">
       <text class="filter-label">价格</text>
@@ -82,7 +93,7 @@
   </view>
 
   <!-- 当前筛选条件标签 -->
-  <view class="active-filters" wx:if="{{category !== null || condition !== null || campusArea !== null || minPrice || maxPrice}}">
+  <view class="active-filters" wx:if="{{category !== null || condition !== null || campusArea !== null || college !== null || minPrice || maxPrice}}">
     <view class="filter-tag" wx:if="{{category !== null}}">
       {{categoryLabel}}
     </view>
@@ -91,6 +102,9 @@
     </view>
     <view class="filter-tag" wx:if="{{campusArea !== null}}">
       {{campusLabel}}
+    </view>
+    <view class="filter-tag" wx:if="{{college !== null}}">
+      {{collegeLabel}}
     </view>
     <view class="filter-tag" wx:if="{{minPrice || maxPrice}}">
       ¥{{minPrice || '0'}} - ¥{{maxPrice || '∞'}}

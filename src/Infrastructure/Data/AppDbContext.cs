@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<RequestResponse> RequestResponses => Set<RequestResponse>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<StudentVerificationApplication> StudentVerificationApplications => Set<StudentVerificationApplication>();
+    public DbSet<SearchLog> SearchLogs => Set<SearchLog>();
+    public DbSet<EventLog> EventLogs => Set<EventLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

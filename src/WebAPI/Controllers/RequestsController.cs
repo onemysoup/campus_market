@@ -20,10 +20,20 @@ public class RequestsController(
     IOptions<WeChatOptions> weChatOptions) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetRequests([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetRequests([FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] CampusArea? campusArea = null, [FromQuery] CollegeTag? targetCollege = null,
+        [FromQuery] ResourceType? resourceType = null)
     {
-        var query = db.Requests
-            .Where(r => r.ExpiryDate >= DateOnly.FromDateTime(DateTime.UtcNow))
+        var baseQuery = db.Requests
+            .Where(r => r.ExpiryDate >= DateOnly.FromDateTime(DateTime.UtcNow));
+        if (campusArea.HasValue)
+            baseQuery = baseQuery.Where(r => r.CampusArea == campusArea.Value);
+        if (targetCollege.HasValue)
+            baseQuery = baseQuery.Where(r => r.TargetCollege == targetCollege.Value);
+        if (resourceType.HasValue)
+            baseQuery = baseQuery.Where(r => r.ResourceType == resourceType.Value);
+
+        var query = baseQuery
             .OrderByDescending(r => r.IsUrgent)
             .ThenByDescending(r => r.CreatedAt);
 
@@ -50,7 +60,7 @@ public class RequestsController(
             return BadRequest(new { code = 4000, message = "24小时内已发布过相似求购，请勿重复发布" });
 
         var request = new Request(userId, dto.Title, dto.MaxPrice,
-            dto.IsUrgent, dto.ResourceType, dto.CampusArea);
+            dto.IsUrgent, dto.ResourceType, dto.CampusArea, dto.TargetCollege);
 
         db.Requests.Add(request);
         await db.SaveChangesAsync();

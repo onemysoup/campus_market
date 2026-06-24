@@ -8,7 +8,8 @@ public sealed class Request
     private Request() { }
 
     public Request(Guid buyerId, string title, decimal? maxPrice,
-        bool isUrgent, ResourceType resourceType, CampusArea campusArea)
+        bool isUrgent, ResourceType resourceType, CampusArea campusArea,
+        CollegeTag? targetCollege = null)
     {
         Id = Guid.NewGuid();
         BuyerId = buyerId;
@@ -17,6 +18,7 @@ public sealed class Request
         IsUrgent = isUrgent;
         ResourceType = resourceType;
         CampusArea = campusArea;
+        TargetCollege = targetCollege;
         MatchingCount = 0;
         ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7));
         CreatedAt = DateTime.UtcNow;
@@ -29,6 +31,7 @@ public sealed class Request
     public bool IsUrgent { get; private set; }
     public ResourceType ResourceType { get; private set; }
     public CampusArea CampusArea { get; private set; }
+    public CollegeTag? TargetCollege { get; private set; }
     public int MatchingCount { get; private set; }
     public DateOnly ExpiryDate { get; private set; }
     public DateTime CreatedAt { get; private set; }

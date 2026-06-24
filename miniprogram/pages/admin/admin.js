@@ -57,7 +57,9 @@ Page({
       daily: [],
       campus: [],
       categories: [],
-      topItems: []
+      topItems: [],
+      searchKeywords: [],
+      pageClicks: []
     },
     statsFilter: defaultStatsFilter(),
     statsPeriods: [
@@ -228,6 +230,22 @@ Page({
       turnoverText: formatPrice(item.turnoverAmount)
     }));
 
+    // 页面编码 → 中文标签（DDD 6.15 页面点击量）
+    const PAGE_LABELS = {
+      home: '首页',
+      goods: '闲置广场',
+      requests: '求购大厅',
+      profile: '个人中心',
+      'goods-detail': '商品详情',
+      ITEM_DETAIL_VIEW: '商品详情'
+    };
+    const searchKeywords = report.searchKeywords || [];
+    const maxKeywordCount = searchKeywords.reduce((m, k) => Math.max(m, k.count || 0), 0) || 1;
+    const pageClicks = (report.pageClicks || []).map(item => ({
+      ...item,
+      pageText: PAGE_LABELS[item.pageCode] || item.pageCode
+    }));
+
     return {
       ...report,
       summary: {
@@ -239,7 +257,13 @@ Page({
       daily,
       campus,
       categories,
-      topItems
+      topItems,
+      searchKeywords: searchKeywords.map(k => ({
+        ...k,
+        // 热词云字号：按频次在 24~40rpx 之间线性缩放
+        fontSize: 24 + Math.round((Number(k.count || 0) / maxKeywordCount) * 16)
+      })),
+      pageClicks
     };
   },
 

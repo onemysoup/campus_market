@@ -68,17 +68,40 @@ public sealed class DailyEtlJob(IServiceScopeFactory scopeFactory) : IJob
             var categoryBreakdownJson = JsonSerializer.Serialize(items
                 .GroupBy(i => (int)i.Category)
                 .ToDictionary(g => g.Key.ToString(CultureInfo.InvariantCulture), g => g.Count()));
-            var searchKeywordsJson = "{}";
+
+            // 搜索关键词 TopN（DDD 6.14 t_search_log → t_stats_daily.search_keywords）
+            var searchKeywords = await db.SearchLogs
+                .Where(s => s.CampusArea == campusArea
+                    && s.CreatedAt >= yesterdayStart && s.CreatedAt < yesterdayEnd)
+                .GroupBy(s => s.Keyword)
+                .Select(g => new { Keyword = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(30)
+                .ToListAsync(context.CancellationToken);
+            var searchKeywordsJson = JsonSerializer.Serialize(
+                searchKeywords.ToDictionary(x => x.Keyword, x => x.Count));
+
+            // 页面点击分布（DDD 6.15 t_event_log → t_stats_daily.page_clicks）
+            var pageClickRows = await db.EventLogs
+                .Where(e => e.CampusArea == campusArea
+                    && e.CreatedAt >= yesterdayStart && e.CreatedAt < yesterdayEnd)
+                .GroupBy(e => new { e.PageCode, e.EventType })
+                .Select(g => new { g.Key.PageCode, g.Key.EventType, Count = g.Count() })
+                .ToListAsync(context.CancellationToken);
+            var pageClicksJson = JsonSerializer.Serialize(pageClickRows
+                .GroupBy(x => x.PageCode ?? x.EventType)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Count)));
+
             var now = DateTime.UtcNow;
             var campusValue = (int)campusArea;
 
             await db.Database.ExecuteSqlInterpolatedAsync($@"
 INSERT INTO `t_stats_daily`
     (`StatDate`, `CampusArea`, `TotalPublished`, `TotalTurnover`, `ActiveUsers`, `NewUsers`,
-     `CategoryBreakdownJson`, `SearchKeywordsJson`, `CreatedAt`, `UpdatedAt`)
+     `CategoryBreakdownJson`, `SearchKeywordsJson`, `PageClicksJson`, `CreatedAt`, `UpdatedAt`)
 VALUES
     ({statDate}, {campusValue}, {items.Count}, {totalTurnover}, {activeUsers}, {newUserIds.Count},
-     CAST({categoryBreakdownJson} AS JSON), CAST({searchKeywordsJson} AS JSON), {now}, {now})
+     CAST({categoryBreakdownJson} AS JSON), CAST({searchKeywordsJson} AS JSON), CAST({pageClicksJson} AS JSON), {now}, {now})
 ON DUPLICATE KEY UPDATE
     `TotalPublished` = VALUES(`TotalPublished`),
     `TotalTurnover` = VALUES(`TotalTurnover`),
@@ -86,6 +109,7 @@ ON DUPLICATE KEY UPDATE
     `NewUsers` = VALUES(`NewUsers`),
     `CategoryBreakdownJson` = VALUES(`CategoryBreakdownJson`),
     `SearchKeywordsJson` = VALUES(`SearchKeywordsJson`),
+    `PageClicksJson` = VALUES(`PageClicksJson`),
     `UpdatedAt` = VALUES(`UpdatedAt`);", context.CancellationToken);
         }
     }

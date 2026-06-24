@@ -9,8 +9,12 @@ const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
   CONDITION_LIST,
+  COLLEGE_LIST,
   formatPrice
 } = require('../../utils/constants');
+
+// 学院为可选项，列表首位提供「不关联学院」(id=null)
+const COLLEGE_OPTIONS = [{ id: null, name: '不关联学院' }, ...COLLEGE_LIST];
 
 Page({
   data: {
@@ -25,6 +29,7 @@ Page({
       category: 0,
       conditionLevel: 0,
       campusArea: 0,
+      targetCollege: null,
       images: [],
       isNegotiable: true,
       isFree: false,
@@ -37,9 +42,11 @@ Page({
     categoryIndex: 0,
     conditionIndex: 0,
     campusIndex: 0,
+    collegeIndex: 0,
     // Picker 选项
     categories: CATEGORY_LIST,
     conditions: CONDITION_LIST,
+    colleges: COLLEGE_OPTIONS,
     campusOptions: [
       { value: 0, label: '东校区' },
       { value: 1, label: '西校区' },
@@ -94,6 +101,7 @@ Page({
         category: 0,
         conditionLevel: 0,
         campusArea: 0,
+        targetCollege: null,
         images: [],
         isNegotiable: true,
         isFree: false,
@@ -103,7 +111,8 @@ Page({
       },
       categoryIndex: 0,
       conditionIndex: 0,
-      campusIndex: 0
+      campusIndex: 0,
+      collegeIndex: 0
     });
     wx.setNavigationBarTitle({ title: '发布商品' });
   },
@@ -120,6 +129,8 @@ Page({
       const categoryIndex = CATEGORY_LIST.findIndex(c => c.id === detail.category);
       const conditionIndex = CONDITION_LIST.findIndex(c => c.id === detail.conditionLevel);
       const campusIndex = [0, 1, 2].indexOf(detail.campusArea);
+      const collegeValue = detail.targetCollege != null ? detail.targetCollege : null;
+      const collegeIndex = COLLEGE_OPTIONS.findIndex(c => c.id === collegeValue);
 
       this.setData({
         form: {
@@ -129,6 +140,7 @@ Page({
           category: detail.category || 0,
           conditionLevel: detail.conditionLevel || 0,
           campusArea: detail.campusArea || 0,
+          targetCollege: collegeValue,
           images: detail.images || [],
           isNegotiable: detail.isNegotiable !== false,
           isFree: Number(detail.price || 0) === 0,
@@ -138,7 +150,8 @@ Page({
         },
         categoryIndex: categoryIndex >= 0 ? categoryIndex : 0,
         conditionIndex: conditionIndex >= 0 ? conditionIndex : 0,
-        campusIndex: campusIndex >= 0 ? campusIndex : 0
+        campusIndex: campusIndex >= 0 ? campusIndex : 0,
+        collegeIndex: collegeIndex >= 0 ? collegeIndex : 0
       });
     } catch (error) {
       console.error('[Publish] loadGoodsDetail error:', error);
@@ -212,6 +225,14 @@ Page({
     this.setData({
       campusIndex: index,
       'form.campusArea': this.data.campusOptions[index].value
+    });
+  },
+
+  onCollegeChange(e) {
+    const index = Number(e.detail.value);
+    this.setData({
+      collegeIndex: index,
+      'form.targetCollege': this.data.colleges[index].id
     });
   },
 
@@ -351,6 +372,7 @@ Page({
         category: form.category,
         conditionLevel: form.conditionLevel,
         campusArea: form.campusArea,
+        targetCollege: form.targetCollege,
         images: form.images,
         isNegotiable: form.isNegotiable,
         isRental: form.isRental
@@ -363,7 +385,8 @@ Page({
       }
 
       if (editMode) {
-        // 编辑模式：PUT
+        // 编辑模式：PUT；学院置空时显式告知后端清除
+        if (form.targetCollege == null) payload.clearCollege = true;
         await itemsApi.editItem(itemId, payload);
         wx.showToast({ title: '修改成功', icon: 'success' });
       } else {

@@ -28,6 +28,8 @@ Page({
    * 每次页面显示时刷新数据（关键：切回页面时信用分可能已变化）
    */
   onShow() {
+    // 个人中心页面访问埋点（DDD 6.15 页面点击量统计）
+    require('../../api/events').track('PAGE_VIEW', 'profile');
     this.refreshUserData();
   },
 

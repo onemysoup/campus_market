@@ -134,6 +134,28 @@ const RESOURCE_TYPE = [
 ];
 
 /**
+ * CollegeTag 学院标签（DDD 5.3 college_tag）
+ * 后端: 0=农学院 ... 13=国际学院, 14=其他
+ */
+const COLLEGE_LIST = [
+  { id: 0, name: '农学院' },
+  { id: 1, name: '植物保护学院' },
+  { id: 2, name: '动物科学技术学院' },
+  { id: 3, name: '动物医学院' },
+  { id: 4, name: '信息与电气工程学院' },
+  { id: 5, name: '工学院' },
+  { id: 6, name: '经济管理学院' },
+  { id: 7, name: '人文与发展学院' },
+  { id: 8, name: '理学院' },
+  { id: 9, name: '食品科学与营养工程学院' },
+  { id: 10, name: '水利与土木工程学院' },
+  { id: 11, name: '土地科学与技术学院' },
+  { id: 12, name: '生物学院' },
+  { id: 13, name: '国际学院' },
+  { id: 14, name: '其他' }
+];
+
+/**
  * ReportReason 举报原因
  */
 const REPORT_REASON = {
@@ -255,6 +277,7 @@ module.exports = {
   TRANSACTION_TYPE,
   TRANSACTION_TYPE_MAP,
   RESOURCE_TYPE,
+  COLLEGE_LIST,
   REPORT_REASON,
   REPORT_REASON_MAP,
   TOKEN_STATUS,

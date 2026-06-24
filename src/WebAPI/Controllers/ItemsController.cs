@@ -39,6 +39,8 @@ public class ItemsController(
             itemsQuery = itemsQuery.Where(i => i.ConditionLevel == query.ConditionLevel.Value);
         if (query.CampusArea.HasValue)
             itemsQuery = itemsQuery.Where(i => i.CampusArea == query.CampusArea.Value);
+        if (query.TargetCollege.HasValue)
+            itemsQuery = itemsQuery.Where(i => i.TargetCollege == query.TargetCollege.Value);
         if (query.MinPrice.HasValue)
             itemsQuery = itemsQuery.Where(i => i.Price >= query.MinPrice.Value);
         if (query.MaxPrice.HasValue)
@@ -51,6 +53,16 @@ public class ItemsController(
             .Take(query.PageSize)
             .Select(i => ItemCardVO.FromEntity(i))
             .ToListAsync();
+
+        // 搜索埋点（DDD 6.14 t_search_log）：记录关键词与返回结果数，支撑搜索关键词云统计。
+        var keyword = query.Keyword?.Trim();
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            if (keyword.Length > 64) keyword = keyword[..64];
+            db.SearchLogs.Add(new Domain.Entities.SearchLog(
+                viewerId, keyword, query.CampusArea, totalCount));
+            await db.SaveChangesAsync();
+        }
 
         return Ok(new
         {
@@ -108,6 +120,10 @@ public class ItemsController(
 
         item.IncrementViewCount();
 
+        // 行为埋点（DDD 6.15 t_event_log）：商品详情浏览，支撑页面点击量与热度统计。
+        db.EventLogs.Add(new Domain.Entities.EventLog(
+            userId, "ITEM_DETAIL_VIEW", "goods-detail", id, null, item.CampusArea));
+
         var isFavorited = userId != Guid.Empty
             && await db.Favorites.AnyAsync(f => f.UserId == userId && f.ItemId == id);
         var canBuy = item.IsAvailableForBuying();
@@ -154,7 +170,7 @@ public class ItemsController(
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
-            dto.IsRental, dto.RentalRate, dto.Deposit);
+            dto.IsRental, dto.RentalRate, dto.Deposit, dto.TargetCollege);
 
         item.TransitionTo(ItemStatus.Active);
         db.Items.Add(item);
@@ -183,7 +199,8 @@ public class ItemsController(
         item.Edit(dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images,
             dto.CampusArea, dto.DeliveryPoint,
-            dto.IsRental, dto.RentalRate, dto.Deposit);
+            dto.IsRental, dto.RentalRate, dto.Deposit,
+            dto.TargetCollege, dto.ClearCollege);
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "修改成功" });

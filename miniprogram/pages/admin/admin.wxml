@@ -148,6 +148,30 @@
         </view>
         <view class="empty compact" wx:if="{{analytics.topItems.length === 0}}">暂无热门商品</view>
       </view>
+
+      <!-- 搜索关键词云 -->
+      <view class="report-block">
+        <view class="report-title">搜索热词云</view>
+        <view class="keyword-cloud">
+          <text class="keyword-tag" wx:for="{{analytics.searchKeywords}}" wx:key="keyword"
+                style="font-size: {{item.fontSize}}rpx;">{{item.keyword}}（{{item.count}}）</text>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.searchKeywords.length === 0}}">暂无搜索数据</view>
+      </view>
+
+      <!-- 页面点击量 -->
+      <view class="report-block">
+        <view class="report-title">页面点击量</view>
+        <view class="category-row" wx:for="{{analytics.pageClicks}}" wx:key="pageCode">
+          <view class="category-main">
+            <text class="category-name">{{item.pageText}}</text>
+          </view>
+          <view class="category-side">
+            <text>{{item.clicks}} 次</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.pageClicks.length === 0}}">暂无点击数据</view>
+      </view>
     </view>
   </view>
 

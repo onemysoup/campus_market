@@ -12,7 +12,8 @@ public sealed class Item
     public Item(Guid sellerId, string title, string description, decimal price,
         ItemCategory category, ConditionLevel condition, List<string> images,
         CampusArea campusArea, bool isRental = false,
-        string? rentalRate = null, decimal? deposit = null)
+        string? rentalRate = null, decimal? deposit = null,
+        CollegeTag? targetCollege = null)
     {
         Id = Guid.NewGuid();
         SellerId = sellerId;
@@ -23,6 +24,7 @@ public sealed class Item
         ConditionLevel = condition;
         _images = images;
         CampusArea = campusArea;
+        TargetCollege = targetCollege;
         IsRental = isRental;
         RentalRate = rentalRate;
         Deposit = deposit;
@@ -46,6 +48,7 @@ public sealed class Item
     public ItemCategory Category { get; private set; }
     public ConditionLevel ConditionLevel { get; private set; }
     public CampusArea CampusArea { get; private set; }
+    public CollegeTag? TargetCollege { get; private set; }
     public string? DeliveryPoint { get; private set; }
     public IReadOnlyList<string> Images => _images.AsReadOnly();
     public ItemStatus Status { get; private set; }
@@ -90,7 +93,8 @@ public sealed class Item
     public void Edit(string? title, string? description, decimal? price,
         ItemCategory? category, ConditionLevel? condition, List<string>? images,
         CampusArea? campusArea, string? deliveryPoint,
-        bool? isRental = null, string? rentalRate = null, decimal? deposit = null)
+        bool? isRental = null, string? rentalRate = null, decimal? deposit = null,
+        CollegeTag? targetCollege = null, bool clearCollege = false)
     {
         if (title != null) Title = title;
         if (description != null) Description = description;
@@ -99,6 +103,8 @@ public sealed class Item
         if (condition.HasValue) ConditionLevel = condition.Value;
         if (images != null) { _images.Clear(); _images.AddRange(images); }
         if (campusArea.HasValue) CampusArea = campusArea.Value;
+        if (clearCollege) TargetCollege = null;
+        else if (targetCollege.HasValue) TargetCollege = targetCollege.Value;
         if (deliveryPoint != null) DeliveryPoint = deliveryPoint;
         if (isRental.HasValue) IsRental = isRental.Value;
         if (isRental == true)
