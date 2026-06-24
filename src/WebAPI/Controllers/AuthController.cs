@@ -277,13 +277,31 @@ public class AuthController(
     public async Task<IActionResult> GetStudentVerification()
     {
         var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户未找到" });
+
         var app = await db.StudentVerificationApplications
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.CreatedAt)
             .FirstOrDefaultAsync();
 
         if (app is null)
-            return Ok(new { code = 0, data = new { status = "None", statusCode = -1 } });
+            return Ok(new
+            {
+                code = 0,
+                data = new
+                {
+                    status = "None",
+                    statusCode = -1,
+                    authLevel = (int)user.AuthLevel
+                }
+            });
+
+        var token = user.AuthLevel >= AuthLevel.L2 ? GenerateToken(user) : null;
 
         return Ok(new
         {
@@ -293,15 +311,17 @@ public class AuthController(
                 app.Id,
                 app.RealName,
                 app.StudentId,
+                app.CertificateImageUrl,
                 status = app.Status.ToString(),
                 statusCode = (int)app.Status,
                 app.AdminNote,
                 app.CreatedAt,
-                app.ReviewedAt
+                app.ReviewedAt,
+                authLevel = (int)user.AuthLevel,
+                token
             }
         });
     }
-
     [Authorize(Policy = "AuthLevelL1")]
     [HttpPost("student-verification")]
     public async Task<IActionResult> SubmitStudentVerification([FromBody] SubmitStudentVerificationRequest request)
@@ -317,7 +337,21 @@ public class AuthController(
         db.StudentVerificationApplications.Add(app);
         await db.SaveChangesAsync();
 
-        return Ok(new { code = 0, message = "申请已提交" });
+        return Ok(new
+        {
+            code = 0,
+            message = "申请已提交",
+            data = new
+            {
+                app.Id,
+                app.RealName,
+                app.StudentId,
+                app.CertificateImageUrl,
+                status = app.Status.ToString(),
+                statusCode = (int)app.Status,
+                app.CreatedAt
+            }
+        });
     }
 
     private string GenerateToken(User user)

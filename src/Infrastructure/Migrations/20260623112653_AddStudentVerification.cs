@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,40 +11,23 @@ namespace CAUSecondHand.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "t_student_verification_application",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    RealName = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    StudentId = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CertificateImageUrl = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    AdminId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    AdminNote = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    ReviewedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_t_student_verification_application", x => x.Id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_t_student_verification_application_Status",
-                table: "t_student_verification_application",
-                column: "Status");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_t_student_verification_application_UserId",
-                table: "t_student_verification_application",
-                column: "UserId");
+            // Some dev databases already applied this table from an older migration id.
+            migrationBuilder.Sql(@"
+CREATE TABLE IF NOT EXISTS `t_student_verification_application` (
+    `Id` char(36) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `UserId` char(36) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `RealName` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
+    `StudentId` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
+    `CertificateImageUrl` varchar(512) CHARACTER SET utf8mb4 NOT NULL,
+    `Status` int NOT NULL,
+    `AdminId` char(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+    `AdminNote` varchar(256) CHARACTER SET utf8mb4 NULL,
+    `CreatedAt` datetime(6) NOT NULL,
+    `ReviewedAt` datetime(6) NULL,
+    CONSTRAINT `PK_t_student_verification_application` PRIMARY KEY (`Id`),
+    INDEX `IX_t_student_verification_application_Status` (`Status`),
+    INDEX `IX_t_student_verification_application_UserId` (`UserId`)
+) CHARACTER SET=utf8mb4;");
         }
 
         /// <inheritdoc />
