@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using CAUSecondHand.Domain.Enums;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CAUSecondHand.Infrastructure.Services;
@@ -25,8 +24,7 @@ public interface IAiDescriptionGenerator
 /// </summary>
 public sealed class AiDescriptionService(
     HttpClient httpClient,
-    IOptions<AiOptions> options,
-    ILogger<AiDescriptionService> logger) : IAiDescriptionGenerator
+    IOptions<AiOptions> options) : IAiDescriptionGenerator
 {
     private static readonly string[] CategoryNames =
         ["教材教辅", "数码电子", "生活用品", "运动户外", "服装鞋帽", "文具办公", "乐器器材", "票券卡类", "其他物品"];
@@ -49,9 +47,9 @@ public sealed class AiDescriptionService(
             {
                 return await CallLlmAsync(input, opt, ct);
             }
-            catch (Exception ex)
+            catch
             {
-                logger.LogWarning(ex, "AI 描述外部模型调用失败，降级为本地生成");
+                // 外部模型不可用时降级为本地生成（SDD：AI 不可用不影响发布流程）
             }
         }
 
