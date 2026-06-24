@@ -150,7 +150,7 @@
           </text>
         </view>
         <view class="goods-bottom">
-          <text class="goods-price">¥{{item.priceText}}</text>
+          <text class="goods-price">{{item.priceDisplay}}<text class="rental-tag" wx:if="{{item.isRental}}">租</text></text>
           <text class="goods-time">{{item.timeText}}</text>
         </view>
       </view>

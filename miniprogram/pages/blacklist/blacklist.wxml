@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="tip" wx:if="{{list.length > 0}}">被拉黑的用户无法查看你的商品，也无法给你发起聊天</view>
+
+  <view class="bl-list" wx:if="{{list.length > 0}}">
+    <view class="bl-item" wx:for="{{list}}" wx:key="blockedId">
+      <view class="bl-meta">
+        <text class="bl-name">{{item.nickname}}</text>
+        <text class="bl-time">拉黑于 {{item.timeText}}</text>
+      </view>
+      <button
+        class="bl-remove"
+        size="mini"
+        data-blockedid="{{item.blockedId}}"
+        data-nickname="{{item.nickname}}"
+        bindtap="onRemove"
+      >取消拉黑</button>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{!loading}}">
+    <text class="empty-icon">🛡️</text>
+    <text class="empty-text">黑名单为空</text>
+  </view>
+</view>

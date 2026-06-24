@@ -189,6 +189,29 @@
   opacity: 0.9;
 }
 
+/* 图片消息按钮 */
+.btn-image {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  flex-shrink: 0;
+  margin-right: 8rpx;
+}
+
+.btn-image:active {
+  opacity: 0.6;
+}
+
+/* 图片消息气泡 */
+.msg-image {
+  max-width: 360rpx;
+  border-radius: 16rpx;
+  background: #fff;
+}
+
 /* ==================== 加载状态 ==================== */
 .loading-more {
   display: flex;
@@ -214,12 +237,31 @@
 }
 
 /* 安全交易贴士 */
+.tip-row {
+  display: flex;
+  align-items: center;
+  background: #fef2f2;
+}
+
 .safety-tip {
+  flex: 1;
   padding: 12rpx 24rpx;
   background: #fef2f2;
   color: #b91c1c;
   font-size: 22rpx;
   line-height: 1.4;
+}
+
+.block-btn {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  color: #ef4444;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.block-btn:active {
+  opacity: 0.6;
 }
 
 .cross-tip-bar {

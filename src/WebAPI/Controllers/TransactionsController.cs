@@ -201,6 +201,11 @@ public class TransactionsController(AppDbContext db, TokenService tokenService) 
         if (!transaction.FinishTime.HasValue)
             return BadRequest(new { code = 4000, message = "交易完成后才能评价" });
 
+        // 评价文字内容审核
+        var banned = ContentFilter.FindBanned(dto.Comment);
+        if (banned is not null)
+            return BadRequest(new { code = 4000, message = $"评价包含违规内容「{banned}」，请修改后再提交" });
+
         var exists = await db.TransactionReviews
             .AnyAsync(r => r.TransactionId == id && r.ReviewerId == userId);
         if (exists)

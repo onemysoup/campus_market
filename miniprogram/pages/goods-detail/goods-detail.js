@@ -5,6 +5,7 @@
 
 const itemsApi = require('../../api/items');
 const transactionsApi = require('../../api/transactions');
+const profileApi = require('../../api/profile');
 const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
@@ -34,7 +35,9 @@ Page({
     // 卖家信誉
     sellerRating: 0,
     sellerReviewCount: 0,
-    sellerReviews: [],
+    sellerReviews: [],      // 当前展示的评价（默认前3条）
+    sellerAllReviews: [],   // 全部评价
+    reviewsExpanded: false,
     // 交互状态
     isFavorited: false,
     canBuy: false,
@@ -94,13 +97,16 @@ Page({
       const sellerId = detail.seller && detail.seller.userId;
       if (sellerId) {
         transactionsApi.getUserReviews(sellerId).then((r) => {
+          const all = (r.reviews || []).map(item => ({
+            ...item,
+            timeText: formatTime(item.createdAt)
+          }));
           this.setData({
             sellerRating: r.average || 0,
             sellerReviewCount: r.count || 0,
-            sellerReviews: (r.reviews || []).slice(0, 3).map(item => ({
-              ...item,
-              timeText: formatTime(item.createdAt)
-            }))
+            sellerAllReviews: all,
+            sellerReviews: all.slice(0, 3),
+            reviewsExpanded: false
           });
         }).catch(() => {});
       }
@@ -109,6 +115,15 @@ Page({
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
+  },
+
+  // 展开/收起全部评价
+  onToggleReviews() {
+    const expanded = !this.data.reviewsExpanded;
+    this.setData({
+      reviewsExpanded: expanded,
+      sellerReviews: expanded ? this.data.sellerAllReviews : this.data.sellerAllReviews.slice(0, 3)
+    });
   },
 
   // ==================== 图片轮播 ====================
@@ -155,14 +170,16 @@ Page({
   // ==================== 购买/锁单 ====================
 
   /**
-   * 点击购买
+   * 点击购买/租赁
    */
   async onBuy() {
     const { goods, canBuy } = this.data;
+    const isRental = goods && goods.isRental;
+    const actionWord = isRental ? '租赁' : '购买';
 
-    // 检查是否可购买
+    // 检查是否可交易
     if (!canBuy) {
-      wx.showToast({ title: '该商品暂不可购买', icon: 'none' });
+      wx.showToast({ title: `该商品暂不可${actionWord}`, icon: 'none' });
       return;
     }
 
@@ -170,15 +187,18 @@ Page({
     const app = getApp();
     if (!app.checkLogin()) return;
 
-    // 确认购买
+    // 确认交易
+    const priceLine = isRental
+      ? (goods.rentalRate ? `\n租金：${goods.rentalRate}` : '') + (goods.deposit ? `\n押金：¥${goods.deposit}` : '')
+      : `\n价格：¥${this.data.priceText}`;
     wx.showModal({
-      title: '确认购买',
-      content: `确定要购买「${goods.title}」吗？\n价格：¥${this.data.priceText}`,
+      title: `确认${actionWord}`,
+      content: `确定要${actionWord}「${goods.title}」吗？${priceLine}`,
       confirmText: '确认',
       confirmColor: '#0f766e',
       success: async (res) => {
         if (!res.confirm) return;
-        const securityPassword = await this.promptSecurityPassword('确认购买');
+        const securityPassword = await this.promptSecurityPassword(`确认${actionWord}`);
         if (!securityPassword) return;
         await this.createTransaction(securityPassword);
       }
@@ -223,6 +243,21 @@ Page({
     } catch (error) {
       wx.hideLoading();
       console.error('[GoodsDetail] createTransaction error:', error);
+      // 未设置安全密码：引导用户先去设置（购买/租赁必须有安全密码）
+      const msg = (error && error.message) || '';
+      if (/设置安全密码/.test(msg)) {
+        wx.showModal({
+          title: '需要安全密码',
+          content: '交易需要安全密码保护。你还没有设置安全密码，现在去设置吗？',
+          confirmText: '去设置',
+          confirmColor: '#0f766e',
+          success: (res) => {
+            if (res.confirm) {
+              wx.navigateTo({ url: '/pages/register/register?step=password' });
+            }
+          }
+        });
+      }
     }
   },
 
@@ -283,12 +318,44 @@ Page({
     if (!goods) return;
 
     wx.showActionSheet({
-      itemList: ['虚假商品', '垃圾广告', '不当内容', '欺诈行为'],
+      itemList: ['虚假商品', '垃圾广告', '不当内容', '欺诈行为', '🚫 拉黑该卖家'],
       success: (res) => {
+        if (res.tapIndex === 4) {
+          this.onBlockSeller();
+          return;
+        }
         const reasonMap = [0, 1, 2, 3];
         wx.navigateTo({
           url: `/pages/report/report?targetId=${goods.seller.userId}&reason=${reasonMap[res.tapIndex]}`
         });
+      }
+    });
+  },
+
+  // 拉黑卖家（SRS F5.3.1）
+  onBlockSeller() {
+    const { goods } = this.data;
+    const seller = goods && goods.seller;
+    if (!seller) return;
+    const app = getApp();
+    if (!app.checkLogin()) return;
+    if (seller.userId === app.getUserId()) {
+      wx.showToast({ title: '不能拉黑自己', icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title: '拉黑卖家',
+      content: `拉黑后「${seller.nickname || '该用户'}」将无法查看你的商品，也无法给你发消息。`,
+      confirmText: '拉黑',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await profileApi.addBlacklist(seller.userId);
+          wx.showToast({ title: '已拉黑', icon: 'success' });
+        } catch (error) {
+          console.error('[GoodsDetail] block error:', error);
+        }
       }
     });
   },

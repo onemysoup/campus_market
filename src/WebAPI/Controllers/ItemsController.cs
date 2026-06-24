@@ -185,8 +185,25 @@ public class ItemsController(
 
         var userId = User.GetUserId();
         var user = await db.Users.FindAsync(userId);
-        if (user is null || !user.IsEligibleToPublish(dto.Price))
+        if (user is null)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+        if (user.IsBanned)
+            return BadRequest(new { code = 4000, message = "账号已被封禁，无法发布商品" });
+        // SRS F5.2.2：诚信分 40-59 严重受限、<40 黑名单，均禁止发布
+        if (user.CreditScore < 60)
+            return BadRequest(new { code = 4000, message = "诚信分过低，账号处于受限状态，暂时无法发布商品" });
+        if (!user.IsEligibleToPublish(dto.Price))
             return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
+
+        // SRS F5.2.2：60-79 分受限用户在售商品数量上限为 2
+        var activeLimit = user.GetActiveItemLimit();
+        if (activeLimit > 0)
+        {
+            var activeCount = await db.Items.CountAsync(i => i.SellerId == userId
+                && (i.Status == ItemStatus.Active || i.Status == ItemStatus.Reserved));
+            if (activeCount >= activeLimit)
+                return BadRequest(new { code = 4000, message = $"当前诚信分受限，最多可同时在售 {activeLimit} 件商品" });
+        }
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,

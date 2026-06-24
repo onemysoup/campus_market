@@ -93,6 +93,14 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
         if (await IsBlockedBetweenAsync(senderId, request.ReceiverId))
             return BadRequest(new { code = 4000, message = "对方暂不可联系" });
 
+        // 文本消息内容审核（黄暴/政治/违禁等关键词过滤）
+        if (request.MsgType == Domain.Enums.MsgType.Text)
+        {
+            var banned = ContentFilter.FindBanned(request.Content);
+            if (banned is not null)
+                return BadRequest(new { code = 4000, message = $"消息包含违规内容「{banned}」，请修改后再发送" });
+        }
+
         // 查找或创建会话
         var session = await db.ChatSessions
             .FirstOrDefaultAsync(s =>
@@ -110,9 +118,12 @@ public class ChatController(AppDbContext db, IHubContext<ChatHub> hubContext) : 
             request.MsgType, request.Content);
         db.Messages.Add(message);
 
+        var preview = request.MsgType == Domain.Enums.MsgType.Image
+            ? "[图片]"
+            : request.Content.Length > 50 ? request.Content[..50] + "..." : request.Content;
         session.UpdateLastMessage(
             DateTimeOffset.FromUnixTimeMilliseconds(message.Timestamp).UtcDateTime,
-            request.Content.Length > 50 ? request.Content[..50] + "..." : request.Content);
+            preview);
 
         await db.SaveChangesAsync();
 

@@ -57,7 +57,7 @@
           <text class="category-tag">{{item.categoryText}}</text>
           <text class="view-count">👁 {{item.viewCount}}</text>
         </view>
-        <view class="price">¥{{item.priceText}}</view>
+        <view class="price">{{item.priceDisplay}}</view>
       </view>
     </view>
   </view>
@@ -88,7 +88,7 @@
           <text class="category-tag">{{item.categoryText}}</text>
           <text class="time-text">{{item.timeText}}</text>
         </view>
-        <view class="price">¥{{item.priceText}}</view>
+        <view class="price">{{item.priceDisplay}}</view>
       </view>
     </view>
   </view>

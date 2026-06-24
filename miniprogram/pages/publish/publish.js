@@ -73,11 +73,20 @@ Page({
   },
 
   /**
+   * 草稿缓存 key（按用户隔离，避免不同账号串草稿）
+   */
+  getDraftKey() {
+    const app = getApp();
+    const uid = (app.globalData.userInfo && app.globalData.userInfo.userId) || 'guest';
+    return 'publishDraft_' + uid;
+  },
+
+  /**
    * 保存草稿（仅发布模式，自动暂存表单到本地）
    */
   saveDraft() {
     if (this.data.editMode) return;
-    wx.setStorageSync('publishDraft', {
+    wx.setStorageSync(this.getDraftKey(), {
       form: this.data.form,
       categoryIndex: this.data.categoryIndex,
       conditionIndex: this.data.conditionIndex,
@@ -90,7 +99,7 @@ Page({
    * 恢复草稿
    */
   restoreDraft() {
-    const draft = wx.getStorageSync('publishDraft');
+    const draft = wx.getStorageSync(this.getDraftKey());
     if (!draft || !draft.form) return;
     // 只有有实质内容时才恢复，避免空草稿打扰
     if (!draft.form.title && !draft.form.description && (draft.form.images || []).length === 0) return;
@@ -106,6 +115,14 @@ Page({
 
   onShow() {
     const app = getApp();
+
+    // 用户切换检测：tabBar 页面实例会复用，换账号后清空上个用户残留的表单并恢复本人草稿
+    const curUid = app.getUserId();
+    if (this._lastUserId !== undefined && this._lastUserId !== curUid) {
+      this.resetForm();
+      if (!app.globalData.editItemId) this.restoreDraft();
+    }
+    this._lastUserId = curUid;
 
     // 检查是否从"我的商品"页面跳转过来编辑
     if (app.globalData.editItemId) {
@@ -144,7 +161,8 @@ Page({
         isFree: false,
         isRental: false,
         rentalRate: '',
-        deposit: ''
+        deposit: '',
+        supportCrossCampus: false
       },
       categoryIndex: 0,
       conditionIndex: 0,
@@ -244,22 +262,50 @@ Page({
     this.setData({ 'form.price': e.detail.value });
   },
 
+  // 可议价：与「0元赠送」「租赁」互斥（赠送/租赁场景无单一售价可议）
   onNegotiableChange(e) {
-    this.setData({ 'form.isNegotiable': e.detail.value });
+    const isNegotiable = e.detail.value;
+    if (isNegotiable) {
+      this.setData({
+        'form.isNegotiable': true,
+        'form.isFree': false,
+        'form.isRental': false
+      });
+    } else {
+      this.setData({ 'form.isNegotiable': false });
+    }
   },
 
+  // 0元赠送：与「可议价」「租赁」互斥
   onFreeChange(e) {
     const isFree = e.detail.value;
-    this.setData({
-      'form.isFree': isFree,
-      'form.price': isFree ? '0' : this.data.form.price
-    });
+    if (isFree) {
+      this.setData({
+        'form.isFree': true,
+        'form.price': '0',
+        'form.isNegotiable': false,
+        'form.isRental': false
+      });
+    } else {
+      this.setData({ 'form.isFree': false, 'form.price': '' });
+    }
   },
 
   // ==================== 租赁 ====================
 
+  // 租赁：与「0元赠送」「可议价」互斥；租赁商品无售价，只有租金+押金
   onRentalChange(e) {
-    this.setData({ 'form.isRental': e.detail.value });
+    const isRental = e.detail.value;
+    if (isRental) {
+      this.setData({
+        'form.isRental': true,
+        'form.isFree': false,
+        'form.isNegotiable': false,
+        'form.price': ''
+      });
+    } else {
+      this.setData({ 'form.isRental': false });
+    }
   },
 
   onRentalRateInput(e) {
@@ -403,7 +449,13 @@ Page({
       return false;
     }
 
-    if (form.price === '' || Number(form.price) < 0 || (!form.isFree && Number(form.price) <= 0)) {
+    // 租赁商品：校验租金（无售价）；非租赁：校验售价
+    if (form.isRental) {
+      if (!String(form.rentalRate).trim()) {
+        wx.showToast({ title: '请填写租金', icon: 'none' });
+        return false;
+      }
+    } else if (form.price === '' || Number(form.price) < 0 || (!form.isFree && Number(form.price) <= 0)) {
       wx.showToast({ title: '请输入有效价格', icon: 'none' });
       return false;
     }
@@ -413,10 +465,7 @@ Page({
       return false;
     }
 
-    if (form.images.length === 0) {
-      wx.showToast({ title: '请至少上传一张图片', icon: 'none' });
-      return false;
-    }
+    // 商品图片为可选项（不强制上传）
 
     return true;
   },
@@ -440,7 +489,7 @@ Page({
       const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
-        price: form.isFree ? 0 : Number(form.price),
+        price: (form.isFree || form.isRental) ? 0 : Number(form.price),
         category: form.category,
         conditionLevel: form.conditionLevel,
         campusArea: form.campusArea,
@@ -465,7 +514,7 @@ Page({
       } else {
         // 新增模式：POST
         await itemsApi.createItem(payload);
-        wx.removeStorageSync('publishDraft');  // 发布成功清除草稿
+        wx.removeStorageSync(this.getDraftKey());  // 发布成功清除草稿
         wx.showToast({ title: '发布成功', icon: 'success' });
       }
 

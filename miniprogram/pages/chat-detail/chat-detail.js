@@ -7,6 +7,8 @@
 
 const chatApi = require('../../api/chat');
 const itemsApi = require('../../api/items');
+const filesApi = require('../../api/files');
+const profileApi = require('../../api/profile');
 const signalr = require('../../utils/signalr');
 const { formatPrice, formatTime } = require('../../utils/constants');
 
@@ -17,6 +19,8 @@ Page({
     targetUserId: '',
     itemId: '',
     targetNickname: '',
+    // 当前登录用户 ID（用于判断消息归属，统一来源避免气泡左右错位）
+    myUserId: '',
     // 商品信息（吸顶显示）
     itemInfo: null,
     // 消息列表
@@ -53,7 +57,8 @@ Page({
       sessionId: sessionId || '',
       targetUserId: targetUserId || '',
       itemId: itemId || '',
-      targetNickname: targetNickname ? decodeURIComponent(targetNickname) : '用户'
+      targetNickname: targetNickname ? decodeURIComponent(targetNickname) : '用户',
+      myUserId: this.normId(app.getUserId())
     });
 
     // 设置页面标题
@@ -79,6 +84,11 @@ Page({
 
   // ==================== SignalR ====================
 
+  // 规范化 ID 比较（GUID 大小写/类型不一致兜底，避免气泡左右错位）
+  normId(id) {
+    return String(id || '').toLowerCase();
+  },
+
   connectSignalR() {
     const token = wx.getStorageSync('token');
     if (!token) return;
@@ -87,11 +97,12 @@ Page({
     signalr.onMessage((message) => {
       // 只处理当前会话的消息，且不是自己发的
       if (message.sessionId && message.sessionId === this.data.sessionId &&
-          message.senderId !== (wx.getStorageSync('userInfo') || {}).userId) {
+          this.normId(message.senderId) !== this.data.myUserId) {
         const newMsg = {
           messageId: message.messageId,
           senderId: message.senderId,
           content: message.content,
+          msgType: message.msgType,
           timestamp: message.timestamp,
           isMine: false,
           timeText: this.formatMsgTime(message.timestamp)
@@ -143,13 +154,12 @@ Page({
     try {
       const result = await chatApi.getMessages(sessionId, { page: 1, pageSize: 50 });
 
-      // 处理消息数据
-      const userInfo = wx.getStorageSync('userInfo') || {};
-      const myUserId = userInfo.userId || '';
+      // 处理消息数据（统一用 myUserId 规范化比较，修正首条消息归属错位）
+      const myUserId = this.data.myUserId || this.normId(getApp().getUserId());
 
       const messages = (result?.messages || result || []).map(msg => ({
         ...msg,
-        isMine: msg.senderId === myUserId,
+        isMine: this.normId(msg.senderId) === myUserId,
         timeText: this.formatMsgTime(msg.timestamp)
       }));
 
@@ -223,6 +233,61 @@ Page({
     }
   },
 
+  // ==================== 图片消息 ====================
+
+  // 选择并发送图片消息
+  onChooseImage() {
+    const { targetUserId, itemId } = this.data;
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      success: async (res) => {
+        const tempFile = res.tempFiles[0].tempFilePath;
+        wx.showLoading({ title: '发送中...', mask: true });
+        try {
+          const uploaded = await filesApi.uploadImage(tempFile);
+          const imageUrl = uploaded.url;
+
+          // 乐观更新
+          const newMsg = {
+            messageId: `msg_${Date.now()}`,
+            senderId: this.data.myUserId,
+            content: imageUrl,
+            msgType: 1,
+            timestamp: Date.now(),
+            isMine: true,
+            timeText: this.formatMsgTime(Date.now())
+          };
+          this.setData({ messages: [...this.data.messages, newMsg] });
+          this.scrollToBottom();
+
+          await chatApi.sendMessage({
+            receiverId: targetUserId,
+            itemId: itemId,
+            content: imageUrl,
+            msgType: 1
+          });
+        } catch (error) {
+          console.error('[ChatDetail] sendImage error:', error);
+          wx.showToast({ title: '图片发送失败', icon: 'none' });
+        } finally {
+          wx.hideLoading();
+        }
+      }
+    });
+  },
+
+  // 预览图片消息
+  onPreviewMessageImage(e) {
+    const src = e.currentTarget.dataset.src;
+    if (!src) return;
+    const urls = this.data.messages
+      .filter(m => m.msgType === 1)
+      .map(m => m.content);
+    wx.previewImage({ current: src, urls });
+  },
+
   // ==================== 工具函数 ====================
 
   formatMsgTime(timestamp) {
@@ -249,5 +314,27 @@ Page({
         url: `/pages/goods-detail/goods-detail?id=${this.data.itemId}`
       });
     }
+  },
+
+  // 拉黑当前聊天对象（SRS F5.3.1 个人黑名单）
+  onBlockUser() {
+    const { targetUserId, targetNickname } = this.data;
+    if (!targetUserId) return;
+    wx.showModal({
+      title: '拉黑用户',
+      content: `拉黑后「${targetNickname}」将无法查看你的商品，也无法给你发消息。确定拉黑吗？`,
+      confirmText: '拉黑',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await profileApi.addBlacklist(targetUserId);
+          wx.showToast({ title: '已拉黑', icon: 'success' });
+          setTimeout(() => wx.navigateBack(), 800);
+        } catch (error) {
+          console.error('[ChatDetail] block error:', error);
+        }
+      }
+    });
   }
 });

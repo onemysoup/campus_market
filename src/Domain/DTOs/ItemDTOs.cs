@@ -24,6 +24,8 @@ public sealed record ItemCardVO
     public CampusArea CampusArea { get; init; }
     public CollegeTag? TargetCollege { get; init; }
     public ItemStatus Status { get; init; }
+    public bool IsRental { get; init; }
+    public string? RentalRate { get; init; }
     public int ViewCount { get; init; }
     public DateTime CreatedAt { get; init; }
 
@@ -38,6 +40,8 @@ public sealed record ItemCardVO
         CampusArea = item.CampusArea,
         TargetCollege = item.TargetCollege,
         Status = item.Status,
+        IsRental = item.IsRental,
+        RentalRate = item.RentalRate,
         ViewCount = item.ViewCount,
         CreatedAt = item.CreatedAt
     };

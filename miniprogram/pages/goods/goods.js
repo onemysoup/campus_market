@@ -171,6 +171,9 @@ Page({
     return {
       ...item,
       priceText: formatPrice(item.price),
+      priceDisplay: item.isRental
+        ? (item.rentalRate || '租金面议')
+        : (Number(item.price) === 0 ? '免费' : '¥' + formatPrice(item.price)),
       timeText: formatTime(item.createdAt),
       categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '',
       statusText: ITEM_STATUS_MAP[item.status]?.label || '',

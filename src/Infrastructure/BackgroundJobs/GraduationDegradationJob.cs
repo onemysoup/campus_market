@@ -1,4 +1,3 @@
-using System.Globalization;
 using CAUSecondHand.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,15 +14,19 @@ public sealed class GraduationDegradationJob(IServiceScopeFactory scopeFactory) 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var currentYear = DateTime.UtcNow.Year;
 
-        var graduatedUsers = await db.Users
-            .Where(u => !u.IsStaff && u.GraduationYear != null
-                && int.Parse(u.GraduationYear, CultureInfo.InvariantCulture) <= currentYear
+        // int.Parse 无法被 EF 翻译为 SQL，先按可翻译条件取候选，再在内存中判断毕业
+        var candidates = await db.Users
+            .Where(u => !u.IsStaff
+                && u.GraduationYear != null
                 && u.AuthLevel != Domain.Enums.AuthLevel.L0)
             .ToListAsync(context.CancellationToken);
+
+        var graduatedUsers = candidates.Where(u => u.IsGraduated(currentYear)).ToList();
 
         foreach (var user in graduatedUsers)
             user.DegradeToL0();
 
-        await db.SaveChangesAsync(context.CancellationToken);
+        if (graduatedUsers.Count > 0)
+            await db.SaveChangesAsync(context.CancellationToken);
     }
 }

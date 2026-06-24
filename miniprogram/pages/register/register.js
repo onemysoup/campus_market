@@ -297,7 +297,7 @@ Page({
       this.setData({ loading: true });
       await authApi.setSecurityPassword(password);
 
-      wx.showToast({ title: '安全密码设置成功', icon: 'success' });
+      wx.showToast({ title: '设置成功', icon: 'success' });
 
       setTimeout(() => {
         wx.navigateBack();
@@ -363,7 +363,7 @@ Page({
       this.setData({ loading: true });
       await authApi.resetSecurityPassword(securityResetEmail, securityResetCode, securityResetNewPassword);
 
-      wx.showToast({ title: '安全密码重置成功', icon: 'success' });
+      wx.showToast({ title: '重置成功', icon: 'success' });
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
@@ -556,7 +556,7 @@ Page({
       this.setData({ loading: true });
       await authApi.resetPassword(resetEmail, resetCode, resetNewPassword);
 
-      wx.showToast({ title: '登录密码重置成功', icon: 'success' });
+      wx.showToast({ title: '重置成功', icon: 'success' });
 
       setTimeout(() => {
         this.setData({ mode: 'email' });

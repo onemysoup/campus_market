@@ -26,7 +26,7 @@
         <view class="goods-meta">
           <view class="goods-title">{{item.title}}</view>
           <view class="goods-bottom">
-            <text class="goods-price">¥{{item.priceText}}</text>
+            <text class="goods-price">{{item.priceDisplay}}</text>
             <view class="goods-status" style="background: {{item.statusColor}}20; color: {{item.statusColor}};">
               {{item.statusText}}
             </view>

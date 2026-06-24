@@ -99,16 +99,17 @@ Page({
   },
 
   /**
-   * 信用等级标签
+   * 信用等级标签（与后端 CreditTier 对齐）
+   * 0=Normal(≥80) 1=Limited(60-79) 2=SeverelyLimited(40-59) 3=Blacklisted(<40)
    */
   getCreditTierLabel(tier) {
     const tierMap = {
-      0: '信用一般',
-      1: '信用良好',
-      2: '信用优秀',
-      3: '信用极佳'
+      0: '信用良好',
+      1: '信用受限',
+      2: '信用严重受限',
+      3: '信用黑名单'
     };
-    return tierMap[tier] || '信用一般';
+    return tierMap[tier] || '信用良好';
   },
 
   // ==================== 页面跳转 ====================
@@ -123,6 +124,18 @@ Page({
 
   goFavorites() {
     wx.navigateTo({ url: '/pages/my-favorites/my-favorites' });
+  },
+
+  goCreditLog() {
+    wx.navigateTo({ url: '/pages/credit-log/credit-log' });
+  },
+
+  goBrowseHistory() {
+    wx.navigateTo({ url: '/pages/browse-history/browse-history' });
+  },
+
+  goBlacklist() {
+    wx.navigateTo({ url: '/pages/blacklist/blacklist' });
   },
 
   goAdmin() {

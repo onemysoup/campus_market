@@ -610,6 +610,38 @@ public class AdminController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
         return Ok(new { code = 0, message = dto.Approve ? "认证已通过" : "已驳回" });
     }
+
+    // 手动触发毕业自动降级（与每年 7 月的 GraduationDegradationJob 同一逻辑），便于验证与应急
+    [HttpPost("jobs/graduation-degradation")]
+    public async Task<IActionResult> RunGraduationDegradation()
+    {
+        var currentYear = DateTime.UtcNow.Year;
+        var candidates = await db.Users
+            .Where(u => !u.IsStaff && u.GraduationYear != null && u.AuthLevel != AuthLevel.L0)
+            .ToListAsync();
+
+        var degraded = candidates.Where(u => u.IsGraduated(currentYear)).ToList();
+        foreach (var user in degraded)
+            user.DegradeToL0();
+
+        if (degraded.Count > 0)
+            await db.SaveChangesAsync();
+
+        return Ok(new { code = 0, message = $"已降级 {degraded.Count} 名毕业用户", data = new { degradedCount = degraded.Count } });
+    }
+
+    // 管理员设置用户毕业年份（用于毕业降级数据修正）
+    [HttpPatch("users/{userId:guid}/graduation-year")]
+    public async Task<IActionResult> SetGraduationYear(Guid userId, [FromBody] SetGraduationYearDTO dto)
+    {
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+            return NotFound(new { code = 4004, message = "用户不存在" });
+
+        user.SetGraduationYear(string.IsNullOrWhiteSpace(dto.GraduationYear) ? null : dto.GraduationYear);
+        await db.SaveChangesAsync();
+        return Ok(new { code = 0, message = "已更新毕业年份" });
+    }
 }
 
 public sealed record HandleReportDTO(bool Accept, string? Note);
@@ -617,6 +649,8 @@ public sealed record HandleReportDTO(bool Accept, string? Note);
 public sealed record ToggleBanDTO(bool Ban);
 
 public sealed record AdjustCreditDTO(int Delta, string Reason);
+
+public sealed record SetGraduationYearDTO(string? GraduationYear);
 
 public sealed record HandleVerificationDTO(bool Approve, string? Reason);
 

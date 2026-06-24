@@ -12,8 +12,11 @@
     <text class="item-arrow">›</text>
   </view>
 
-  <!-- 安全交易贴士（F4.5.1） -->
-  <view class="safety-tip">🔔 本校仅限面交，请在食堂、图书馆等公共场合交易，切勿提前线上转账！</view>
+  <!-- 安全交易贴士（F4.5.1） + 拉黑入口 -->
+  <view class="tip-row">
+    <view class="safety-tip">🔔 本校仅限面交，公共场合交易，切勿提前转账！</view>
+    <text class="block-btn" bindtap="onBlockUser">🚫 拉黑</text>
+  </view>
 
   <!-- 跨区交易提醒（F4.4.2） -->
   <view class="cross-tip-bar" wx:if="{{showCrossTip}}">⚠️ 该商品位于不同校区，平台不提供配送，请双方私下协商交付，风险自担。</view>
@@ -48,7 +51,15 @@
       <!-- 对方消息 -->
       <block wx:if="{{!item.isMine}}">
         <view class="msg-content-wrap">
-          <view class="msg-bubble other-bubble">
+          <image
+            wx:if="{{item.msgType === 1}}"
+            class="msg-image"
+            src="{{item.content}}"
+            mode="widthFix"
+            data-src="{{item.content}}"
+            bindtap="onPreviewMessageImage"
+          />
+          <view wx:else class="msg-bubble other-bubble">
             <text>{{item.content}}</text>
           </view>
         </view>
@@ -57,7 +68,15 @@
       <!-- 我的消息 -->
       <block wx:if="{{item.isMine}}">
         <view class="msg-content-wrap mine-wrap">
-          <view class="msg-bubble mine-bubble">
+          <image
+            wx:if="{{item.msgType === 1}}"
+            class="msg-image"
+            src="{{item.content}}"
+            mode="widthFix"
+            data-src="{{item.content}}"
+            bindtap="onPreviewMessageImage"
+          />
+          <view wx:else class="msg-bubble mine-bubble">
             <text>{{item.content}}</text>
           </view>
         </view>
@@ -81,6 +100,7 @@
 
   <!-- 输入区域 -->
   <view class="input-area">
+    <view class="btn-image" bindtap="onChooseImage">📷</view>
     <view class="input-wrap">
       <input
         class="msg-input"

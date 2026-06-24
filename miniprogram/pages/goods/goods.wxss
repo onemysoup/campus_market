@@ -250,6 +250,18 @@
   color: #dc2626;
 }
 
+.rental-tag {
+  display: inline-block;
+  margin-left: 8rpx;
+  padding: 2rpx 10rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 6rpx;
+  vertical-align: middle;
+}
+
 .goods-time {
   font-size: 22rpx;
   color: #94a3b8;
