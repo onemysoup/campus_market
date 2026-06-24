@@ -35,6 +35,24 @@
       <text class="label">可议价</text>
       <switch checked="{{form.isNegotiable}}" bindchange="onNegotiableChange" color="#0f766e" />
     </view>
+
+    <!-- 租赁 -->
+    <view class="form-item switch-item">
+      <text class="label">租赁商品</text>
+      <switch checked="{{form.isRental}}" bindchange="onRentalChange" color="#0f766e" />
+    </view>
+
+    <!-- 租金 / 押金（仅租赁商品显示） -->
+    <block wx:if="{{form.isRental}}">
+      <view class="form-item">
+        <text class="label">租金</text>
+        <input class="input" placeholder="如：3元/天" value="{{form.rentalRate}}" bindinput="onRentalRateInput" />
+      </view>
+      <view class="form-item">
+        <text class="label">押金</text>
+        <input class="input" type="digit" placeholder="押金金额（元）" value="{{form.deposit}}" bindinput="onDepositInput" />
+      </view>
+    </block>
   </view>
 
   <!-- 商品属性 -->

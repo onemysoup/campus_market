@@ -30,6 +30,17 @@
       </picker>
     </view>
 
+    <!-- 成色筛选 -->
+    <view class="filter-row">
+      <text class="filter-label">成色</text>
+      <picker mode="selector" range="{{conditions}}" range-key="name" value="0" bindchange="onConditionChange">
+        <view class="filter-picker">
+          {{conditionLabel}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
     <!-- 校区筛选 -->
     <view class="filter-row">
       <text class="filter-label">校区</text>
@@ -71,9 +82,12 @@
   </view>
 
   <!-- 当前筛选条件标签 -->
-  <view class="active-filters" wx:if="{{category !== null || campusArea !== null || minPrice || maxPrice}}">
+  <view class="active-filters" wx:if="{{category !== null || condition !== null || campusArea !== null || minPrice || maxPrice}}">
     <view class="filter-tag" wx:if="{{category !== null}}">
       {{categoryLabel}}
+    </view>
+    <view class="filter-tag" wx:if="{{condition !== null}}">
+      {{conditionLabel}}
     </view>
     <view class="filter-tag" wx:if="{{campusArea !== null}}">
       {{campusLabel}}

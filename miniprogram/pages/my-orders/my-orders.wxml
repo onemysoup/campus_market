@@ -100,6 +100,8 @@
               class="btn-action btn-contact"
               size="mini"
               data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
+              data-itemid="{{item.itemId}}"
+              data-othername="{{item.otherNickname || '对方'}}"
               catchtap="onContact"
             >联系</button>
             <!-- 卖家核销入口 -->
@@ -117,6 +119,8 @@
               class="btn-action btn-contact"
               size="mini"
               data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
+              data-itemid="{{item.itemId}}"
+              data-othername="{{item.otherNickname || '对方'}}"
               catchtap="onContact"
             >联系对方</button>
           </block>

@@ -28,6 +28,7 @@ Page({
     // 筛选条件
     keyword: '',
     category: null,
+    condition: null,
     campusArea: null,
     minPrice: '',
     maxPrice: '',
@@ -35,6 +36,10 @@ Page({
     categories: [
       { id: null, name: '全部分类' },
       ...CATEGORY_LIST
+    ],
+    conditions: [
+      { id: null, name: '全部成色' },
+      ...CONDITION_LIST
     ],
     campusOptions: [
       { value: null, label: '全部校区' },
@@ -45,6 +50,7 @@ Page({
     showFilter: false,
     // 当前选中的筛选标签
     categoryLabel: '全部分类',
+    conditionLabel: '全部成色',
     campusLabel: '全部校区',
     // UI
     defaultImage: ''
@@ -54,19 +60,36 @@ Page({
 
   onLoad(options) {
     // 从首页分类跳转过来时，预设分类筛选
-    const presetCategory = wx.getStorageSync('goodsFilterCategory');
-    if (presetCategory !== undefined && presetCategory !== null && presetCategory !== '') {
-      const cat = this.data.categories.find(c => c.id === Number(presetCategory));
-      if (cat) {
-        this.setData({
-          category: Number(presetCategory),
-          categoryLabel: cat.name
-        });
-      }
-      wx.removeStorageSync('goodsFilterCategory');
-    }
-
+    this.applyPresetCategory();
     this.fetchList(true);
+  },
+
+  onShow() {
+    // 商品页是 Tab 页，从首页再次点分类切回时只会触发 onShow（不会重新 onLoad）
+    // 因此这里也要读取预设分类，发现有新预设就重新拉取列表
+    if (this.applyPresetCategory()) {
+      this.fetchList(true);
+    }
+  },
+
+  /**
+   * 读取首页传入的预设分类筛选；应用成功返回 true
+   */
+  applyPresetCategory() {
+    const presetCategory = wx.getStorageSync('goodsFilterCategory');
+    if (presetCategory === undefined || presetCategory === null || presetCategory === '') {
+      return false;
+    }
+    wx.removeStorageSync('goodsFilterCategory');
+    const cat = this.data.categories.find(c => c.id === Number(presetCategory));
+    if (cat) {
+      this.setData({
+        category: Number(presetCategory),
+        categoryLabel: cat.name
+      });
+      return true;
+    }
+    return false;
   },
 
   onPullDownRefresh() {
@@ -104,6 +127,7 @@ Page({
 
       if (this.data.keyword) params.keyword = this.data.keyword;
       if (this.data.category !== null) params.category = this.data.category;
+      if (this.data.condition !== null) params.conditionLevel = this.data.condition;
       if (this.data.campusArea !== null) params.campusArea = this.data.campusArea;
       if (this.data.minPrice) params.minPrice = Number(this.data.minPrice);
       if (this.data.maxPrice) params.maxPrice = Number(this.data.maxPrice);
@@ -175,6 +199,17 @@ Page({
     this.fetchList(true);
   },
 
+  onConditionChange(e) {
+    const idx = Number(e.detail.value);
+    const selected = this.data.conditions[idx];
+    this.setData({
+      condition: selected.id,
+      conditionLabel: selected.name,
+      showFilter: false
+    });
+    this.fetchList(true);
+  },
+
   onCampusChange(e) {
     const idx = Number(e.detail.value);
     const selected = this.data.campusOptions[idx];
@@ -202,10 +237,12 @@ Page({
     this.setData({
       keyword: '',
       category: null,
+      condition: null,
       campusArea: null,
       minPrice: '',
       maxPrice: '',
       categoryLabel: '全部分类',
+      conditionLabel: '全部成色',
       campusLabel: '全部校区',
       showFilter: false
     });

@@ -53,6 +53,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (!string.IsNullOrEmpty(accessToken))
                     context.Token = accessToken;
                 return Task.CompletedTask;
+            },
+            // 每次请求校验用户是否被封禁，使被封禁用户手中的旧 token 立即失效
+            OnTokenValidated = async context =>
+            {
+                var userIdClaim = context.Principal?.FindFirst(
+                    System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdClaim, out var userId))
+                {
+                    var db = context.HttpContext.RequestServices
+                        .GetRequiredService<AppDbContext>();
+                    var isBanned = await db.Users
+                        .Where(u => u.Id == userId)
+                        .Select(u => u.IsBanned)
+                        .FirstOrDefaultAsync();
+                    if (isBanned)
+                        context.Fail("账号已被封禁");
+                }
             }
         };
     });

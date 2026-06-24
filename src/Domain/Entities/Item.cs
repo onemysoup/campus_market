@@ -103,8 +103,5 @@ public sealed class Item
         if (isRental.HasValue) IsRental = isRental.Value;
         if (deposit.HasValue) Deposit = deposit.Value;
         if (rentalRate != null) RentalRate = rentalRate;
-        if (isRental.HasValue) IsRental = isRental.Value;
-        if (deposit.HasValue) Deposit = deposit.Value;
-        if (rentalRate != null) RentalRate = rentalRate;
     }
 }

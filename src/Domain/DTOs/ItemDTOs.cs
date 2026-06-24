@@ -121,6 +121,7 @@ public sealed record ItemStatusChangeDTO(ItemStatus Status);
 public sealed record ItemQuery(
     string? Keyword,
     ItemCategory? Category,
+    ConditionLevel? ConditionLevel,
     CampusArea? CampusArea,
     ItemStatus? Status,
     decimal? MinPrice,

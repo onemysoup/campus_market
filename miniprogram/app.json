@@ -13,7 +13,8 @@
     "pages/admin/admin",
     "pages/chat/chat",
     "pages/chat-detail/chat-detail",
-    "pages/report/report"
+    "pages/report/report",
+    "pages/requests/requests"
   ],
   "window": {
     "navigationBarTitleText": "校园二手平台",

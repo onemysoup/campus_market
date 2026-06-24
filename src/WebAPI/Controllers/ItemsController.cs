@@ -24,6 +24,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
             itemsQuery = itemsQuery.Where(i => i.Title.Contains(query.Keyword));
         if (query.Category.HasValue)
             itemsQuery = itemsQuery.Where(i => i.Category == query.Category.Value);
+        if (query.ConditionLevel.HasValue)
+            itemsQuery = itemsQuery.Where(i => i.ConditionLevel == query.ConditionLevel.Value);
         if (query.CampusArea.HasValue)
             itemsQuery = itemsQuery.Where(i => i.CampusArea == query.CampusArea.Value);
         if (query.MinPrice.HasValue)
@@ -160,7 +162,8 @@ public class ItemsController(AppDbContext db) : ControllerBase
 
         item.Edit(dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images,
-            dto.CampusArea, dto.DeliveryPoint);
+            dto.CampusArea, dto.DeliveryPoint,
+            dto.IsRental, dto.RentalRate, dto.Deposit);
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "修改成功" });

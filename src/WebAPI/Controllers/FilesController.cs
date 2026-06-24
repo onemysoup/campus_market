@@ -31,7 +31,8 @@ public class FilesController(IWebHostEnvironment env) : ControllerBase
         await using var stream = new FileStream(filePath, FileMode.Create);
         await file.CopyToAsync(stream);
 
-        var url = $"/uploads/{fileName}";
+        // 返回完整可访问 URL（含协议与主机），避免前端拿到相对路径无法显示图片
+        var url = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
         return Ok(new { code = 0, data = new { url } });
     }
 }

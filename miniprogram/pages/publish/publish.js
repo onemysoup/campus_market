@@ -26,7 +26,11 @@ Page({
       conditionLevel: 0,
       campusArea: 0,
       images: [],
-      isNegotiable: true
+      isNegotiable: true,
+      // 租赁相关
+      isRental: false,
+      rentalRate: '',
+      deposit: ''
     },
     // Picker 索引
     categoryIndex: 0,
@@ -121,7 +125,10 @@ Page({
           conditionLevel: detail.conditionLevel || 0,
           campusArea: detail.campusArea || 0,
           images: detail.images || [],
-          isNegotiable: detail.isNegotiable !== false
+          isNegotiable: detail.isNegotiable !== false,
+          isRental: detail.isRental === true,
+          rentalRate: detail.rentalRate || '',
+          deposit: detail.deposit != null ? String(detail.deposit) : ''
         },
         categoryIndex: categoryIndex >= 0 ? categoryIndex : 0,
         conditionIndex: conditionIndex >= 0 ? conditionIndex : 0,
@@ -152,6 +159,20 @@ Page({
 
   onNegotiableChange(e) {
     this.setData({ 'form.isNegotiable': e.detail.value });
+  },
+
+  // ==================== 租赁 ====================
+
+  onRentalChange(e) {
+    this.setData({ 'form.isRental': e.detail.value });
+  },
+
+  onRentalRateInput(e) {
+    this.setData({ 'form.rentalRate': e.detail.value });
+  },
+
+  onDepositInput(e) {
+    this.setData({ 'form.deposit': e.detail.value });
   },
 
   // ==================== Picker 选择 ====================
@@ -317,8 +338,15 @@ Page({
         conditionLevel: form.conditionLevel,
         campusArea: form.campusArea,
         images: form.images,
-        isNegotiable: form.isNegotiable
+        isNegotiable: form.isNegotiable,
+        isRental: form.isRental
       };
+
+      // 租赁商品才传租金/押金
+      if (form.isRental) {
+        payload.rentalRate = form.rentalRate ? String(form.rentalRate).trim() : null;
+        payload.deposit = form.deposit ? Number(form.deposit) : null;
+      }
 
       if (editMode) {
         // 编辑模式：PUT

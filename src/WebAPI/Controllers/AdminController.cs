@@ -96,6 +96,17 @@ public class AdminController(AppDbContext db) : ControllerBase
         return Ok(new { code = 0, data = new { reports, totalCount, page, pageSize } });
     }
 
+    // 不同举报类型对应的诚信分扣减幅度
+    private static int CreditPenaltyFor(ReportReason reason) => reason switch
+    {
+        ReportReason.Fraud => 20,       // 欺诈最严重
+        ReportReason.Harassment => 15,  // 骚扰
+        ReportReason.Mismatch => 10,    // 货不对板
+        ReportReason.Ghost => 10,       // 放鸽子
+        ReportReason.Outsider => 5,     // 校外人员
+        _ => 5                          // 其他
+    };
+
     [HttpPatch("reports/{id:guid}")]
     public async Task<IActionResult> HandleReport(Guid id, [FromBody] HandleReportDTO dto)
     {
@@ -105,9 +116,26 @@ public class AdminController(AppDbContext db) : ControllerBase
             return NotFound(new { code = 4004, message = "举报不存在" });
 
         if (dto.Accept)
+        {
             report.Accept(adminId, dto.Note);
+
+            // 采纳举报后联动扣减被举报人诚信分，并写入诚信分流水
+            var target = await db.Users.FindAsync(report.TargetId);
+            if (target is not null && !target.IsBanned)
+            {
+                var penalty = CreditPenaltyFor(report.ReasonType);
+                var log = target.RecordCreditChange(-penalty, $"举报核实扣分（{report.ReasonType}）", adminId);
+                db.CreditLogs.Add(log);
+
+                // 诚信分过低自动封禁
+                if (target.CreditScore < 40)
+                    target.Ban();
+            }
+        }
         else
+        {
             report.Dismiss(adminId, dto.Note);
+        }
 
         await db.SaveChangesAsync();
         return Ok(new { code = 0, message = "处理完成" });

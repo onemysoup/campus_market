@@ -5,6 +5,16 @@
     <view class="hero-sub">买卖二手好物，省钱更环保</view>
   </view>
 
+  <!-- 求购大厅入口 -->
+  <view class="entry-card" bindtap="goRequests">
+    <view class="entry-icon">📢</view>
+    <view class="entry-text">
+      <view class="entry-title">求购大厅</view>
+      <view class="entry-sub">找不到想要的？发条求购让卖家来找你</view>
+    </view>
+    <view class="entry-arrow">›</view>
+  </view>
+
   <!-- 分类导航 -->
   <view class="card">
     <view class="section-title">分类导航</view>

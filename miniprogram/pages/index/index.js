@@ -85,6 +85,13 @@ Page({
   },
 
   /**
+   * 进入求购大厅
+   */
+  goRequests() {
+    wx.navigateTo({ url: '/pages/requests/requests' });
+  },
+
+  /**
    * 点击商品 → 跳转详情页
    */
   goDetail(e) {

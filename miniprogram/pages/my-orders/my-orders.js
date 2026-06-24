@@ -259,9 +259,18 @@ Page({
    * 联系对方
    */
   onContact(e) {
-    const { otherid } = e.currentTarget.dataset;
-    wx.navigateTo({
-      url: `/pages/chat/chat?targetUserId=${otherid}`
-    });
+    const { otherid, itemid, othername } = e.currentTarget.dataset;
+    if (!otherid) {
+      wx.showToast({ title: '无法获取对方信息', icon: 'none' });
+      return;
+    }
+    // 聊天页是 Tab 页，必须用 switchTab（不支持带参数），通过 globalData 传递会话参数
+    const app = getApp();
+    app.globalData.chatParams = {
+      sellerId: otherid,
+      itemId: itemid,
+      sellerNickname: othername || '对方'
+    };
+    wx.switchTab({ url: '/pages/chat/chat' });
   }
 });
