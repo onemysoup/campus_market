@@ -87,12 +87,14 @@
 
 .message-item {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 24rpx;
   padding: 0 24rpx;
 }
 
 .message-item.mine {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 /* 时间分割线 */
@@ -189,6 +191,29 @@
   opacity: 0.9;
 }
 
+/* 图片消息按钮 */
+.btn-image {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  flex-shrink: 0;
+  margin-right: 8rpx;
+}
+
+.btn-image:active {
+  opacity: 0.6;
+}
+
+/* 图片消息气泡 */
+.msg-image {
+  max-width: 360rpx;
+  border-radius: 16rpx;
+  background: #fff;
+}
+
 /* ==================== 加载状态 ==================== */
 .loading-more {
   display: flex;
@@ -211,4 +236,71 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* 安全交易贴士 */
+.tip-row {
+  display: flex;
+  align-items: center;
+  background: #fef2f2;
+}
+
+.safety-tip {
+  flex: 1;
+  padding: 12rpx 24rpx;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.block-btn {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  color: #ef4444;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.report-btn {
+  flex-shrink: 0;
+  padding: 12rpx 8rpx 12rpx 20rpx;
+  color: #b91c1c;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.block-btn:active {
+  opacity: 0.6;
+}
+
+.report-btn:active {
+  opacity: 0.6;
+}
+
+.cross-tip-bar {
+  padding: 12rpx 24rpx;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+/* 校园快捷短语 */
+.quick-phrases {
+  white-space: nowrap;
+  padding: 12rpx 16rpx;
+  background: #f8fafc;
+  border-top: 1rpx solid #eef2f7;
+}
+
+.quick-phrase {
+  display: inline-block;
+  margin-right: 14rpx;
+  padding: 10rpx 22rpx;
+  background: #fff;
+  border: 1rpx solid #cbd5e1;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  color: #334155;
 }

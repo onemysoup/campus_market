@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "发布商品"
+  "navigationBarTitleText": "发布商品",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-nav": "/components/app-nav/index"
+  }
 }

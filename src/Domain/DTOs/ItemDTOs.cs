@@ -22,7 +22,10 @@ public sealed record ItemCardVO
     public ItemCategory Category { get; init; }
     public ConditionLevel ConditionLevel { get; init; }
     public CampusArea CampusArea { get; init; }
+    public CollegeTag? TargetCollege { get; init; }
     public ItemStatus Status { get; init; }
+    public bool IsRental { get; init; }
+    public string? RentalRate { get; init; }
     public int ViewCount { get; init; }
     public DateTime CreatedAt { get; init; }
 
@@ -35,7 +38,10 @@ public sealed record ItemCardVO
         Category = item.Category,
         ConditionLevel = item.ConditionLevel,
         CampusArea = item.CampusArea,
+        TargetCollege = item.TargetCollege,
         Status = item.Status,
+        IsRental = item.IsRental,
+        RentalRate = item.RentalRate,
         ViewCount = item.ViewCount,
         CreatedAt = item.CreatedAt
     };
@@ -54,6 +60,8 @@ public sealed record ItemDetailVO
     public ItemCategory Category { get; init; }
     public ConditionLevel ConditionLevel { get; init; }
     public CampusArea CampusArea { get; init; }
+    public CollegeTag? TargetCollege { get; init; }
+    public bool SupportCrossCampus { get; init; }
     public string? DeliveryPoint { get; init; }
     public required List<string> Images { get; init; }
     public ItemStatus Status { get; init; }
@@ -78,6 +86,8 @@ public sealed record ItemDetailVO
             Category = item.Category,
             ConditionLevel = item.ConditionLevel,
             CampusArea = item.CampusArea,
+            TargetCollege = item.TargetCollege,
+            SupportCrossCampus = item.SupportCrossCampus,
             DeliveryPoint = item.DeliveryPoint,
             Images = [.. item.Images],
             Status = item.Status,
@@ -101,7 +111,10 @@ public sealed record ItemPublishDTO(
     bool IsNegotiable = true,
     bool IsRental = false,
     string? RentalRate = null,
-    decimal? Deposit = null);
+    decimal? Deposit = null,
+    string? DeliveryPoint = null,
+    CollegeTag? TargetCollege = null,
+    bool SupportCrossCampus = false);
 
 public sealed record ItemEditDTO(
     string? Title,
@@ -112,16 +125,37 @@ public sealed record ItemEditDTO(
     List<string>? Images,
     CampusArea? CampusArea,
     string? DeliveryPoint,
+    bool? IsNegotiable = null,
     bool? IsRental = null,
     string? RentalRate = null,
-    decimal? Deposit = null);
+    decimal? Deposit = null,
+    CollegeTag? TargetCollege = null,
+    bool ClearCollege = false,
+    bool? SupportCrossCampus = null);
 
 public sealed record ItemStatusChangeDTO(ItemStatus Status);
+
+/// <summary>AI 辅助生成商品描述请求（SRS F2.1.7）。</summary>
+public sealed record AiDescribeDTO(
+    string Title,
+    ItemCategory Category,
+    ConditionLevel ConditionLevel,
+    string? Keywords,
+    List<string>? Images = null,
+    CampusArea CampusArea = CampusArea.East,
+    bool SupportCrossCampus = false,
+    bool IsNegotiable = false,
+    bool IsFree = false,
+    bool IsRental = false,
+    string? RentalRate = null,
+    decimal? Deposit = null);
 
 public sealed record ItemQuery(
     string? Keyword,
     ItemCategory? Category,
+    ConditionLevel? ConditionLevel,
     CampusArea? CampusArea,
+    CollegeTag? TargetCollege,
     ItemStatus? Status,
     decimal? MinPrice,
     decimal? MaxPrice,

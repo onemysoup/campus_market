@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="商品列表" />
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input-wrap">
@@ -30,12 +31,34 @@
       </picker>
     </view>
 
+    <!-- 成色筛选 -->
+    <view class="filter-row">
+      <text class="filter-label">成色</text>
+      <picker mode="selector" range="{{conditions}}" range-key="name" value="0" bindchange="onConditionChange">
+        <view class="filter-picker">
+          {{conditionLabel}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
     <!-- 校区筛选 -->
     <view class="filter-row">
       <text class="filter-label">校区</text>
       <picker mode="selector" range="{{campusOptions}}" range-key="label" value="0" bindchange="onCampusChange">
         <view class="filter-picker">
           {{campusLabel}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 学院筛选 -->
+    <view class="filter-row">
+      <text class="filter-label">学院</text>
+      <picker mode="selector" range="{{colleges}}" range-key="name" value="0" bindchange="onCollegeChange">
+        <view class="filter-picker">
+          {{collegeLabel}}
           <text class="picker-arrow">▼</text>
         </view>
       </picker>
@@ -71,12 +94,18 @@
   </view>
 
   <!-- 当前筛选条件标签 -->
-  <view class="active-filters" wx:if="{{category !== null || campusArea !== null || minPrice || maxPrice}}">
+  <view class="active-filters" wx:if="{{category !== null || condition !== null || campusArea !== null || college !== null || minPrice || maxPrice}}">
     <view class="filter-tag" wx:if="{{category !== null}}">
       {{categoryLabel}}
     </view>
+    <view class="filter-tag" wx:if="{{condition !== null}}">
+      {{conditionLabel}}
+    </view>
     <view class="filter-tag" wx:if="{{campusArea !== null}}">
       {{campusLabel}}
+    </view>
+    <view class="filter-tag" wx:if="{{college !== null}}">
+      {{collegeLabel}}
     </view>
     <view class="filter-tag" wx:if="{{minPrice || maxPrice}}">
       ¥{{minPrice || '0'}} - ¥{{maxPrice || '∞'}}
@@ -112,7 +141,8 @@
       bindtap="goDetail"
       data-id="{{item.itemId}}"
     >
-      <image class="goods-thumb" src="{{item.firstImage || defaultImage}}" mode="aspectFill" />
+      <image wx:if="{{item.firstImage}}" class="goods-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+      <view wx:else class="goods-thumb thumb-placeholder">暂无图片</view>
       <view class="goods-meta">
         <view class="goods-title">{{item.title}}</view>
         <view class="goods-info">
@@ -122,7 +152,7 @@
           </text>
         </view>
         <view class="goods-bottom">
-          <text class="goods-price">¥{{item.priceText}}</text>
+          <text class="goods-price">{{item.priceDisplay}}<text class="rental-tag" wx:if="{{item.isRental}}">租</text></text>
           <text class="goods-time">{{item.timeText}}</text>
         </view>
       </view>

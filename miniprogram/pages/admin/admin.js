@@ -10,14 +10,44 @@ const {
   REPORT_REASON_MAP,
   ITEM_STATUS_MAP,
   CATEGORY_LIST,
+  CAMPUS_AREA_MAP,
+  COLLEGE_LIST,
   formatPrice,
   formatTime
 } = require('../../utils/constants');
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateOffset(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return formatDate(date);
+}
+
+function defaultStatsFilter() {
+  return {
+    period: 'week',
+    campusIndex: 0,
+    startDate: dateOffset(-6),
+    endDate: dateOffset(0)
+  };
+}
+
+function formatPriceDisplay(item) {
+  if (item.isRental) return item.rentalRate || '租金面议';
+  return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
 
 Page({
   data: {
     // 权限
     isAdmin: false,
+    currentUserId: '',
     // 仪表盘数据
     dashboard: {
       totalUsers: 0,
@@ -29,6 +59,24 @@ Page({
       todayNewItems: 0,
       todayTransactions: 0
     },
+    analytics: {
+      summary: {},
+      daily: [],
+      campus: [],
+      categories: [],
+      topItems: [],
+      searchKeywords: [],
+      pageClicks: [],
+      colleges: []
+    },
+    statsFilter: defaultStatsFilter(),
+    statsPeriods: [
+      { key: 'day', label: '日' },
+      { key: 'week', label: '周' },
+      { key: 'month', label: '月' },
+      { key: 'custom', label: '自定义' }
+    ],
+    statsCampusOptions: ['全部校区', '东校区', '西校区'],
     // Tab 切换
     activeTab: 'dashboard',
     tabs: [
@@ -94,7 +142,7 @@ Page({
     }
 
     const initialTab = options.tab || 'dashboard';
-    this.setData({ isAdmin: true, activeTab: initialTab });
+    this.setData({ isAdmin: true, currentUserId: userInfo.userId, activeTab: initialTab });
     this.loadActiveTab(initialTab);
   },
 
@@ -133,14 +181,185 @@ Page({
   async loadDashboard() {
     this.setData({ loading: true });
     try {
-      const dashboard = await adminApi.getDashboard();
+      const [dashboard, analytics] = await Promise.all([
+        adminApi.getDashboard(),
+        adminApi.getStatsReport(this.buildStatsParams())
+      ]);
       this.setData({
-        dashboard: dashboard || {},
+        dashboard: this.formatDashboard(dashboard || {}),
+        analytics: this.formatAnalytics(analytics || {}),
         loading: false
       });
     } catch (error) {
       console.error('[Admin] loadDashboard error:', error);
       this.setData({ loading: false });
+    }
+  },
+
+  formatDashboard(dashboard) {
+    const authCounts = dashboard.authCounts || [];
+    const countOf = (level) => {
+      const item = authCounts.find(row => Number(row.authLevel) === level);
+      return item ? Number(item.count || 0) : 0;
+    };
+    const total = Number(dashboard.totalUsers || 0) || 1;
+    const levels = [
+      { level: 0, label: 'L0 游客', value: countOf(0) },
+      { level: 1, label: 'L1 邮箱认证', value: countOf(1) },
+      { level: 2, label: 'L2 完全认证', value: countOf(2) }
+    ];
+
+    return {
+      ...dashboard,
+      authFunnel: levels.map(item => {
+        const percent = Math.round((item.value / total) * 100);
+        return {
+          ...item,
+          percentText: `${percent}%`,
+          width: Math.max(percent, item.value > 0 ? 6 : 0)
+        };
+      })
+    };
+  },
+
+  buildStatsParams() {
+    const { statsFilter } = this.data;
+    const params = {
+      period: statsFilter.period
+    };
+
+    if (statsFilter.period === 'day') {
+      params.startDate = statsFilter.endDate;
+    }
+
+    if (statsFilter.period === 'custom') {
+      params.startDate = statsFilter.startDate;
+      params.endDate = statsFilter.endDate;
+    }
+
+    if (Number(statsFilter.campusIndex) > 0) {
+      params.campusArea = Number(statsFilter.campusIndex) - 1;
+    }
+
+    return params;
+  },
+
+  formatAnalytics(report) {
+    const summary = report.summary || {};
+    const categories = (report.categories || []).map(item => {
+      const category = CATEGORY_LIST.find(c => c.id === item.category);
+      return {
+        ...item,
+        categoryText: category ? category.name : '未知分类',
+        dealRateText: `${Math.round(Number(item.dealRate || 0) * 100)}%`
+      };
+    });
+    const topItems = (report.topItems || []).map(item => {
+      const category = CATEGORY_LIST.find(c => c.id === item.category);
+      return {
+        ...item,
+        categoryText: category ? category.name : '未知分类'
+      };
+    });
+    const campus = (report.campus || []).map(item => {
+      const campusInfo = CAMPUS_AREA_MAP[item.campusArea];
+      return {
+        ...item,
+        campusText: campusInfo ? campusInfo.label : '未知校区'
+      };
+    });
+    const rawDaily = report.daily || [];
+    const maxDailyValue = rawDaily.reduce((max, item) => Math.max(
+      max,
+      Number(item.newUsers || 0),
+      Number(item.newItems || 0),
+      Number(item.completedTransactions || 0)
+    ), 1);
+    const toBarWidth = value => {
+      const percent = Math.round((Number(value || 0) / maxDailyValue) * 100);
+      return Math.max(percent, value > 0 ? 6 : 0);
+    };
+    const daily = rawDaily.map(item => ({
+      ...item,
+      dateLabel: String(item.date || '').slice(5),
+      turnoverText: formatPrice(item.turnoverAmount),
+      newUsersWidth: toBarWidth(item.newUsers),
+      newItemsWidth: toBarWidth(item.newItems),
+      completedWidth: toBarWidth(item.completedTransactions)
+    }));
+
+    // 页面编码 → 中文标签（DDD 6.15 页面点击量）
+    const PAGE_LABELS = {
+      home: '首页',
+      goods: '闲置广场',
+      requests: '求购大厅',
+      profile: '个人中心',
+      'goods-detail': '商品详情',
+      ITEM_DETAIL_VIEW: '商品详情'
+    };
+    const searchKeywords = report.searchKeywords || [];
+    const maxKeywordCount = searchKeywords.reduce((m, k) => Math.max(m, k.count || 0), 0) || 1;
+    const pageClicks = (report.pageClicks || []).map(item => ({
+      ...item,
+      pageText: PAGE_LABELS[item.pageCode] || item.pageCode
+    }));
+
+    return {
+      ...report,
+      summary: {
+        ...summary,
+        turnoverText: formatPrice(summary.turnoverAmount),
+        dealRateText: `${Math.round(Number(summary.dealRate || 0) * 100)}%`,
+        averageDealDaysText: Number(summary.averageDealDays || 0).toFixed(1)
+      },
+      daily,
+      campus,
+      categories,
+      topItems,
+      searchKeywords: searchKeywords.map(k => ({
+        ...k,
+        // 热词云字号：按频次在 24~40rpx 之间线性缩放
+        fontSize: 24 + Math.round((Number(k.count || 0) / maxKeywordCount) * 16)
+      })),
+      pageClicks,
+      colleges: (report.colleges || []).map(item => {
+        const college = COLLEGE_LIST.find(c => c.id === item.college);
+        return {
+          ...item,
+          collegeText: college ? college.name : '其他'
+        };
+      })
+    };
+  },
+
+  onStatsPeriodChange(e) {
+    const { period } = e.currentTarget.dataset;
+    this.setData({ 'statsFilter.period': period });
+    this.loadDashboard();
+  },
+
+  onStatsCampusChange(e) {
+    this.setData({ 'statsFilter.campusIndex': Number(e.detail.value) });
+    this.loadDashboard();
+  },
+
+  onStatsDateChange(e) {
+    const { field } = e.currentTarget.dataset;
+    this.setData({ [`statsFilter.${field}`]: e.detail.value });
+    if (this.data.statsFilter.period === 'custom') {
+      this.loadDashboard();
+    }
+  },
+
+  async onExportStats() {
+    try {
+      const csv = await adminApi.exportStats(this.buildStatsParams());
+      wx.setClipboardData({
+        data: csv,
+        success: () => wx.showToast({ title: 'CSV已复制', icon: 'success' })
+      });
+    } catch (error) {
+      console.error('[Admin] exportStats error:', error);
     }
   },
 
@@ -156,6 +375,7 @@ Page({
       const result = await adminApi.getUsers({ page, pageSize: 20 });
       const users = (result.users || []).map(u => ({
         ...u,
+        isSelf: u.userId === this.data.currentUserId,
         timeText: formatTime(u.createdAt)
       }));
 
@@ -174,6 +394,10 @@ Page({
   onToggleBan(e) {
     const { userid, nickname, banned } = e.currentTarget.dataset;
     const isBanned = banned === 'true' || banned === true;
+    if (userid === this.data.currentUserId && !isBanned) {
+      wx.showToast({ title: '不能封禁当前账号', icon: 'none' });
+      return;
+    }
 
     wx.showModal({
       title: isBanned ? '解封用户' : '封禁用户',
@@ -211,13 +435,18 @@ Page({
 
     try {
       const result = await itemsApi.getItems({ page, pageSize: 20 });
-      const items = (result.items || []).map(item => ({
-        ...item,
-        priceText: formatPrice(item.price),
-        categoryText: CATEGORY_LIST.find(c => c.id === item.category)?.name || '',
-        statusText: ITEM_STATUS_MAP[item.status]?.label || '',
-        statusColor: ITEM_STATUS_MAP[item.status]?.color || ''
-      }));
+      const items = (result.items || []).map(item => {
+        const category = CATEGORY_LIST.find(c => c.id === item.category);
+        const statusInfo = ITEM_STATUS_MAP[item.status] || {};
+        return {
+          ...item,
+          priceText: formatPrice(item.price),
+          priceDisplay: formatPriceDisplay(item),
+          categoryText: category ? category.name : '',
+          statusText: statusInfo.label || '',
+          statusColor: statusInfo.color || ''
+        };
+      });
 
       this.setData({
         items: reset ? items : [...this.data.items, ...items],
@@ -330,7 +559,7 @@ Page({
       const result = await adminApi.getReports({ page, pageSize: 20 });
       const reports = (result.reports || []).map(r => ({
         ...r,
-        reasonText: REPORT_REASON_MAP[r.reason]?.label || '未知',
+        reasonText: (REPORT_REASON_MAP[r.reason] || {}).label || '未知',
         timeText: formatTime(r.createdAt)
       }));
 

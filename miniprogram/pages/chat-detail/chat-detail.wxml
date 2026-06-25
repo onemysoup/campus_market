@@ -1,16 +1,27 @@
 <view class="container">
+  <app-nav title="{{targetNickname || '聊天'}}" showBack />
   <!-- 吸顶商品信息条 -->
   <view class="item-bar" wx:if="{{itemInfo}}" bindtap="onTapItem">
     <image class="item-thumb" src="{{itemInfo.image}}" mode="aspectFill" />
     <view class="item-info">
       <text class="item-title">{{itemInfo.title}}</text>
       <view class="item-meta">
-        <text class="item-price">¥{{itemInfo.priceText}}</text>
+        <text class="item-price">{{itemInfo.priceDisplay}}</text>
         <text class="item-status {{itemInfo.status === 1 ? 'on-sale' : 'sold'}}">{{itemInfo.statusText}}</text>
       </view>
     </view>
     <text class="item-arrow">›</text>
   </view>
+
+  <!-- 安全交易贴士（F4.5.1） + 拉黑入口 -->
+  <view class="tip-row">
+    <view class="safety-tip">🔔 本校仅限面交，公共场合交易，切勿提前转账！</view>
+    <text class="report-btn" bindtap="onReportUser">举报</text>
+    <text class="block-btn" bindtap="onBlockUser">🚫 拉黑</text>
+  </view>
+
+  <!-- 跨区交易提醒（F4.4.2） -->
+  <view class="cross-tip-bar" wx:if="{{showCrossTip}}">⚠️ 该商品位于不同校区，平台不提供配送，请双方私下协商交付，风险自担。</view>
 
   <!-- 消息列表 -->
   <scroll-view
@@ -42,7 +53,15 @@
       <!-- 对方消息 -->
       <block wx:if="{{!item.isMine}}">
         <view class="msg-content-wrap">
-          <view class="msg-bubble other-bubble">
+          <image
+            wx:if="{{item.msgType === 1}}"
+            class="msg-image"
+            src="{{item.content}}"
+            mode="widthFix"
+            data-src="{{item.content}}"
+            bindtap="onPreviewMessageImage"
+          />
+          <view wx:else class="msg-bubble other-bubble">
             <text>{{item.content}}</text>
           </view>
         </view>
@@ -51,7 +70,15 @@
       <!-- 我的消息 -->
       <block wx:if="{{item.isMine}}">
         <view class="msg-content-wrap mine-wrap">
-          <view class="msg-bubble mine-bubble">
+          <image
+            wx:if="{{item.msgType === 1}}"
+            class="msg-image"
+            src="{{item.content}}"
+            mode="widthFix"
+            data-src="{{item.content}}"
+            bindtap="onPreviewMessageImage"
+          />
+          <view wx:else class="msg-bubble mine-bubble">
             <text>{{item.content}}</text>
           </view>
         </view>
@@ -62,8 +89,20 @@
     <view id="msg_bottom"></view>
   </scroll-view>
 
+  <!-- 校园快捷短语（F4.1.1） -->
+  <scroll-view class="quick-phrases" scroll-x show-scrollbar="{{false}}">
+    <text
+      class="quick-phrase"
+      wx:for="{{quickPhrases}}"
+      wx:key="*this"
+      data-text="{{item}}"
+      bindtap="onQuickPhrase"
+    >{{item}}</text>
+  </scroll-view>
+
   <!-- 输入区域 -->
   <view class="input-area">
+    <view class="btn-image" bindtap="onChooseImage">📷</view>
     <view class="input-wrap">
       <input
         class="msg-input"

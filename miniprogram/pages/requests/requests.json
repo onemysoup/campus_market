@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "求购大厅",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "app-nav": "/components/app-nav/index"
+  }
+}

@@ -33,3 +33,11 @@ build/
 .claude/
 /project.config.json
 /project.private.config.json
+
+# 微信开发者工具本地配置（含各开发者各自的 AppID，不应提交）
+miniprogram/project.config.json
+miniprogram/project.private.config.json
+
+# 本地测试报告（QA 工作产物，按需保留在本地）
+/TESTING_REPORT_*.md
+/问题.md

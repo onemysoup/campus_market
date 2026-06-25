@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="我的订单" showBack />
   <!-- 主 Tab：买入/卖出 -->
   <view class="main-tabs">
     <view
@@ -64,11 +65,12 @@
 
       <!-- 卡片主体：商品信息 -->
       <view class="order-body" data-itemid="{{item.itemId}}" bindtap="onTapOrder">
-        <image class="order-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <image wx:if="{{item.firstImage}}" class="order-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <view wx:else class="order-thumb thumb-placeholder">暂无图片</view>
         <view class="order-meta">
           <view class="order-title">{{item.title}}</view>
           <view class="order-info">
-            <text class="order-price">¥{{item.priceText}}</text>
+            <text class="order-price">{{item.priceDisplay}}</text>
             <text class="order-type">{{item.transactionType === 1 ? '租赁' : '出售'}}</text>
           </view>
         </view>
@@ -76,9 +78,16 @@
 
       <!-- 取货码区域（仅买家可见，交易中状态） -->
       <view class="pickup-code-section" wx:if="{{mainTab === 'buyer' && item.pickupCode && item.status === 0}}">
-        <view class="pickup-label">🔑 取货码（请出示给卖家）</view>
+        <view class="pickup-label">{{item.isRental ? '🔑 借出核销码（请出示给卖家）' : '🔑 取货码（请出示给卖家）'}}</view>
         <view class="pickup-code">{{item.pickupCode}}</view>
-        <view class="pickup-tip">交易时请将此码提供给卖家核销</view>
+        <view class="pickup-tip">{{item.isRental ? '线下交押金/租金后，卖家输入此码开始租期' : '交易时请将此码提供给卖家核销'}}</view>
+      </view>
+
+      <!-- 租赁归还码区域（仅卖家可见，租赁中状态） -->
+      <view class="pickup-code-section return-code-section" wx:if="{{mainTab === 'seller' && item.isRental && item.rentalStatus === 1 && item.rentalReturnCode && item.status === 0}}">
+        <view class="pickup-label">🔁 归还确认码（归还时出示给买家）</view>
+        <view class="pickup-code">{{item.rentalReturnCode}}</view>
+        <view class="pickup-tip">买家归还物品时输入此码，订单完成</view>
       </view>
 
       <!-- 卡片底部：操作按钮 -->
@@ -100,16 +109,44 @@
               class="btn-action btn-contact"
               size="mini"
               data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
+              data-itemid="{{item.itemId}}"
+              data-othername="{{item.otherNickname || '对方'}}"
               catchtap="onContact"
             >联系</button>
             <!-- 卖家核销入口 -->
             <button
               class="btn-action btn-verify"
               size="mini"
-              wx:if="{{mainTab === 'seller'}}"
+              wx:if="{{mainTab === 'seller' && !item.isRental}}"
               data-transactionid="{{item.transactionId}}"
               catchtap="onVerifyPickup"
             >核销取货码</button>
+            <!-- 租赁：卖家借出核销 -->
+            <button
+              class="btn-action btn-verify"
+              size="mini"
+              wx:if="{{mainTab === 'seller' && item.isRental && item.rentalStatus === 0}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onStartRental"
+            >借出核销</button>
+            <!-- 租赁：买家归还核销 -->
+            <button
+              class="btn-action btn-verify"
+              size="mini"
+              wx:if="{{mainTab === 'buyer' && item.isRental && (item.rentalStatus === 1 || item.rentalStatus === 2)}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onCompleteRentalReturn"
+            >归还核销</button>
+            <!-- 买家取货凭证（可截图代领） -->
+            <button
+              class="btn-action btn-contact"
+              size="mini"
+              wx:if="{{mainTab === 'buyer' && item.pickupCode}}"
+              data-code="{{item.pickupCode}}"
+              data-title="{{item.itemTitle}}"
+              data-location="{{item.agreedLocation}}"
+              catchtap="onShowVoucher"
+            >取货凭证</button>
           </block>
           <!-- 已完成/已取消：可联系 -->
           <block wx:if="{{item.status !== 0}}">
@@ -117,8 +154,18 @@
               class="btn-action btn-contact"
               size="mini"
               data-otherid="{{mainTab === 'buyer' ? item.sellerId : item.buyerId}}"
+              data-itemid="{{item.itemId}}"
+              data-othername="{{item.otherNickname || '对方'}}"
               catchtap="onContact"
             >联系对方</button>
+            <!-- 已完成：可评价 -->
+            <button
+              class="btn-action btn-verify"
+              size="mini"
+              wx:if="{{item.status === 1}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onReview"
+            >评价</button>
           </block>
         </view>
       </view>
@@ -133,6 +180,20 @@
     <!-- 没有更多数据 -->
     <view class="no-more" wx:if="{{!hasMore && list.length > 0 && !loadingMore}}">
       <text>— 已经到底了 —</text>
+    </view>
+  </view>
+
+  <!-- 取货凭证卡片（F4.2.2，可截图发给代领人） -->
+  <view class="voucher-mask" wx:if="{{showVoucher}}" catchtap="onCloseVoucher">
+    <view class="voucher-card" catchtap="stopPropagation">
+      <view class="voucher-title">取货凭证</view>
+      <image class="voucher-image" wx:if="{{voucher.image}}" src="{{voucher.image}}" mode="aspectFill" />
+      <view class="voucher-goods">{{voucher.title}}</view>
+      <view class="voucher-code">{{voucher.code}}</view>
+      <view class="voucher-label">取货码</view>
+      <view class="voucher-location">📍 {{voucher.location}}</view>
+      <view class="voucher-hint">截图发给舍友/委托人即可凭码代领</view>
+      <view class="voucher-close" catchtap="onCloseVoucher">关闭</view>
     </view>
   </view>
 </view>

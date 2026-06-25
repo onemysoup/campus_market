@@ -11,8 +11,9 @@ public sealed class Item
 
     public Item(Guid sellerId, string title, string description, decimal price,
         ItemCategory category, ConditionLevel condition, List<string> images,
-        CampusArea campusArea, bool isRental = false,
-        string? rentalRate = null, decimal? deposit = null)
+        CampusArea campusArea, bool isNegotiable = true, bool isRental = false,
+        string? rentalRate = null, decimal? deposit = null, string? deliveryPoint = null,
+        CollegeTag? targetCollege = null, bool supportCrossCampus = false)
     {
         Id = Guid.NewGuid();
         SellerId = sellerId;
@@ -23,9 +24,13 @@ public sealed class Item
         ConditionLevel = condition;
         _images = images;
         CampusArea = campusArea;
+        TargetCollege = targetCollege;
+        IsNegotiable = !isRental && price > 0 && isNegotiable;
         IsRental = isRental;
         RentalRate = rentalRate;
         Deposit = deposit;
+        DeliveryPoint = deliveryPoint;
+        SupportCrossCampus = supportCrossCampus;
         Status = ItemStatus.Draft;
         ViewCount = 0;
         ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30));
@@ -46,6 +51,8 @@ public sealed class Item
     public ItemCategory Category { get; private set; }
     public ConditionLevel ConditionLevel { get; private set; }
     public CampusArea CampusArea { get; private set; }
+    public CollegeTag? TargetCollege { get; private set; }
+    public bool SupportCrossCampus { get; private set; }
     public string? DeliveryPoint { get; private set; }
     public IReadOnlyList<string> Images => _images.AsReadOnly();
     public ItemStatus Status { get; private set; }
@@ -90,7 +97,9 @@ public sealed class Item
     public void Edit(string? title, string? description, decimal? price,
         ItemCategory? category, ConditionLevel? condition, List<string>? images,
         CampusArea? campusArea, string? deliveryPoint,
-        bool? isRental = null, string? rentalRate = null, decimal? deposit = null)
+        bool? isNegotiable = null, bool? isRental = null, string? rentalRate = null,
+        decimal? deposit = null, CollegeTag? targetCollege = null,
+        bool clearCollege = false, bool? supportCrossCampus = null)
     {
         if (title != null) Title = title;
         if (description != null) Description = description;
@@ -99,12 +108,29 @@ public sealed class Item
         if (condition.HasValue) ConditionLevel = condition.Value;
         if (images != null) { _images.Clear(); _images.AddRange(images); }
         if (campusArea.HasValue) CampusArea = campusArea.Value;
+        if (clearCollege) TargetCollege = null;
+        else if (targetCollege.HasValue) TargetCollege = targetCollege.Value;
+        if (supportCrossCampus.HasValue) SupportCrossCampus = supportCrossCampus.Value;
         if (deliveryPoint != null) DeliveryPoint = deliveryPoint;
         if (isRental.HasValue) IsRental = isRental.Value;
-        if (deposit.HasValue) Deposit = deposit.Value;
-        if (rentalRate != null) RentalRate = rentalRate;
-        if (isRental.HasValue) IsRental = isRental.Value;
-        if (deposit.HasValue) Deposit = deposit.Value;
-        if (rentalRate != null) RentalRate = rentalRate;
+        if (isNegotiable.HasValue) IsNegotiable = isNegotiable.Value;
+        if (isRental == true)
+        {
+            Deposit = deposit;
+            RentalRate = rentalRate;
+        }
+        else if (isRental == false)
+        {
+            Deposit = null;
+            RentalRate = null;
+        }
+        else
+        {
+            if (deposit.HasValue) Deposit = deposit.Value;
+            if (rentalRate != null) RentalRate = rentalRate;
+        }
+
+        if (IsRental || Price == 0)
+            IsNegotiable = false;
     }
 }

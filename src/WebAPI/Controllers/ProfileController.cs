@@ -46,10 +46,30 @@ public class ProfileController(AppDbContext db) : ControllerBase
             .Where(h => h.UserId == UserId)
             .OrderByDescending(h => h.BrowsedAt)
             .Take(20)
-            .Select(h => new { h.ItemId, h.BrowsedAt })
             .ToListAsync();
 
-        return Ok(new { code = 0, data = histories });
+        var itemIds = histories.Select(h => h.ItemId).ToList();
+        var items = await db.Items
+            .Where(i => itemIds.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id);
+
+        var result = histories.Select(h =>
+        {
+            var item = items.GetValueOrDefault(h.ItemId);
+            return new
+            {
+                itemId = h.ItemId,
+                browsedAt = h.BrowsedAt,
+                title = item?.Title,
+                price = item?.Price,
+                isRental = item?.IsRental ?? false,
+                rentalRate = item?.RentalRate,
+                image = item is not null && item.Images.Count > 0 ? item.Images[0] : null,
+                status = item is not null ? (int)item.Status : (int?)null
+            };
+        }).ToList();
+
+        return Ok(new { code = 0, data = result });
     }
 
     [HttpDelete("history")]

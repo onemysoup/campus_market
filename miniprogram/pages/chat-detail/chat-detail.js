@@ -7,8 +7,15 @@
 
 const chatApi = require('../../api/chat');
 const itemsApi = require('../../api/items');
+const filesApi = require('../../api/files');
+const profileApi = require('../../api/profile');
 const signalr = require('../../utils/signalr');
 const { formatPrice, formatTime } = require('../../utils/constants');
+
+function formatItemPrice(item) {
+  if (item.isRental) return item.rentalRate || '租金面议';
+  return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
 
 Page({
   data: {
@@ -17,6 +24,8 @@ Page({
     targetUserId: '',
     itemId: '',
     targetNickname: '',
+    // 当前登录用户 ID（用于判断消息归属，统一来源避免气泡左右错位）
+    myUserId: '',
     // 商品信息（吸顶显示）
     itemInfo: null,
     // 消息列表
@@ -24,6 +33,15 @@ Page({
     // 输入框
     inputContent: '',
     canSend: false,
+    // 跨区提醒
+    showCrossTip: false,
+    // 校园场景快捷短语（F4.1.1）
+    quickPhrases: [
+      '同学你好，东西还在吗？',
+      '东校区哪里见面方便？',
+      '可以稍微便宜点吗？',
+      '我下课了，现在可以面交。'
+    ],
     // 滚动位置
     scrollToView: '',
     // 加载状态
@@ -44,7 +62,8 @@ Page({
       sessionId: sessionId || '',
       targetUserId: targetUserId || '',
       itemId: itemId || '',
-      targetNickname: targetNickname ? decodeURIComponent(targetNickname) : '用户'
+      targetNickname: targetNickname ? decodeURIComponent(targetNickname) : '用户',
+      myUserId: this.getCurrentUserId()
     });
 
     // 设置页面标题
@@ -70,6 +89,32 @@ Page({
 
   // ==================== SignalR ====================
 
+  // 规范化 ID 比较（GUID 大小写/类型不一致兜底，避免气泡左右错位）
+  normId(id) {
+    return String(id || '').toLowerCase();
+  },
+
+  getCurrentUserId() {
+    const userInfo = wx.getStorageSync('userInfo') || {};
+    const app = getApp();
+    const appUserId = app.getUserId ? app.getUserId() : '';
+    return this.normId(userInfo.userId || appUserId);
+  },
+
+  inferIsMine(msg, myUserId) {
+    const senderId = this.normId(msg.senderId);
+    const receiverId = this.normId(msg.receiverId);
+    const targetUserId = this.normId(this.data.targetUserId);
+
+    // 优先按当前聊天对象判断，避免本地 userInfo 短暂不同步导致首条消息左右错位。
+    if (targetUserId) {
+      if (senderId === targetUserId) return false;
+      if (receiverId === targetUserId) return true;
+    }
+
+    return senderId === myUserId;
+  },
+
   connectSignalR() {
     const token = wx.getStorageSync('token');
     if (!token) return;
@@ -78,11 +123,12 @@ Page({
     signalr.onMessage((message) => {
       // 只处理当前会话的消息，且不是自己发的
       if (message.sessionId && message.sessionId === this.data.sessionId &&
-          message.senderId !== (wx.getStorageSync('userInfo') || {}).userId) {
+          this.normId(message.senderId) !== this.data.myUserId) {
         const newMsg = {
           messageId: message.messageId,
           senderId: message.senderId,
           content: message.content,
+          msgType: message.msgType,
           timestamp: message.timestamp,
           isMine: false,
           timeText: this.formatMsgTime(message.timestamp)
@@ -105,16 +151,19 @@ Page({
   async loadItemInfo(itemId) {
     try {
       const item = await itemsApi.getItem(itemId);
+      const images = item.images || [];
       this.setData({
         itemInfo: {
           itemId: item.itemId,
           title: item.title,
           price: formatPrice(item.price),
           priceText: formatPrice(item.price),
-          image: item.images?.[0] || '',
+          priceDisplay: formatItemPrice(item),
+          image: images[0] || '',
           status: item.status,
           statusText: item.status === 1 ? '在售' : item.status === 3 ? '已售出' : '已下架'
-        }
+        },
+        showCrossTip: item.supportCrossCampus === true
       });
     } catch (error) {
       console.error('[ChatDetail] loadItemInfo error:', error);
@@ -133,13 +182,16 @@ Page({
     try {
       const result = await chatApi.getMessages(sessionId, { page: 1, pageSize: 50 });
 
-      // 处理消息数据
-      const userInfo = wx.getStorageSync('userInfo') || {};
-      const myUserId = userInfo.userId || '';
+      // 处理消息数据（统一用 myUserId 规范化比较，修正首条消息归属错位）
+      const myUserId = this.getCurrentUserId();
+      if (myUserId !== this.data.myUserId) {
+        this.setData({ myUserId });
+      }
 
-      const messages = (result?.messages || result || []).map(msg => ({
+      const rawMessages = result && result.messages ? result.messages : (result || []);
+      const messages = rawMessages.map(msg => ({
         ...msg,
-        isMine: msg.senderId === myUserId,
+        isMine: this.inferIsMine(msg, myUserId),
         timeText: this.formatMsgTime(msg.timestamp)
       }));
 
@@ -164,6 +216,12 @@ Page({
       inputContent: value,
       canSend: value.trim().length > 0
     });
+  },
+
+  // 点击快捷短语：填入输入框，由用户确认后发送
+  onQuickPhrase(e) {
+    const text = e.currentTarget.dataset.text || '';
+    this.setData({ inputContent: text, canSend: text.trim().length > 0 });
   },
 
   async onSend() {
@@ -195,16 +253,77 @@ Page({
     // 调用后端接口发送消息
     try {
       console.log('[ChatDetail] 发送消息:', { receiverId: targetUserId, itemId, content });
-      await chatApi.sendMessage({
+      const sent = await chatApi.sendMessage({
         receiverId: targetUserId,
         itemId: itemId,
         content: content,
         msgType: 0  // 文本消息
       });
+      if (sent && sent.sessionId && !this.data.sessionId) {
+        this.setData({ sessionId: sent.sessionId });
+      }
     } catch (error) {
       console.error('[ChatDetail] sendMessage error:', error);
       wx.showToast({ title: '发送失败', icon: 'none' });
     }
+  },
+
+  // ==================== 图片消息 ====================
+
+  // 选择并发送图片消息
+  onChooseImage() {
+    const { targetUserId, itemId } = this.data;
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      success: async (res) => {
+        const tempFile = res.tempFiles[0].tempFilePath;
+        wx.showLoading({ title: '发送中...', mask: true });
+        try {
+          const uploaded = await filesApi.uploadImage(tempFile);
+          const imageUrl = uploaded.url;
+
+          // 乐观更新
+          const newMsg = {
+            messageId: `msg_${Date.now()}`,
+            senderId: this.data.myUserId,
+            content: imageUrl,
+            msgType: 1,
+            timestamp: Date.now(),
+            isMine: true,
+            timeText: this.formatMsgTime(Date.now())
+          };
+          this.setData({ messages: [...this.data.messages, newMsg] });
+          this.scrollToBottom();
+
+          const sent = await chatApi.sendMessage({
+            receiverId: targetUserId,
+            itemId: itemId,
+            content: imageUrl,
+            msgType: 1
+          });
+          if (sent && sent.sessionId && !this.data.sessionId) {
+            this.setData({ sessionId: sent.sessionId });
+          }
+        } catch (error) {
+          console.error('[ChatDetail] sendImage error:', error);
+          wx.showToast({ title: '图片发送失败', icon: 'none' });
+        } finally {
+          wx.hideLoading();
+        }
+      }
+    });
+  },
+
+  // 预览图片消息
+  onPreviewMessageImage(e) {
+    const src = e.currentTarget.dataset.src;
+    if (!src) return;
+    const urls = this.data.messages
+      .filter(m => m.msgType === 1)
+      .map(m => m.content);
+    wx.previewImage({ current: src, urls });
   },
 
   // ==================== 工具函数 ====================
@@ -233,5 +352,35 @@ Page({
         url: `/pages/goods-detail/goods-detail?id=${this.data.itemId}`
       });
     }
+  },
+
+  onReportUser() {
+    const { targetUserId } = this.data;
+    if (!targetUserId) return;
+    wx.navigateTo({
+      url: `/pages/report/report?targetId=${targetUserId}`
+    });
+  },
+
+  // 拉黑当前聊天对象（SRS F5.3.1 个人黑名单）
+  onBlockUser() {
+    const { targetUserId, targetNickname } = this.data;
+    if (!targetUserId) return;
+    wx.showModal({
+      title: '拉黑用户',
+      content: `拉黑后「${targetNickname}」将无法查看你的商品，也无法给你发消息。确定拉黑吗？`,
+      confirmText: '拉黑',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await profileApi.addBlacklist(targetUserId);
+          wx.showToast({ title: '已拉黑', icon: 'success' });
+          setTimeout(() => wx.navigateBack(), 800);
+        } catch (error) {
+          console.error('[ChatDetail] block error:', error);
+        }
+      }
+    });
   }
 });

@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="{{editMode ? '编辑商品' : '发布商品'}}" />
   <!-- 基本信息 -->
   <view class="section">
     <view class="section-title">基本信息</view>
@@ -15,26 +16,53 @@
       />
     </view>
 
-    <!-- 价格 -->
-    <view class="form-item">
-      <text class="label">价格 <text class="required">*</text></text>
-      <view class="price-input-wrap">
-        <text class="price-symbol">¥</text>
-        <input
-          class="input price-input"
-          type="digit"
-          placeholder="0.00"
-          value="{{form.price}}"
-          bindinput="onPriceInput"
-        />
+    <!-- 价格 / 赠送 / 议价（租赁商品不显示售价，仅租金押金） -->
+    <block wx:if="{{!form.isRental}}">
+      <!-- 价格 -->
+      <view class="form-item" wx:if="{{!form.isFree}}">
+        <text class="label">价格 <text class="required">*</text></text>
+        <view class="price-input-wrap">
+          <text class="price-symbol">¥</text>
+          <input
+            class="input price-input"
+            type="digit"
+            placeholder="0.00"
+            value="{{form.price}}"
+            bindinput="onPriceInput"
+          />
+        </view>
       </view>
+
+      <!-- 0元赠送 -->
+      <view class="form-item switch-item">
+        <text class="label">0元赠送</text>
+        <switch checked="{{form.isFree}}" bindchange="onFreeChange" color="#0f766e" />
+      </view>
+
+      <!-- 可议价 -->
+      <view class="form-item switch-item">
+        <text class="label">可议价</text>
+        <switch checked="{{form.isNegotiable}}" bindchange="onNegotiableChange" color="#0f766e" />
+      </view>
+    </block>
+
+    <!-- 租赁 -->
+    <view class="form-item switch-item">
+      <text class="label">租赁商品</text>
+      <switch checked="{{form.isRental}}" bindchange="onRentalChange" color="#0f766e" />
     </view>
 
-    <!-- 可议价 -->
-    <view class="form-item switch-item">
-      <text class="label">可议价</text>
-      <switch checked="{{form.isNegotiable}}" bindchange="onNegotiableChange" color="#0f766e" />
-    </view>
+    <!-- 租金 / 押金（仅租赁商品显示） -->
+    <block wx:if="{{form.isRental}}">
+      <view class="form-item">
+        <text class="label">租金 <text class="required">*</text></text>
+        <input class="input" type="digit" placeholder="如：3.00" value="{{form.rentalRate}}" bindinput="onRentalRateInput" />
+      </view>
+      <view class="form-item">
+        <text class="label">押金</text>
+        <input class="input" type="digit" placeholder="押金金额（元）" value="{{form.deposit}}" bindinput="onDepositInput" />
+      </view>
+    </block>
   </view>
 
   <!-- 商品属性 -->
@@ -73,11 +101,43 @@
         </view>
       </picker>
     </view>
+
+    <!-- 交付点 -->
+    <view class="form-item">
+      <text class="label">交付点</text>
+      <input
+        class="input"
+        placeholder="如：东区主楼门口 / 西区图书馆"
+        maxlength="64"
+        value="{{form.deliveryPoint}}"
+        bindinput="onDeliveryPointInput"
+      />
+    </view>
+
+    <!-- 学院标签（可选） -->
+    <view class="form-item">
+      <text class="label">关联学院</text>
+      <picker mode="selector" range="{{colleges}}" range-key="name" value="{{collegeIndex}}" bindchange="onCollegeChange">
+        <view class="picker-value">
+          {{colleges[collegeIndex].name}}
+          <text class="picker-arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 跨区托带意向（F4.4.1） -->
+    <view class="form-item">
+      <text class="label">支持东西校区互带</text>
+      <switch checked="{{form.supportCrossCampus}}" bindchange="onCrossCampusChange" color="#0f766e" />
+    </view>
   </view>
 
   <!-- 商品描述 -->
   <view class="section">
-    <view class="section-title">商品描述</view>
+    <view class="section-title">
+      商品描述
+      <text class="ai-describe-btn" bindtap="onAiDescribe">✨ 智能生成</text>
+    </view>
     <textarea
       class="textarea"
       placeholder="请详细描述商品的成色、使用情况、交易方式等..."
@@ -92,7 +152,7 @@
   <view class="section">
     <view class="section-title">
       商品图片
-      <text class="required">*</text>
+      <text class="optional-hint">（选填，最多9张）</text>
       <text class="image-count">{{form.images.length}}/{{maxImages}}</text>
     </view>
 

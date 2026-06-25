@@ -14,6 +14,7 @@ public class RequestConfiguration : IEntityTypeConfiguration<Request>
         builder.Property(r => r.Title).HasMaxLength(50).IsRequired();
         builder.Property(r => r.ResourceType).HasConversion<int>();
         builder.Property(r => r.CampusArea).HasConversion<int>();
+        builder.Property(r => r.TargetCollege).HasConversion<int>();
         builder.Property(r => r.MaxPrice).HasColumnType("decimal(10,2)");
         builder.HasIndex(r => r.BuyerId);
     }

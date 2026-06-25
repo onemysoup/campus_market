@@ -22,8 +22,8 @@ const transactionsApi = {
    * @param {string} id         - 交易 GUID
    * @param {string} pickupCode - 取货码
    */
-  verifyPickupCode(id, pickupCode) {
-    return post(`/api/v1/transactions/${id}/verify`, { pickupCode });
+  verifyPickupCode(id, pickupCode, securityPassword) {
+    return post(`/api/v1/transactions/${id}/verify`, { pickupCode, securityPassword });
   },
 
   /**
@@ -31,8 +31,8 @@ const transactionsApi = {
    * @param {string} id     - 交易 GUID
    * @param {string} reason - 取消原因
    */
-  cancelTransaction(id, reason) {
-    return post(`/api/v1/transactions/${id}/cancel`, { reason });
+  cancelTransaction(id, reason, securityPassword) {
+    return post(`/api/v1/transactions/${id}/cancel`, { reason, securityPassword });
   },
 
   /**
@@ -40,16 +40,16 @@ const transactionsApi = {
    * @param {string} id               - 交易 GUID
    * @param {string} expectedReturnTime - 预计归还时间（ISO 格式）
    */
-  startRental(id, expectedReturnTime) {
-    return post(`/api/v1/transactions/${id}/rent-start`, { expectedReturnTime });
+  startRental(id, expectedReturnTime, pickupCode, securityPassword) {
+    return post(`/api/v1/transactions/${id}/rent-start`, { expectedReturnTime, pickupCode, securityPassword });
   },
 
   /**
    * 完成归还
    * @param {string} id - 交易 GUID
    */
-  completeReturn(id) {
-    return post(`/api/v1/transactions/${id}/rent-return`);
+  completeReturn(id, returnCode, securityPassword) {
+    return post(`/api/v1/transactions/${id}/rent-return`, { returnCode, securityPassword });
   },
 
   /**
@@ -61,6 +61,24 @@ const transactionsApi = {
    */
   getTransactions(params = {}) {
     return get('/api/v1/transactions', params);
+  },
+
+  /**
+   * 提交交易评价（交易完成后，1-5 星 + 文字）
+   * @param {string} id      - 交易 GUID
+   * @param {number} rating  - 星级 1-5
+   * @param {string} comment - 评价文字（选填）
+   */
+  submitReview(id, rating, comment = '') {
+    return post(`/api/v1/transactions/${id}/review`, { rating, comment });
+  },
+
+  /**
+   * 查看某用户收到的评价与平均分（用于卖家信誉展示）
+   * @param {string} userId - 被评价用户 GUID
+   */
+  getUserReviews(userId) {
+    return get(`/api/v1/transactions/reviews/${userId}`);
   }
 };
 

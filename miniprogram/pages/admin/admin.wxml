@@ -1,4 +1,5 @@
 <view class="container" wx:if="{{isAdmin}}">
+  <app-nav title="管理员后台" showBack />
   <!-- Tab 栏 -->
   <view class="tabs">
     <view
@@ -51,6 +52,183 @@
         <text class="today-label">今日交易</text>
       </view>
     </view>
+
+    <view class="report-block">
+      <view class="report-title">认证转化漏斗</view>
+      <view class="funnel-row" wx:for="{{dashboard.authFunnel}}" wx:key="level">
+        <view class="funnel-head">
+          <text class="funnel-label">{{item.label}}</text>
+          <text class="funnel-value">{{item.value}} 人 · {{item.percentText}}</text>
+        </view>
+        <view class="funnel-track">
+          <view class="funnel-fill level-{{item.level}}" style="width: {{item.width}}%;"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="analytics-panel">
+      <view class="analytics-header">
+        <text class="analytics-title">运营报表</text>
+        <button class="export-btn" size="mini" bindtap="onExportStats">复制CSV</button>
+      </view>
+
+      <view class="filter-row">
+        <view class="period-tabs">
+          <view
+            class="period-tab {{statsFilter.period === item.key ? 'active' : ''}}"
+            wx:for="{{statsPeriods}}"
+            wx:key="key"
+            data-period="{{item.key}}"
+            bindtap="onStatsPeriodChange"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <picker mode="selector" range="{{statsCampusOptions}}" value="{{statsFilter.campusIndex}}" bindchange="onStatsCampusChange">
+          <view class="campus-picker">{{statsCampusOptions[statsFilter.campusIndex]}}</view>
+        </picker>
+      </view>
+
+      <view class="date-row" wx:if="{{statsFilter.period === 'day' || statsFilter.period === 'custom'}}">
+        <picker mode="date" value="{{statsFilter.startDate}}" data-field="startDate" bindchange="onStatsDateChange" wx:if="{{statsFilter.period === 'custom'}}">
+          <view class="date-picker">开始 {{statsFilter.startDate}}</view>
+        </picker>
+        <picker mode="date" value="{{statsFilter.endDate}}" data-field="endDate" bindchange="onStatsDateChange">
+          <view class="date-picker">{{statsFilter.period === 'day' ? '日期' : '结束'}} {{statsFilter.endDate}}</view>
+        </picker>
+      </view>
+
+      <view class="analytics-grid">
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.newUsers || 0}}</text>
+          <text class="metric-label">新增用户</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.newItems || 0}}</text>
+          <text class="metric-label">发布商品</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.completedTransactions || 0}}</text>
+          <text class="metric-label">完成交易</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.dealRateText || '0%'}}</text>
+          <text class="metric-label">成交率</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">¥{{analytics.summary.turnoverText || '0.00'}}</text>
+          <text class="metric-label">成交金额</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{analytics.summary.activeUsers || 0}}</text>
+          <text class="metric-label">活跃用户</text>
+        </view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">近几日趋势</view>
+        <view class="trend-list">
+          <view class="trend-row" wx:for="{{analytics.daily}}" wx:key="date">
+            <text class="trend-date">{{item.dateLabel}}</text>
+            <view class="trend-bars">
+              <view class="trend-line">
+                <text class="trend-name">用户</text>
+                <view class="trend-track"><view class="trend-fill users" style="width: {{item.newUsersWidth}}%;"></view></view>
+                <text class="trend-count">{{item.newUsers}}</text>
+              </view>
+              <view class="trend-line">
+                <text class="trend-name">发布</text>
+                <view class="trend-track"><view class="trend-fill items" style="width: {{item.newItemsWidth}}%;"></view></view>
+                <text class="trend-count">{{item.newItems}}</text>
+              </view>
+              <view class="trend-line">
+                <text class="trend-name">交易</text>
+                <view class="trend-track"><view class="trend-fill deals" style="width: {{item.completedWidth}}%;"></view></view>
+                <text class="trend-count">{{item.completedTransactions}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.daily.length === 0}}">暂无趋势数据</view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">校区对比</view>
+        <view class="campus-row" wx:for="{{analytics.campus}}" wx:key="campusArea">
+          <text class="campus-name">{{item.campusText}}</text>
+          <text class="campus-metric">用户 {{item.newUsers}}</text>
+          <text class="campus-metric">发布 {{item.newItems}}</text>
+          <text class="campus-metric">交易 {{item.completedTransactions}}</text>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.campus.length === 0}}">暂无校区数据</view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">分类表现</view>
+        <view class="category-row" wx:for="{{analytics.categories}}" wx:key="category">
+          <view class="category-main">
+            <text class="category-name">{{item.categoryText}}</text>
+            <text class="category-sub">浏览 {{item.viewCount}} · 收藏 {{item.favoriteCount}} · 私聊 {{item.chatCount}}</text>
+          </view>
+          <view class="category-side">
+            <text>{{item.publishedCount}} 发布</text>
+            <text>{{item.dealRateText}}</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.categories.length === 0}}">暂无分类数据</view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">热门商品</view>
+        <view class="top-row" wx:for="{{analytics.topItems}}" wx:key="itemId">
+          <text class="top-rank">{{index + 1}}</text>
+          <view class="top-main">
+            <text class="top-title">{{item.title}}</text>
+            <text class="top-sub">{{item.categoryText}} · 浏览 {{item.viewCount}} · 收藏 {{item.favoriteCount}} · 私聊 {{item.chatCount}}</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.topItems.length === 0}}">暂无热门商品</view>
+      </view>
+
+      <!-- 搜索关键词云 -->
+      <view class="report-block">
+        <view class="report-title">搜索热词云</view>
+        <view class="keyword-cloud">
+          <text class="keyword-tag" wx:for="{{analytics.searchKeywords}}" wx:key="keyword"
+                style="font-size: {{item.fontSize}}rpx;">{{item.keyword}}（{{item.count}}）</text>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.searchKeywords.length === 0}}">暂无搜索数据</view>
+      </view>
+
+      <!-- 页面点击量 -->
+      <view class="report-block">
+        <view class="report-title">页面点击量</view>
+        <view class="category-row" wx:for="{{analytics.pageClicks}}" wx:key="pageCode">
+          <view class="category-main">
+            <text class="category-name">{{item.pageText}}</text>
+          </view>
+          <view class="category-side">
+            <text>{{item.clicks}} 次</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.pageClicks.length === 0}}">暂无点击数据</view>
+      </view>
+
+      <!-- 学院热度排行 -->
+      <view class="report-block">
+        <view class="report-title">学院热度排行</view>
+        <view class="category-row" wx:for="{{analytics.colleges}}" wx:key="college">
+          <view class="category-main">
+            <text class="category-name">{{index + 1}}. {{item.collegeText}}</text>
+            <text class="category-sub">发布 {{item.publishedCount}} · 求购 {{item.requestCount}}</text>
+          </view>
+          <view class="category-side">
+            <text>{{item.totalCount}} 热度</text>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.colleges.length === 0}}">暂无学院数据</view>
+      </view>
+    </view>
   </view>
 
   <!-- 用户管理 -->
@@ -72,6 +250,7 @@
         <view class="user-actions">
           <view
             class="action-btn {{item.isBanned ? 'unban' : 'ban'}}"
+            wx:if="{{!item.isSelf}}"
             data-userid="{{item.userId}}"
             data-nickname="{{item.nickname}}"
             data-banned="{{item.isBanned}}"
@@ -102,7 +281,7 @@
         <view class="item-info">
           <text class="item-title">{{item.title}}</text>
           <view class="item-meta">
-            <text class="item-price">¥{{item.priceText}}</text>
+            <text class="item-price">{{item.priceDisplay}}</text>
             <text class="item-category">{{item.categoryText}}</text>
             <text class="item-status" style="color: {{item.statusColor}};">{{item.statusText}}</text>
           </view>
@@ -237,6 +416,9 @@
 
 <!-- 无权限 -->
 <view class="no-permission" wx:if="{{!isAdmin && !loading}}">
-  <text class="lock-icon">🔒</text>
-  <text class="no-perm-text">仅管理员可访问</text>
+  <app-nav title="管理员后台" showBack />
+  <view class="no-perm-content">
+    <text class="lock-icon">🔒</text>
+    <text class="no-perm-text">仅管理员可访问</text>
+  </view>
 </view>

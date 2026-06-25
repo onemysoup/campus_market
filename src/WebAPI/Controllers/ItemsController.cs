@@ -2,30 +2,70 @@ using CAUSecondHand.Domain.DTOs;
 using CAUSecondHand.Domain.Entities;
 using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Infrastructure.Data;
+using CAUSecondHand.Infrastructure.Services;
 using CAUSecondHand.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace CAUSecondHand.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/items")]
-public class ItemsController(AppDbContext db) : ControllerBase
+public class ItemsController(
+    AppDbContext db,
+    IWeChatApiClient weChat,
+    IOptions<WeChatOptions> weChatOptions,
+    IAiDescriptionGenerator aiGenerator,
+    IAiContentModerator contentModerator) : ControllerBase
 {
+    private static readonly Regex MoneyPattern = new(@"^(0|[1-9]\d{0,4})(\.\d{1,2})?$", RegexOptions.Compiled);
+
+    // AI 辅助生成商品描述（SRS F2.1.7 预留接口）：外部模型可用时调用，否则本地降级生成
+    [Authorize(Policy = "AuthLevelL1")]
+    [HttpPost("ai-describe")]
+    public async Task<IActionResult> AiDescribe([FromBody] AiDescribeDTO dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return BadRequest(new { code = 4000, message = "请先填写商品标题" });
+
+        var description = await aiGenerator.GenerateAsync(
+            new AiDescribeInput(dto.Title, dto.Category, dto.ConditionLevel, dto.Keywords, dto.Images ?? [],
+                dto.CampusArea, dto.SupportCrossCampus, dto.IsNegotiable, dto.IsFree,
+                dto.IsRental, dto.RentalRate, dto.Deposit),
+            HttpContext.RequestAborted);
+
+        return Ok(new { code = 0, data = new { description } });
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetItems([FromQuery] ItemQuery query)
     {
+        var viewerId = User.GetUserId();
         var itemsQuery = db.Items
             .Include(i => i.Seller)
             .Where(i => i.Status == ItemStatus.Active && i.ExpiryDate > DateOnly.FromDateTime(DateTime.UtcNow));
 
+        if (viewerId != Guid.Empty)
+            itemsQuery = itemsQuery.Where(i => !db.BlacklistEntries
+                .Any(b => b.UserId == i.SellerId && b.BlockedId == viewerId));
+
         if (!string.IsNullOrWhiteSpace(query.Keyword))
-            itemsQuery = itemsQuery.Where(i => i.Title.Contains(query.Keyword));
+        {
+            var searchKeyword = query.Keyword.Trim();
+            itemsQuery = itemsQuery.Where(i => i.Title.Contains(searchKeyword) || i.Description.Contains(searchKeyword));
+        }
         if (query.Category.HasValue)
             itemsQuery = itemsQuery.Where(i => i.Category == query.Category.Value);
+        if (query.ConditionLevel.HasValue)
+            itemsQuery = itemsQuery.Where(i => i.ConditionLevel == query.ConditionLevel.Value);
         if (query.CampusArea.HasValue)
             itemsQuery = itemsQuery.Where(i => i.CampusArea == query.CampusArea.Value);
+        if (query.TargetCollege.HasValue)
+            itemsQuery = itemsQuery.Where(i => i.TargetCollege == query.TargetCollege.Value);
         if (query.MinPrice.HasValue)
             itemsQuery = itemsQuery.Where(i => i.Price >= query.MinPrice.Value);
         if (query.MaxPrice.HasValue)
@@ -38,6 +78,16 @@ public class ItemsController(AppDbContext db) : ControllerBase
             .Take(query.PageSize)
             .Select(i => ItemCardVO.FromEntity(i))
             .ToListAsync();
+
+        // 搜索埋点（DDD 6.14 t_search_log）：记录关键词与返回结果数，支撑搜索关键词云统计。
+        var keyword = query.Keyword?.Trim();
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            if (keyword.Length > 64) keyword = keyword[..64];
+            db.SearchLogs.Add(new Domain.Entities.SearchLog(
+                viewerId, keyword, query.CampusArea, totalCount));
+            await db.SaveChangesAsync();
+        }
 
         return Ok(new
         {
@@ -88,9 +138,17 @@ public class ItemsController(AppDbContext db) : ControllerBase
         if (item is null)
             return NotFound(new { code = 4004, message = "商品不存在" });
 
+        var userId = User.GetUserId();
+        if (userId != Guid.Empty && await db.BlacklistEntries
+                .AnyAsync(b => b.UserId == item.SellerId && b.BlockedId == userId))
+            return NotFound(new { code = 4004, message = "商品不存在" });
+
         item.IncrementViewCount();
 
-        var userId = User.GetUserId();
+        // 行为埋点（DDD 6.15 t_event_log）：商品详情浏览，支撑页面点击量与热度统计。
+        db.EventLogs.Add(new Domain.Entities.EventLog(
+            userId, "ITEM_DETAIL_VIEW", "goods-detail", id, null, item.CampusArea));
+
         var isFavorited = userId != Guid.Empty
             && await db.Favorites.AnyAsync(f => f.UserId == userId && f.ItemId == id);
         var canBuy = item.IsAvailableForBuying();
@@ -130,18 +188,52 @@ public class ItemsController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateItem([FromBody] ItemPublishDTO dto)
     {
+        var fieldValidation = ValidateItemFields(dto.Title, dto.Description, dto.Images,
+            textRequired: true);
+        if (fieldValidation is not null)
+            return BadRequest(new { code = 4000, message = fieldValidation });
+
+        var banned = await FindBannedAsync("商品发布", dto.Title, dto.Description);
+        if (banned is not null)
+            return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
+
         var userId = User.GetUserId();
         var user = await db.Users.FindAsync(userId);
-        if (user is null || !user.IsEligibleToPublish())
-            return BadRequest(new { code = 4000, message = "当前认证等级无法发布商品" });
+        if (user is null)
+            return Unauthorized(new { code = 4001, message = "未授权访问" });
+        if (user.IsBanned)
+            return BadRequest(new { code = 4000, message = "账号已被封禁，无法发布商品" });
+        // SRS F5.2.2：诚信分 40-59 严重受限、<40 黑名单，均禁止发布
+        if (user.CreditScore < 60)
+            return BadRequest(new { code = 4000, message = "诚信分过低，账号处于受限状态，暂时无法发布商品" });
+        if (!user.IsEligibleToPublish(dto.Price))
+            return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
+
+        var rentalValidation = ValidateRentalFields(dto.IsRental, dto.RentalRate, dto.Deposit,
+            out var normalizedRentalRate);
+        if (rentalValidation is not null)
+            return BadRequest(new { code = 4000, message = rentalValidation });
+
+        // SRS F5.2.2：60-79 分受限用户在售商品数量上限为 2
+        var activeLimit = user.GetActiveItemLimit();
+        if (activeLimit > 0)
+        {
+            var activeCount = await db.Items.CountAsync(i => i.SellerId == userId
+                && (i.Status == ItemStatus.Active || i.Status == ItemStatus.Reserved));
+            if (activeCount >= activeLimit)
+                return BadRequest(new { code = 4000, message = $"当前诚信分受限，最多可同时在售 {activeLimit} 件商品" });
+        }
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
-            dto.IsRental, dto.RentalRate, dto.Deposit);
+            dto.IsNegotiable, dto.IsRental, normalizedRentalRate, dto.Deposit, dto.DeliveryPoint,
+            dto.TargetCollege,
+            dto.SupportCrossCampus);
 
         item.TransitionTo(ItemStatus.Active);
         db.Items.Add(item);
         await db.SaveChangesAsync();
+        await NotifyMatchedRequestsAsync(item);
 
         return CreatedAtAction(nameof(GetItem), new { id = item.Id },
             new { code = 0, data = ItemCardVO.FromEntity(item) });
@@ -157,10 +249,32 @@ public class ItemsController(AppDbContext db) : ControllerBase
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.CanBeEditedBy(userId))
             return Forbid();
+        var fieldValidation = ValidateItemFields(dto.Title, dto.Description, dto.Images,
+            textRequired: false);
+        if (fieldValidation is not null)
+            return BadRequest(new { code = 4000, message = fieldValidation });
+
+        var banned = await FindBannedAsync("商品编辑", dto.Title, dto.Description);
+        if (banned is not null)
+            return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
+        var user = await db.Users.FindAsync(userId);
+        var targetPrice = dto.Price ?? item.Price;
+        if (user is null || !user.IsEligibleToPublish(targetPrice))
+            return BadRequest(new { code = 4000, message = "L1 用户仅可发布 200 元以下商品，请完成 L2 认证后发布高价商品" });
+
+        var targetIsRental = dto.IsRental ?? item.IsRental;
+        var targetRentalRate = dto.RentalRate ?? item.RentalRate;
+        var targetDeposit = dto.Deposit ?? item.Deposit;
+        var rentalValidation = ValidateRentalFields(targetIsRental, targetRentalRate, targetDeposit,
+            out var normalizedRentalRate);
+        if (rentalValidation is not null)
+            return BadRequest(new { code = 4000, message = rentalValidation });
 
         item.Edit(dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images,
-            dto.CampusArea, dto.DeliveryPoint);
+            dto.CampusArea, dto.DeliveryPoint,
+            dto.IsNegotiable, dto.IsRental, dto.IsRental == true || item.IsRental ? normalizedRentalRate : dto.RentalRate, dto.Deposit,
+            dto.TargetCollege, dto.ClearCollege, dto.SupportCrossCampus);
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "修改成功" });
@@ -174,7 +288,7 @@ public class ItemsController(AppDbContext db) : ControllerBase
         var item = await db.Items.FirstOrDefaultAsync(i => i.Id == id);
         if (item is null)
             return NotFound(new { code = 4004, message = "商品不存在" });
-        if (!item.CanBeEditedBy(userId))
+        if (!item.CanBeEditedBy(userId) && !User.IsAdmin())
             return Forbid();
 
         var result = item.TransitionTo(dto.Status);
@@ -217,5 +331,142 @@ public class ItemsController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, message = "取消收藏成功" });
+    }
+
+    private async Task NotifyMatchedRequestsAsync(Item item)
+    {
+        var templateId = weChatOptions.Value.SubscribeTemplates.RequestMatch;
+        if (string.IsNullOrWhiteSpace(templateId))
+            return;
+
+        var resourceType = MapCategoryToResourceType(item.Category);
+        var candidates = await db.Requests.AsNoTracking()
+            .Where(r => r.BuyerId != item.SellerId
+                && r.ExpiryDate >= DateOnly.FromDateTime(DateTime.UtcNow)
+                && (r.CampusArea == item.CampusArea
+                    || r.CampusArea == CampusArea.Both
+                    || item.CampusArea == CampusArea.Both)
+                && (!r.MaxPrice.HasValue || item.Price <= r.MaxPrice.Value))
+            .Join(db.Users.AsNoTracking(),
+                request => request.BuyerId,
+                user => user.Id,
+                (request, user) => new { Request = request, User = user })
+            .ToListAsync();
+
+        var matches = candidates
+            .Where(x => x.Request.ResourceType == resourceType
+                || CalculateJaccard(x.Request.Title, item.Title) >= 0.25)
+            .Where(x => !string.IsNullOrWhiteSpace(x.User.WeChatOpenId))
+            .Take(5)
+            .ToList();
+
+        foreach (var match in matches)
+        {
+            await weChat.SendSubscribeMessageAsync(new SubscribeMessage(
+                match.User.WeChatOpenId,
+                templateId,
+                $"pages/goods-detail/goods-detail?id={item.Id}",
+                new Dictionary<string, string>
+                {
+                    ["thing1"] = match.Request.Title,
+                    ["thing2"] = item.Title,
+                    ["amount3"] = $"{item.Price.ToString("0.##", CultureInfo.InvariantCulture)}元",
+                    ["time4"] = DateTime.UtcNow.AddHours(8).ToString("MM-dd HH:mm", CultureInfo.InvariantCulture)
+                }), HttpContext.RequestAborted);
+        }
+    }
+
+    private static ResourceType MapCategoryToResourceType(ItemCategory category) => category switch
+    {
+        ItemCategory.Textbook => ResourceType.Textbook,
+        ItemCategory.Electronics => ResourceType.Electronics,
+        ItemCategory.Sports => ResourceType.Sports,
+        _ => ResourceType.Daily
+    };
+
+    private static double CalculateJaccard(string left, string right)
+    {
+        var leftSet = NormalizeForSimilarity(left);
+        var rightSet = NormalizeForSimilarity(right);
+        if (leftSet.Count == 0 && rightSet.Count == 0)
+            return 1;
+        var intersection = leftSet.Intersect(rightSet).Count();
+        var union = leftSet.Union(rightSet).Count();
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
+    private static HashSet<char> NormalizeForSimilarity(string value) =>
+        value.Trim()
+            .ToLowerInvariant()
+            .Where(c => !char.IsWhiteSpace(c) && !char.IsPunctuation(c))
+            .ToHashSet();
+
+    private async Task<string?> FindBannedAsync(string scene, params string?[] texts)
+    {
+        var local = ContentFilter.FindBanned(texts);
+        if (local is not null)
+            return local;
+
+        var candidates = texts
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t!.Trim())
+            .ToList();
+        if (candidates.Count == 0)
+            return null;
+
+        return await contentModerator.FindViolationAsync(
+            new ContentModerationInput(scene, candidates),
+            HttpContext.RequestAborted);
+    }
+
+    private static string? ValidateItemFields(string? title, string? description, List<string>? images,
+        bool textRequired)
+    {
+        var normalizedTitle = title?.Trim();
+        if (textRequired && string.IsNullOrWhiteSpace(normalizedTitle))
+            return "请填写商品标题";
+        if (normalizedTitle is not null && normalizedTitle.Length is < 1 or > 40)
+            return "商品标题需为 1 到 40 个字";
+
+        var normalizedDescription = description?.Trim();
+        if (textRequired && string.IsNullOrWhiteSpace(normalizedDescription))
+            return "请填写商品描述";
+        if (normalizedDescription is not null && normalizedDescription.Length is < 1 or > 2000)
+            return "商品描述需为 1 到 2000 个字";
+
+        if (images is { Count: > 9 })
+            return "商品图片最多上传 9 张";
+
+        return null;
+    }
+
+    private static string? ValidateRentalFields(bool isRental, string? rentalRate, decimal? deposit,
+        out string? normalizedRentalRate)
+    {
+        normalizedRentalRate = null;
+        if (!isRental)
+            return null;
+
+        if (!TryNormalizeMoney(rentalRate, allowZero: false, out normalizedRentalRate))
+            return "请填写合法租金，租金必须为大于 0 的数字，最多两位小数";
+
+        if (deposit.HasValue && (deposit.Value < 0 || deposit.Value > 99999 || decimal.Round(deposit.Value, 2) != deposit.Value))
+            return "押金必须为 0 到 99999 之间的合法数字，最多两位小数";
+
+        return null;
+    }
+
+    private static bool TryNormalizeMoney(string? value, bool allowZero, out string? normalized)
+    {
+        normalized = null;
+        var text = value?.Trim();
+        if (string.IsNullOrWhiteSpace(text) || !MoneyPattern.IsMatch(text))
+            return false;
+        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+            return false;
+        if (amount > 99999 || (!allowZero && amount <= 0) || (allowZero && amount < 0))
+            return false;
+        normalized = amount.ToString("0.##", CultureInfo.InvariantCulture);
+        return true;
     }
 }

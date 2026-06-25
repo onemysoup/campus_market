@@ -20,6 +20,17 @@
   background: #f1f5f9;
 }
 
+.image-placeholder {
+  width: 100%;
+  height: 500rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 28rpx;
+}
+
 .status-badge {
   position: absolute;
   top: 24rpx;
@@ -303,4 +314,64 @@
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* 跨区标签与提醒 */
+.tag-cross {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.cross-tip {
+  margin: 16rpx 24rpx;
+  padding: 18rpx 24rpx;
+  background: #fffbeb;
+  border: 1rpx solid #fde68a;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+/* 卖家评价 */
+.seller-rating {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #f59e0b;
+}
+
+.seller-rating.muted {
+  color: #94a3b8;
+}
+
+.review-list {
+  margin-top: 20rpx;
+  border-top: 1rpx solid #f1f5f9;
+  padding-top: 16rpx;
+}
+
+.review-item {
+  padding: 12rpx 0;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-stars {
+  font-size: 24rpx;
+}
+
+.review-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.review-comment {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: #475569;
+  line-height: 1.5;
 }

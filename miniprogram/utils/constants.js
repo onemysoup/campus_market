@@ -19,6 +19,13 @@ const ENV_CONFIG = {
   }
 };
 
+// 微信订阅消息模板 ID。拿到小程序后台模板后填入；留空时本地自动跳过订阅授权。
+const SUBSCRIBE_TEMPLATE_IDS = {
+  requestResponse: '',
+  requestMatch: '',
+  purchaseSuccess: 'p4v3_MtvaO3e0WHc6xCZAXRvuEt1O2UDAW_uOA4fqgA'
+};
+
 // ==================== 后端枚举映射 ====================
 
 /**
@@ -128,6 +135,28 @@ const RESOURCE_TYPE = [
 ];
 
 /**
+ * CollegeTag 学院标签（DDD 5.3 college_tag）
+ * 后端: 0=农学院 ... 13=国际学院, 14=其他
+ */
+const COLLEGE_LIST = [
+  { id: 0, name: '农学院' },
+  { id: 1, name: '植物保护学院' },
+  { id: 2, name: '动物科学技术学院' },
+  { id: 3, name: '动物医学院' },
+  { id: 4, name: '信息与电气工程学院' },
+  { id: 5, name: '工学院' },
+  { id: 6, name: '经济管理学院' },
+  { id: 7, name: '人文与发展学院' },
+  { id: 8, name: '理学院' },
+  { id: 9, name: '食品科学与营养工程学院' },
+  { id: 10, name: '水利与土木工程学院' },
+  { id: 11, name: '土地科学与技术学院' },
+  { id: 12, name: '生物学院' },
+  { id: 13, name: '国际学院' },
+  { id: 14, name: '其他' }
+];
+
+/**
  * ReportReason 举报原因
  */
 const REPORT_REASON = {
@@ -159,9 +188,10 @@ const TOKEN_STATUS = {
  * RentalStatus 租赁状态
  */
 const RENTAL_STATUS = {
-  NONE: 0,
-  ACTIVE: 1,
-  RETURNED: 2
+  NOT_APPLICABLE: 0,
+  RENTING: 1,
+  OVERDUE: 2,
+  RETURNED: 3
 };
 
 // ==================== 后端错误码 ====================
@@ -203,11 +233,22 @@ function formatPrice(price) {
 /**
  * 格式化时间
  */
+function parseBackendTime(dateStr) {
+  if (!dateStr) return null;
+  if (typeof dateStr !== 'string') return new Date(dateStr);
+
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(dateStr);
+  const looksLikeDateTime = dateStr.includes('T');
+  return new Date(looksLikeDateTime && !hasTimezone ? `${dateStr}Z` : dateStr);
+}
+
 function formatTime(dateStr) {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const date = parseBackendTime(dateStr);
+  if (!date || Number.isNaN(date.getTime())) return '';
+
   const now = new Date();
-  const diff = now - date;
+  const diff = Math.max(0, now - date);
 
   // 1分钟内
   if (diff < 60000) return '刚刚';
@@ -226,6 +267,7 @@ function formatTime(dateStr) {
 
 module.exports = {
   ENV_CONFIG,
+  SUBSCRIBE_TEMPLATE_IDS,
   CATEGORY_LIST,
   ITEM_STATUS,
   ITEM_STATUS_MAP,
@@ -237,6 +279,7 @@ module.exports = {
   TRANSACTION_TYPE,
   TRANSACTION_TYPE_MAP,
   RESOURCE_TYPE,
+  COLLEGE_LIST,
   REPORT_REASON,
   REPORT_REASON_MAP,
   TOKEN_STATUS,

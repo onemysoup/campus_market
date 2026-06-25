@@ -21,6 +21,8 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
         builder.Property(i => i.Category).HasConversion<int>();
         builder.Property(i => i.ConditionLevel).HasConversion<int>();
         builder.Property(i => i.CampusArea).HasConversion<int>();
+        builder.Property(i => i.TargetCollege).HasConversion<int>();
+        builder.Property(i => i.SupportCrossCampus).HasDefaultValue(false);
         builder.Property(i => i.Images).HasColumnType("json");
         builder.Property(i => i.ViewCount).HasDefaultValue(0);
         builder.Property(i => i.IsNegotiable).HasDefaultValue(true);

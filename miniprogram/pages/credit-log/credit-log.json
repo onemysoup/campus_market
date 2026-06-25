@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "信用记录",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "app-nav": "/components/app-nav/index"
+  }
+}

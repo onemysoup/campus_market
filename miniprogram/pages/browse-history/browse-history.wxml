@@ -1,0 +1,34 @@
+<view class="container">
+  <app-nav title="浏览历史" showBack />
+  <!-- 顶部操作 -->
+  <view class="top-bar" wx:if="{{list.length > 0}}">
+    <text class="count">共 {{list.length}} 条</text>
+    <text class="clear-btn" bindtap="onClear">清空历史</text>
+  </view>
+
+  <!-- 列表 -->
+  <view class="history-list" wx:if="{{list.length > 0}}">
+    <view
+      class="history-item"
+      wx:for="{{list}}"
+      wx:key="itemId"
+      data-itemid="{{item.itemId}}"
+      data-available="{{item.available}}"
+      bindtap="onTapItem"
+    >
+      <image class="thumb" src="{{item.image}}" mode="aspectFill" />
+      <view class="meta">
+        <text class="title {{item.available ? '' : 'gray'}}">{{item.title}}</text>
+        <text class="price" wx:if="{{item.priceDisplay}}">{{item.priceDisplay}}</text>
+        <text class="time">{{item.timeText}}</text>
+      </view>
+      <text class="offline-tag" wx:if="{{!item.available}}">已下架</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:elif="{{!loading}}">
+    <text class="empty-icon">🕘</text>
+    <text class="empty-text">还没有浏览记录</text>
+  </view>
+</view>

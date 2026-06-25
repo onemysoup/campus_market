@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="登录" />
   <!-- 登录卡片 -->
   <view class="card" wx:if="{{!showGuide}}">
     <view class="title">欢迎来到校园二手</view>

@@ -1,5 +1,31 @@
+.custom-nav {
+  background: #0f766e;
+  color: #fff;
+}
+
+.custom-nav-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 180rpx;
+  box-sizing: border-box;
+}
+
+.custom-nav-title {
+  max-width: 100%;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .container {
   padding: 24rpx;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   background: #f8fafc;
 }
@@ -148,4 +174,36 @@
   padding: 60rpx 0;
   color: #94a3b8;
   font-size: 28rpx;
+}
+
+/* 求购大厅入口 */
+.entry-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 30rpx;
+  margin: 0 24rpx 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+.entry-icon {
+  font-size: 48rpx;
+  margin-right: 24rpx;
+}
+.entry-text {
+  flex: 1;
+}
+.entry-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6rpx;
+}
+.entry-sub {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+.entry-arrow {
+  font-size: 44rpx;
+  color: #cbd5e1;
 }

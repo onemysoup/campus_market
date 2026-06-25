@@ -4,7 +4,17 @@
  */
 
 const chatApi = require('../../api/chat');
-const { formatTime } = require('../../utils/constants');
+const { formatPrice, formatTime } = require('../../utils/constants');
+const { syncTabBar } = require('../../utils/tabbar');
+
+function formatItemPrice(session) {
+  if (session.itemIsRental) return session.itemRentalRate || '租金面议';
+  return Number(session.itemPrice) === 0 ? '免费' : `¥${formatPrice(session.itemPrice)}`;
+}
+
+function normId(id) {
+  return String(id || '').toLowerCase();
+}
 
 Page({
   data: {
@@ -22,6 +32,8 @@ Page({
   },
 
   onShow() {
+    syncTabBar(this, 3);
+
     // 检查是否从其他页面跳转过来
     const app = getApp();
     if (app.globalData.chatParams) {
@@ -29,9 +41,14 @@ Page({
       app.globalData.chatParams = null;
 
       // 先加载会话列表
-      this.loadSessions().then(() => {
-        // 跳转到聊天详情
-        this.goChatDetail(null, sellerId, itemId, sellerNickname);
+      this.loadSessions().then((sessions) => {
+        const existing = this.findSession(sessions || this.data.sessions, sellerId, itemId);
+        this.goChatDetail(
+          existing ? existing.sessionId : null,
+          sellerId,
+          itemId,
+          sellerNickname || (existing && existing.displayNickname)
+        );
       });
       return;
     }
@@ -55,14 +72,14 @@ Page({
 
       // 处理会话数据，适配后端返回格式
       const userInfo = wx.getStorageSync('userInfo') || {};
-      const myUserId = userInfo.userId || '';
+      const myUserId = normId(userInfo.userId);
 
       console.log('[Chat] myUserId:', myUserId);
       console.log('[Chat] sessions:', sessions);
 
       const processedSessions = (sessions || []).map(session => {
         // 判断角色：如果当前用户是卖家，则对方是买家；否则对方是卖家
-        const isSeller = session.sellerId === myUserId;
+        const isSeller = normId(session.sellerId) === myUserId;
 
         console.log('[Chat] session.sellerId:', session.sellerId, 'isSeller:', isSeller);
 
@@ -71,7 +88,8 @@ Page({
           displayNickname: session.otherUserNickname || '用户',
           displayAvatar: session.otherUserAvatar || '',
           userRole: isSeller ? 1 : 0,
-          userRoleText: isSeller ? '卖家' : '买家'
+          userRoleText: isSeller ? '卖家' : '买家',
+          itemPriceDisplay: formatItemPrice(session)
         };
       });
 
@@ -80,10 +98,21 @@ Page({
         loading: false,
         hasLoaded: true
       });
+      return processedSessions;
     } catch (error) {
       console.error('[Chat] loadSessions error:', error);
       this.setData({ loading: false });
+      return [];
     }
+  },
+
+  findSession(sessions, targetUserId, itemId) {
+    const target = normId(targetUserId);
+    const item = normId(itemId);
+    return (sessions || []).find(session =>
+      normId(session.itemId) === item
+      && (normId(session.otherUserId) === target || normId(session.targetUserId) === target)
+    );
   },
 
   /**

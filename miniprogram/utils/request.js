@@ -43,6 +43,8 @@ const BASE_URL = getBaseURL();
  * @param {Object} options.data    - 请求数据
  * @param {boolean} options.showLoading - 是否显示 loading，默认 false
  * @param {boolean} options.showError   - 是否自动弹出错误提示，默认 true
+ * @param {boolean} options.raw         - 是否直接返回原始响应体，默认 false
+ * @param {number} options.timeout      - 请求超时时间，默认 15000ms
  * @param {Object} options.header  - 自定义 header
  */
 function request(options = {}) {
@@ -52,6 +54,8 @@ function request(options = {}) {
     data = {},
     showLoading = false,
     showError = true,
+    raw = false,
+    timeout = 15000,
     header = {}
   } = options;
 
@@ -80,7 +84,7 @@ function request(options = {}) {
       method,
       data,
       header: requestHeader,
-      timeout: 15000,
+      timeout,
       success: (res) => {
         const statusCode = res.statusCode;
         const result = res.data || {};
@@ -89,6 +93,11 @@ function request(options = {}) {
         if (statusCode >= 400) {
           handleHttpError(statusCode, result, showError);
           reject(result);
+          return;
+        }
+
+        if (raw) {
+          resolve(res.data);
           return;
         }
 
@@ -130,8 +139,8 @@ function handleHttpError(statusCode, result, showError) {
 
   switch (statusCode) {
     case 401:
-      message = '登录已失效，请重新登录';
-      handleUnauthorized();
+      message = result.message || '登录已失效，请重新登录';
+      handleUnauthorized(message);
       break;
     case 403:
       message = '无权执行此操作';
@@ -162,7 +171,7 @@ function handleBusinessError(result, showError) {
   const message = result.message || ERROR_MESSAGES[code] || '操作失败';
 
   if (code === ERROR_CODES.UNAUTHORIZED) {
-    handleUnauthorized();
+    handleUnauthorized(message);
     return;
   }
 
@@ -174,9 +183,17 @@ function handleBusinessError(result, showError) {
 /**
  * 处理未授权（清除登录态，跳转登录页）
  */
-function handleUnauthorized() {
+function handleUnauthorized(message = '登录已失效，请重新登录') {
   wx.removeStorageSync('token');
   wx.removeStorageSync('userInfo');
+  try {
+    const app = getApp();
+    if (app && typeof app.onLogout === 'function') {
+      app.onLogout();
+    }
+  } catch (e) {
+    // getApp 在极早期初始化阶段可能不可用，忽略即可。
+  }
 
   // 避免多次跳转
   const pages = getCurrentPages();
@@ -186,7 +203,7 @@ function handleUnauthorized() {
   if (currentRoute !== 'pages/login/login') {
     wx.showModal({
       title: '提示',
-      content: '登录已失效，请重新登录',
+      content: message,
       showCancel: false,
       success: () => {
         wx.navigateTo({ url: '/pages/login/login' });

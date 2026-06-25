@@ -30,11 +30,21 @@ const requestsApi = {
   },
 
   /**
-   * 响应求购（表示我有此商品）
+   * 响应求购（"我有它"：用自己的一件在售商品响应）
+   * @param {string} id      - 求购帖 GUID
+   * @param {string} itemId  - 用于响应的商品 GUID
+   * @param {string} message - 可选补充说明
+   */
+  respondRequest(id, itemId, message = '') {
+    return post(`/api/v1/requests/${id}/respond`, { itemId, message });
+  },
+
+  /**
+   * 查看某条求购帖收到的响应商品列表（发布者用）
    * @param {string} id - 求购帖 GUID
    */
-  respondRequest(id) {
-    return post(`/api/v1/requests/${id}/respond`);
+  getResponses(id) {
+    return get(`/api/v1/requests/${id}/responses`);
   },
 
   /**

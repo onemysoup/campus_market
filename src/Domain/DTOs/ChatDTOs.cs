@@ -12,6 +12,9 @@ public sealed record ChatSessionVO
     public Guid ItemId { get; init; }
     public string? ItemTitle { get; init; }
     public decimal ItemPrice { get; init; }
+    public Guid? SellerId { get; init; }
+    public bool ItemIsRental { get; init; }
+    public string? ItemRentalRate { get; init; }
     public string? ItemImage { get; init; }
     public string? LastMessagePreview { get; init; }
     public DateTime? LastMessageTime { get; init; }

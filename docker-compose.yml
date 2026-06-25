@@ -42,6 +42,13 @@ services:
       Smtp__From: ${SMTP_FROM:-}
       WeChat__AppId: ${WECHAT_APPID:-}
       WeChat__AppSecret: ${WECHAT_APPSECRET:-}
+      WeChat__SubscribeTemplates__PurchaseSuccess: ${WECHAT_TEMPLATE_PURCHASE_SUCCESS:-}
+      Ai__Enabled: ${AI_ENABLED:-false}
+      Ai__Endpoint: ${AI_ENDPOINT:-}
+      Ai__ApiKey: ${AI_API_KEY:-}
+      Ai__Model: ${AI_MODEL:-gpt-4o-mini}
+      Ai__ModerationEndpoint: ${AI_MODERATION_ENDPOINT:-}
+      Ai__ModerationModel: ${AI_MODERATION_MODEL:-gpt-4o-mini}
     depends_on:
       mysql:
         condition: service_healthy

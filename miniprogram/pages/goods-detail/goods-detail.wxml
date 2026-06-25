@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="商品详情" showBack />
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading}}">
     <view class="skeleton-image"></view>
@@ -14,6 +15,7 @@
     <!-- 图片轮播 -->
     <view class="image-section">
       <swiper
+        wx:if="{{goods.images.length > 0}}"
         class="image-swiper"
         indicator-dots="{{goods.images.length > 1}}"
         indicator-color="rgba(255,255,255,0.5)"
@@ -31,6 +33,9 @@
           />
         </swiper-item>
       </swiper>
+      <view class="image-placeholder" wx:else>
+        <text>暂无图片</text>
+      </view>
       <!-- 状态角标 -->
       <view class="status-badge" style="background: {{statusColor}};" wx:if="{{statusText}}">
         {{statusText}}
@@ -44,10 +49,13 @@
     <!-- 价格与标题 -->
     <view class="info-card">
       <view class="price-row">
-        <text class="price">¥{{priceText}}</text>
+        <text class="price" wx:if="{{goods.isRental}}">{{goods.rentalRate || '租金面议'}}</text>
+        <text class="price" wx:elif="{{priceText === '0.00'}}">免费赠送</text>
+        <text class="price" wx:else>¥{{priceText}}</text>
         <view class="price-tags">
           <text class="tag" wx:if="{{goods.isNegotiable}}">可议价</text>
           <text class="tag" wx:if="{{goods.isRental}}">可租赁</text>
+          <text class="tag tag-cross" wx:if="{{goods.supportCrossCampus}}">支持东西校区互带</text>
         </view>
       </view>
       <view class="title">{{goods.title}}</view>
@@ -73,6 +81,10 @@
           <text class="attr-label">校区</text>
           <text class="attr-value">{{campusText}}</text>
         </view>
+        <view class="attr-item" wx:if="{{collegeText}}">
+          <text class="attr-label">学院</text>
+          <text class="attr-value">{{collegeText}}</text>
+        </view>
         <view class="attr-item" wx:if="{{goods.deliveryPoint}}">
           <text class="attr-label">交易地点</text>
           <text class="attr-value">{{goods.deliveryPoint}}</text>
@@ -86,6 +98,11 @@
           <text class="attr-value">¥{{goods.deposit}}</text>
         </view>
       </view>
+    </view>
+
+    <!-- 跨区交易提醒（F4.4.2） -->
+    <view class="cross-tip" wx:if="{{goods.supportCrossCampus}}">
+      ⚠️ 该商品可跨东西校区互带。平台不提供配送服务，请双方私下协商交付方式，跨区交易风险自担。
     </view>
 
     <!-- 商品描述 -->
@@ -108,6 +125,25 @@
           <view class="seller-auth" wx:if="{{goods.seller.authLevel > 0}}">
             <text class="auth-badge">✅ 已认证</text>
           </view>
+          <view class="seller-rating" wx:if="{{sellerReviewCount > 0}}">
+            ⭐ {{sellerRating}} 分 · {{sellerReviewCount}} 条评价
+          </view>
+          <view class="seller-rating muted" wx:else>暂无评价</view>
+        </view>
+      </view>
+
+      <!-- 评价列表 -->
+      <view class="review-list" wx:if="{{sellerReviews.length > 0}}">
+        <view class="review-item" wx:for="{{sellerReviews}}" wx:key="createdAt">
+          <view class="review-head">
+            <text class="review-stars">{{['','⭐','⭐⭐','⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐⭐⭐'][item.rating]}}</text>
+            <text class="review-time">{{item.timeText}}</text>
+          </view>
+          <view class="review-comment" wx:if="{{item.comment}}">{{item.comment}}</view>
+        </view>
+        <!-- 查看全部 / 收起 -->
+        <view class="review-toggle" wx:if="{{sellerReviewCount > 3}}" bindtap="onToggleReviews">
+          {{reviewsExpanded ? '收起评价' : '查看全部 ' + sellerReviewCount + ' 条评价'}} ›
         </view>
       </view>
     </view>
@@ -138,7 +174,7 @@
         bindtap="onBuy"
         disabled="{{!canBuy}}"
       >
-        {{canBuy ? '立即购买' : '暂不可购买'}}
+        {{canBuy ? (goods.isRental ? '立即租赁' : '立即购买') : (goods.isRental ? '暂不可租赁' : '暂不可购买')}}
       </button>
     </view>
   </view>

@@ -1,8 +1,24 @@
+<view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+  <view class="custom-nav-bar" style="height: {{navBarHeight}}px;">
+    <text class="custom-nav-title">校园二手首页</text>
+  </view>
+</view>
+
 <view class="container">
   <!-- Hero Banner -->
   <view class="hero card">
     <view class="hero-title">校园闲置循环计划</view>
     <view class="hero-sub">买卖二手好物，省钱更环保</view>
+  </view>
+
+  <!-- 求购大厅入口 -->
+  <view class="entry-card" bindtap="goRequests">
+    <view class="entry-icon">📢</view>
+    <view class="entry-text">
+      <view class="entry-title">求购大厅</view>
+      <view class="entry-sub">找不到想要的？发条求购让卖家来找你</view>
+    </view>
+    <view class="entry-arrow">›</view>
   </view>
 
   <!-- 分类导航 -->
@@ -47,7 +63,7 @@
           <text class="category-tag">{{item.categoryText}}</text>
           <text class="view-count">👁 {{item.viewCount}}</text>
         </view>
-        <view class="price">¥{{item.priceText}}</view>
+        <view class="price">{{item.priceDisplay}}</view>
       </view>
     </view>
   </view>
@@ -78,7 +94,7 @@
           <text class="category-tag">{{item.categoryText}}</text>
           <text class="time-text">{{item.timeText}}</text>
         </view>
-        <view class="price">¥{{item.priceText}}</view>
+        <view class="price">{{item.priceDisplay}}</view>
       </view>
     </view>
   </view>

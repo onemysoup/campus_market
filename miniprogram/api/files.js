@@ -3,7 +3,7 @@
  * 对应后端: FilesController (/api/v1/files)
  */
 
-const { upload } = require('../utils/request');
+const requestUtil = require('../utils/request');
 
 const filesApi = {
   /**
@@ -11,7 +11,7 @@ const filesApi = {
    * @param {string} filePath - 本地文件路径
    */
   uploadImage(filePath) {
-    return upload('/api/v1/files/upload', filePath, 'file');
+    return requestUtil.upload('/api/v1/files/upload', filePath, 'file');
   }
 };
 

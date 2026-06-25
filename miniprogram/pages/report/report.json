@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "举报"
+  "navigationBarTitleText": "举报",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-nav": "/components/app-nav/index"
+  }
 }

@@ -1,0 +1,31 @@
+<view class="container">
+  <app-nav title="信用记录" showBack />
+  <!-- 当前信用分 -->
+  <view class="score-card">
+    <text class="score-label">当前诚信分</text>
+    <text class="score-value">{{creditScore}}</text>
+    <text class="score-hint">80分以上正常 · 60-79受限 · 40-59严重受限 · 40以下黑名单</text>
+  </view>
+
+  <!-- 变动列表 -->
+  <view class="log-list" wx:if="{{logs.length > 0}}">
+    <view class="log-item" wx:for="{{logs}}" wx:key="createdAt">
+      <view class="log-main">
+        <text class="log-reason">{{item.reason}}</text>
+        <text class="log-time">{{item.timeText}}</text>
+      </view>
+      <view class="log-right">
+        <text class="log-amount {{item.isPlus ? 'plus' : 'minus'}}">{{item.amountText}}</text>
+        <text class="log-after">余 {{item.scoreAfter}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:elif="{{!loading}}">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无信用变动记录</text>
+  </view>
+
+  <view class="no-more" wx:if="{{!hasMore && logs.length > 0}}">— 没有更多了 —</view>
+</view>

@@ -38,9 +38,17 @@ public sealed class User
     public DateOnly? AuthDate { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public bool IsEligibleToPublish() => CreditScore >= 40 && !IsBanned && AuthLevel >= Enums.AuthLevel.L1;
+    // SRS F5.2.2 阶梯式限权：40-59 严重受限（禁止发布），<40 黑名单；故发布门槛为诚信分 ≥60
+    public bool IsEligibleToPublish(decimal price) =>
+        CreditScore >= 60
+        && !IsBanned
+        && AuthLevel >= Enums.AuthLevel.L1
+        && (AuthLevel >= Enums.AuthLevel.L2 || price < 200);
 
-    public bool IsEligibleToTransaction() => AuthLevel >= Enums.AuthLevel.L1 && !IsBanned;
+    // SRS F5.2.2：60-79 受限用户在售商品数量上限为 2，80 分及以上不限量（0 表示不限）
+    public int GetActiveItemLimit() => CreditScore >= 80 ? 0 : 2;
+
+    public bool IsEligibleToTransaction() => AuthLevel >= Enums.AuthLevel.L2 && !IsBanned;
 
     public CreditTier GetCreditTier() => CreditScore switch
     {
@@ -77,7 +85,17 @@ public sealed class User
     {
         StudentId = studentId;
         AuthLevel = Enums.AuthLevel.L2;
+        // 从学号前 4 位推断入学年份，按本科 4 年学制估算毕业年（供毕业自动降级使用，管理员可后台覆盖）
+        if (GraduationYear is null && studentId.Length >= 4
+            && int.TryParse(studentId[..4], out var enrollYear)
+            && enrollYear is >= 2000 and <= 2100)
+        {
+            GraduationYear = (enrollYear + 4).ToString(CultureInfo.InvariantCulture);
+        }
     }
+
+    // 管理员手动设置/修正毕业年份
+    public void SetGraduationYear(string? graduationYear) => GraduationYear = graduationYear;
 
     public void SetCampusArea(CampusArea area) => CampusArea = area;
 

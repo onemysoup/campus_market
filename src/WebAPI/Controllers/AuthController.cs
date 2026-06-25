@@ -26,7 +26,11 @@ public class AuthController(
     IMemoryCache cache) : ControllerBase
 {
     private const string EmailCodePrefix = "email_code:";
-    private static readonly TimeSpan CodeExpiry = TimeSpan.FromMinutes(10);
+    private const string EmailCodeCooldownPrefix = "email_code_cooldown:";
+    private const string EmailCodeDailyPrefix = "email_code_daily:";
+    private const int DailyEmailCodeLimit = 5;
+    private static readonly TimeSpan CodeExpiry = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan EmailCodeCooldown = TimeSpan.FromSeconds(60);
 
     [HttpPost("wx-login")]
     public async Task<IActionResult> WxLogin([FromBody] WxLoginRequest request)
@@ -46,6 +50,10 @@ public class AuthController(
             await db.SaveChangesAsync();
             isNewUser = true;
         }
+        else if (user.IsBanned)
+        {
+            return Unauthorized(new { code = 4001, message = "账号已被封禁" });
+        }
 
         var token = GenerateToken(user);
         return Ok(new
@@ -64,7 +72,7 @@ public class AuthController(
             return NotFound(new { code = 4004, message = "用户不存在" });
 
         if (!user.HasPassword() || !PasswordHelper.Verify(request.Password, user.PasswordHash!))
-            return Unauthorized(new { code = 4001, message = "邮箱或密码错误" });
+            return BadRequest(new { code = 4000, message = "邮箱或密码错误" });
 
         if (user.IsBanned)
             return Unauthorized(new { code = 4001, message = "账号已被封禁" });
@@ -81,13 +89,29 @@ public class AuthController(
     [HttpPost("send-code")]
     public async Task<IActionResult> SendCode([FromBody] SendCodeRequest request)
     {
-        if (!request.Email.EndsWith("@cau.edu.cn", StringComparison.OrdinalIgnoreCase))
+        var email = NormalizeEmail(request.Email);
+        if (!email.EndsWith("@cau.edu.cn", StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { code = 4000, message = "仅支持 CAU 邮箱" });
 
-        var code = Random.Shared.Next(100000, 999999).ToString(CultureInfo.InvariantCulture);
-        cache.Set($"{EmailCodePrefix}{request.Email}", code, CodeExpiry);
+        var cooldownKey = $"{EmailCodeCooldownPrefix}{email}";
+        if (cache.TryGetValue(cooldownKey, out _))
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new { code = 4290, message = "同一邮箱 60 秒内只能发送一次验证码" });
 
-        await emailSender.SendVerificationCodeAsync(request.Email, code);
+        var dailyKey = $"{EmailCodeDailyPrefix}{email}:{DateTime.UtcNow:yyyyMMdd}";
+        cache.TryGetValue<int>(dailyKey, out var sentToday);
+        if (sentToday >= DailyEmailCodeLimit)
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new { code = 4290, message = "今日验证码发送次数已达上限，请明天再试" });
+
+        cache.Set(cooldownKey, true, EmailCodeCooldown);
+        cache.Set(dailyKey, sentToday + 1,
+            new MemoryCacheEntryOptions { AbsoluteExpiration = DateTimeOffset.UtcNow.Date.AddDays(1) });
+
+        var code = Random.Shared.Next(100000, 999999).ToString(CultureInfo.InvariantCulture);
+        cache.Set($"{EmailCodePrefix}{email}", code, CodeExpiry);
+
+        await emailSender.SendVerificationCodeAsync(email, code);
         return Ok(new { code = 0, message = "验证码已发送" });
     }
 
@@ -99,7 +123,8 @@ public class AuthController(
         if (userId == Guid.Empty)
             return Unauthorized(new { code = 4001, message = "未授权访问" });
 
-        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{request.Email}");
+        var email = NormalizeEmail(request.Email);
+        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{email}");
         if (cachedCode is null || cachedCode != request.Code)
             return BadRequest(new { code = 4000, message = "验证码错误或已过期" });
 
@@ -107,10 +132,10 @@ public class AuthController(
         if (user is null)
             return NotFound(new { code = 4004, message = "用户未找到" });
 
-        user.VerifyEmail(request.Email);
+        user.VerifyEmail(email);
         await db.SaveChangesAsync();
 
-        cache.Remove($"{EmailCodePrefix}{request.Email}");
+        cache.Remove($"{EmailCodePrefix}{email}");
 
         var newToken = GenerateToken(user);
         return Ok(new { code = 0, data = new { authLevel = (int)user.AuthLevel, token = newToken } });
@@ -140,18 +165,19 @@ public class AuthController(
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
     {
-        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{request.Email}");
+        var email = NormalizeEmail(request.Email);
+        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{email}");
         if (cachedCode is null || cachedCode != request.Code)
             return BadRequest(new { code = 4000, message = "验证码错误或已过期" });
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailAddress == request.Email);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailAddress == email);
         if (user is null)
             return NotFound(new { code = 4004, message = "用户未找到" });
 
         user.SetPassword(PasswordHelper.Hash(request.NewPassword));
         await db.SaveChangesAsync();
 
-        cache.Remove($"{EmailCodePrefix}{request.Email}");
+        cache.Remove($"{EmailCodePrefix}{email}");
         return Ok(new { code = 0, message = "密码重置成功" });
     }
 
@@ -202,7 +228,7 @@ public class AuthController(
         });
     }
 
-    [Authorize(Policy = "AuthLevelL1")]
+    [Authorize]
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
@@ -254,10 +280,11 @@ public class AuthController(
         if (userId == Guid.Empty)
             return Unauthorized(new { code = 4001, message = "未授权访问" });
 
-        if (!string.Equals(request.Email, (await db.Users.FindAsync(userId))?.EmailAddress, StringComparison.OrdinalIgnoreCase))
+        var email = NormalizeEmail(request.Email);
+        if (!string.Equals(email, (await db.Users.FindAsync(userId))?.EmailAddress, StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { code = 4000, message = "只能使用当前绑定邮箱重置安全密码" });
 
-        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{request.Email}");
+        var cachedCode = cache.Get<string>($"{EmailCodePrefix}{email}");
         if (cachedCode is null || cachedCode != request.Code)
             return BadRequest(new { code = 4000, message = "验证码错误或已过期" });
 
@@ -268,7 +295,7 @@ public class AuthController(
         user.SetSecurityPassword(PasswordHelper.Hash(request.NewPassword));
         await db.SaveChangesAsync();
 
-        cache.Remove($"{EmailCodePrefix}{request.Email}");
+        cache.Remove($"{EmailCodePrefix}{email}");
         return Ok(new { code = 0, message = "安全密码重置成功" });
     }
 
@@ -327,13 +354,22 @@ public class AuthController(
     public async Task<IActionResult> SubmitStudentVerification([FromBody] SubmitStudentVerificationRequest request)
     {
         var userId = User.GetUserId();
+        var studentId = request.StudentId.Trim();
+        if (string.IsNullOrWhiteSpace(studentId))
+            return BadRequest(new { code = 4000, message = "请填写学号" });
 
         // Check if there's already a pending application
         if (await db.StudentVerificationApplications.AnyAsync(a => a.UserId == userId && a.Status == StudentVerificationStatus.Pending))
             return BadRequest(new { code = 4000, message = "已有审核中的申请" });
+        if (await db.Users.AnyAsync(u => u.Id != userId && u.StudentId == studentId))
+            return BadRequest(new { code = 4000, message = "该学号已完成认证，不能重复提交" });
+        if (await db.StudentVerificationApplications.AnyAsync(a => a.UserId != userId
+                && a.StudentId == studentId
+                && (a.Status == StudentVerificationStatus.Pending || a.Status == StudentVerificationStatus.Approved)))
+            return BadRequest(new { code = 4000, message = "该学号已有认证申请或已认证" });
 
         var app = new Domain.Entities.StudentVerificationApplication(
-            userId, request.RealName, request.StudentId, request.CertificateImageUrl);
+            userId, request.RealName.Trim(), studentId, request.CertificateImageUrl);
         db.StudentVerificationApplications.Add(app);
         await db.SaveChangesAsync();
 
@@ -374,4 +410,6 @@ public class AuthController(
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private static string NormalizeEmail(string? email) => (email ?? string.Empty).Trim().ToLowerInvariant();
 }

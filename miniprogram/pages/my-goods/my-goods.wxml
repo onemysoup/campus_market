@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="我发布的商品" showBack />
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && list.length === 0}}">
     <view class="skeleton-item" wx:for="{{[1,2,3]}}" wx:key="*this">
@@ -22,11 +23,12 @@
     <view class="goods-card" wx:for="{{list}}" wx:key="itemId">
       <!-- 商品信息（可点击查看详情） -->
       <view class="goods-info" data-id="{{item.itemId}}" bindtap="goDetail">
-        <image class="goods-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <image wx:if="{{item.firstImage}}" class="goods-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <view wx:else class="goods-thumb thumb-placeholder">暂无图片</view>
         <view class="goods-meta">
           <view class="goods-title">{{item.title}}</view>
           <view class="goods-bottom">
-            <text class="goods-price">¥{{item.priceText}}</text>
+            <text class="goods-price">{{item.priceDisplay}}</text>
             <view class="goods-status" style="background: {{item.statusColor}}20; color: {{item.statusColor}};">
               {{item.statusText}}
             </view>

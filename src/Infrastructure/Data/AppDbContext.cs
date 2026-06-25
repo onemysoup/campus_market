@@ -17,8 +17,12 @@ public class AppDbContext : DbContext
     public DbSet<BrowseHistory> BrowseHistories => Set<BrowseHistory>();
     public DbSet<BlacklistEntry> BlacklistEntries => Set<BlacklistEntry>();
     public DbSet<Request> Requests => Set<Request>();
+    public DbSet<RequestResponse> RequestResponses => Set<RequestResponse>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<StudentVerificationApplication> StudentVerificationApplications => Set<StudentVerificationApplication>();
+    public DbSet<SearchLog> SearchLogs => Set<SearchLog>();
+    public DbSet<EventLog> EventLogs => Set<EventLog>();
+    public DbSet<TransactionReview> TransactionReviews => Set<TransactionReview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

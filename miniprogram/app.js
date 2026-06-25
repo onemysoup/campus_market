@@ -51,6 +51,7 @@ App({
    */
   onLoginSuccess(loginData) {
     const { token, userId, nickname, avatarUrl, authLevel, roleType, isNewUser } = loginData;
+    const authConfig = AUTH_LEVEL_MAP[authLevel] || {};
 
     const userInfo = {
       userId,
@@ -58,8 +59,8 @@ App({
       avatarUrl: avatarUrl || '',
       authLevel: authLevel || 0,
       roleType: roleType || 'Student',
-      authLevelLabel: AUTH_LEVEL_MAP[authLevel]?.label || '未认证',
-      canPublish: AUTH_LEVEL_MAP[authLevel]?.canPublish || false,
+      authLevelLabel: authConfig.label || '未认证',
+      canPublish: authConfig.canPublish || false,
       isAdmin: roleType === 'Admin'
     };
 
@@ -130,6 +131,6 @@ App({
    * @returns {string|null}
    */
   getUserId() {
-    return this.globalData.userInfo?.userId || null;
+    return this.globalData.userInfo ? this.globalData.userInfo.userId : null;
   }
 });

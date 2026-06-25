@@ -55,6 +55,18 @@ const itemsApi = {
   },
 
   /**
+   * AI 辅助生成商品描述（SRS F2.1.7 预留接口，后端无外部模型时本地降级生成）
+   * @param {Object} data
+   * @param {string} data.title          - 商品标题
+   * @param {number} data.category       - 分类枚举值
+   * @param {number} data.conditionLevel - 成色枚举值
+   * @param {string} [data.keywords]     - 关键词/卖点（选填）
+   */
+  aiDescribe(data) {
+    return post('/api/v1/items/ai-describe', data, { timeout: 60000, showError: false });
+  },
+
+  /**
    * 变更商品状态（上架/下架/标记已售等）
    * @param {string} id     - 商品 GUID
    * @param {number} status - 目标状态枚举值

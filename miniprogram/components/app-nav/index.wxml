@@ -1,0 +1,16 @@
+<view class="nav-placeholder" style="height: {{totalHeight}}px;"></view>
+<view class="app-nav" style="height: {{totalHeight}}px; background: {{background}};">
+  <view style="height: {{statusBarHeight}}px;"></view>
+  <view class="app-nav-bar" style="height: {{navBarHeight}}px;">
+    <view
+      wx:if="{{showBack}}"
+      class="back-btn"
+      style="height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;"
+      bindtap="onBack"
+    >‹</view>
+    <text
+      class="app-nav-title"
+      style="height: {{navBarHeight}}px; line-height: {{navBarHeight}}px; color: {{color}}; left: {{sidePadding}}px; right: {{sidePadding}}px;"
+    >{{title}}</text>
+  </view>
+</view>
