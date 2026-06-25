@@ -181,6 +181,7 @@ using (var scope = app.Services.CreateScope())
     }
 
     await EnsureDemoUserAsync("admin@cau.edu.cn", "admin-openid", "管理员", CampusArea.East, isAdmin: true);
+    await EnsureDemoUserAsync("admin2@cau.edu.cn", "admin2-openid", "管理员2", CampusArea.East, isAdmin: true);
     await EnsureDemoUserAsync("demo1@cau.edu.cn", "demo1-openid", "普通用户A", CampusArea.East,
         studentId: "202300000001");
     await EnsureDemoUserAsync("demo2@cau.edu.cn", "demo2-openid", "普通用户B", CampusArea.West,
