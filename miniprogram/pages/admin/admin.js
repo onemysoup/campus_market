@@ -47,6 +47,7 @@ Page({
   data: {
     // 权限
     isAdmin: false,
+    currentUserId: '',
     // 仪表盘数据
     dashboard: {
       totalUsers: 0,
@@ -141,7 +142,7 @@ Page({
     }
 
     const initialTab = options.tab || 'dashboard';
-    this.setData({ isAdmin: true, activeTab: initialTab });
+    this.setData({ isAdmin: true, currentUserId: userInfo.userId, activeTab: initialTab });
     this.loadActiveTab(initialTab);
   },
 
@@ -333,6 +334,7 @@ Page({
       const result = await adminApi.getUsers({ page, pageSize: 20 });
       const users = (result.users || []).map(u => ({
         ...u,
+        isSelf: u.userId === this.data.currentUserId,
         timeText: formatTime(u.createdAt)
       }));
 
@@ -351,6 +353,10 @@ Page({
   onToggleBan(e) {
     const { userid, nickname, banned } = e.currentTarget.dataset;
     const isBanned = banned === 'true' || banned === true;
+    if (userid === this.data.currentUserId && !isBanned) {
+      wx.showToast({ title: '不能封禁当前账号', icon: 'none' });
+      return;
+    }
 
     wx.showModal({
       title: isBanned ? '解封用户' : '封禁用户',

@@ -272,7 +272,7 @@ public class ItemsController(
         var item = await db.Items.FirstOrDefaultAsync(i => i.Id == id);
         if (item is null)
             return NotFound(new { code = 4004, message = "商品不存在" });
-        if (!item.CanBeEditedBy(userId))
+        if (!item.CanBeEditedBy(userId) && !User.IsAdmin())
             return Forbid();
 
         var result = item.TransitionTo(dto.Status);

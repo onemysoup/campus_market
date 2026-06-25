@@ -137,8 +137,8 @@ function handleHttpError(statusCode, result, showError) {
 
   switch (statusCode) {
     case 401:
-      message = '登录已失效，请重新登录';
-      handleUnauthorized();
+      message = result.message || '登录已失效，请重新登录';
+      handleUnauthorized(message);
       break;
     case 403:
       message = '无权执行此操作';
@@ -169,7 +169,7 @@ function handleBusinessError(result, showError) {
   const message = result.message || ERROR_MESSAGES[code] || '操作失败';
 
   if (code === ERROR_CODES.UNAUTHORIZED) {
-    handleUnauthorized();
+    handleUnauthorized(message);
     return;
   }
 
@@ -181,7 +181,7 @@ function handleBusinessError(result, showError) {
 /**
  * 处理未授权（清除登录态，跳转登录页）
  */
-function handleUnauthorized() {
+function handleUnauthorized(message = '登录已失效，请重新登录') {
   wx.removeStorageSync('token');
   wx.removeStorageSync('userInfo');
   try {
@@ -201,7 +201,7 @@ function handleUnauthorized() {
   if (currentRoute !== 'pages/login/login') {
     wx.showModal({
       title: '提示',
-      content: '登录已失效，请重新登录',
+      content: message,
       showCancel: false,
       success: () => {
         wx.navigateTo({ url: '/pages/login/login' });

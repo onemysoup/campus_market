@@ -22,4 +22,9 @@ public static class ClaimsExtensions
     {
         return user.FindFirst("roleType")?.Value ?? "Student";
     }
+
+    public static bool IsAdmin(this ClaimsPrincipal user)
+    {
+        return string.Equals(user.GetRoleType(), RoleType.Admin.ToString(), StringComparison.Ordinal);
+    }
 }

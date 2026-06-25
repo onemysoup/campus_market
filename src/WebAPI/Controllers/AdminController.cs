@@ -527,6 +527,10 @@ public class AdminController(AppDbContext db) : ControllerBase
     [HttpPatch("users/{id:guid}/ban")]
     public async Task<IActionResult> ToggleBan(Guid id, [FromBody] ToggleBanDTO dto)
     {
+        var adminId = User.GetUserId();
+        if (dto.Ban && id == adminId)
+            return BadRequest(new { code = 4000, message = "不能封禁当前登录的管理员账号" });
+
         var user = await db.Users.FindAsync(id);
         if (user is null)
             return NotFound(new { code = 4004, message = "用户不存在" });

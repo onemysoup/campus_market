@@ -209,6 +209,7 @@
         <view class="user-actions">
           <view
             class="action-btn {{item.isBanned ? 'unban' : 'ban'}}"
+            wx:if="{{!item.isSelf}}"
             data-userid="{{item.userId}}"
             data-nickname="{{item.nickname}}"
             data-banned="{{item.isBanned}}"
