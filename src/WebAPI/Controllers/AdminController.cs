@@ -1,4 +1,5 @@
 using CAUSecondHand.Domain.DTOs;
+using CAUSecondHand.Domain.Entities;
 using CAUSecondHand.Domain.Enums;
 using CAUSecondHand.Infrastructure.Data;
 using CAUSecondHand.WebAPI.Helpers;
@@ -47,6 +48,10 @@ public class AdminController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> GetDashboard()
     {
         var todayStart = ToUtcStart(DateOnly.FromDateTime(DateTime.UtcNow.Add(ReportTimeOffset)));
+        var authCounts = await db.Users
+            .GroupBy(u => u.AuthLevel)
+            .Select(g => new { AuthLevel = (int)g.Key, Count = g.Count() })
+            .ToListAsync();
 
         var data = new
         {
@@ -57,7 +62,8 @@ public class AdminController(AppDbContext db) : ControllerBase
             pendingVerifications = await db.StudentVerificationApplications.CountAsync(v => v.Status == StudentVerificationStatus.Pending),
             todayNewUsers = await db.Users.CountAsync(u => u.CreatedAt >= todayStart),
             todayNewItems = await db.Items.CountAsync(i => i.CreatedAt >= todayStart),
-            todayTransactions = await db.Transactions.CountAsync(t => t.CreatedAt >= todayStart)
+            todayTransactions = await db.Transactions.CountAsync(t => t.CreatedAt >= todayStart),
+            authCounts
         };
 
         return Ok(new { code = 0, data });
@@ -482,7 +488,7 @@ public class AdminController(AppDbContext db) : ControllerBase
     {
         ReportReason.Fraud => 20,       // 欺诈最严重
         ReportReason.Harassment => 15,  // 骚扰
-        ReportReason.Mismatch => 10,    // 货不对板
+        ReportReason.Mismatch => 20,    // 描述严重不符
         ReportReason.Ghost => 10,       // 放鸽子
         ReportReason.Outsider => 5,     // 校外人员
         _ => 5                          // 其他
@@ -510,9 +516,7 @@ public class AdminController(AppDbContext db) : ControllerBase
                 var log = target.RecordCreditChange(-penalty, $"举报核实扣分（{report.ReasonType}）", adminId);
                 db.CreditLogs.Add(log);
 
-                // 诚信分过低自动封禁
-                if (target.CreditScore < 40)
-                    target.Ban();
+                BanIfCreditBelowThreshold(target);
             }
         }
         else
@@ -551,6 +555,7 @@ public class AdminController(AppDbContext db) : ControllerBase
 
         var log = user.RecordCreditChange(dto.Delta, dto.Reason, adminId);
         db.CreditLogs.Add(log);
+        BanIfCreditBelowThreshold(user);
         await db.SaveChangesAsync();
 
         return Ok(new { code = 0, data = new { user.CreditScore } });
@@ -643,10 +648,23 @@ public class AdminController(AppDbContext db) : ControllerBase
         foreach (var user in degraded)
             user.DegradeToL0();
 
+        var degradedUserIds = degraded.Select(u => u.Id).ToList();
+        var activeItems = await db.Items
+            .Where(i => degradedUserIds.Contains(i.SellerId)
+                && (i.Status == ItemStatus.Active || i.Status == ItemStatus.Reserved))
+            .ToListAsync();
+        foreach (var item in activeItems)
+            item.TransitionTo(ItemStatus.Inactive);
+
         if (degraded.Count > 0)
             await db.SaveChangesAsync();
 
-        return Ok(new { code = 0, message = $"已降级 {degraded.Count} 名毕业用户", data = new { degradedCount = degraded.Count } });
+        return Ok(new
+        {
+            code = 0,
+            message = $"已降级 {degraded.Count} 名毕业用户，下架 {activeItems.Count} 件商品",
+            data = new { degradedCount = degraded.Count, inactiveItemCount = activeItems.Count }
+        });
     }
 
     // 管理员设置用户毕业年份（用于毕业降级数据修正）
@@ -660,6 +678,12 @@ public class AdminController(AppDbContext db) : ControllerBase
         user.SetGraduationYear(string.IsNullOrWhiteSpace(dto.GraduationYear) ? null : dto.GraduationYear);
         await db.SaveChangesAsync();
         return Ok(new { code = 0, message = "已更新毕业年份" });
+    }
+
+    private static void BanIfCreditBelowThreshold(User user)
+    {
+        if (user.CreditScore < 40)
+            user.Ban();
     }
 }
 

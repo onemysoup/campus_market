@@ -5,6 +5,7 @@
 
 const itemsApi = require('../../api/items');
 const filesApi = require('../../api/files');
+const { syncTabBar } = require('../../utils/tabbar');
 const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
@@ -25,6 +26,7 @@ function createInitialForm() {
     category: 0,
     conditionLevel: 0,
     campusArea: 0,
+    deliveryPoint: '',
     targetCollege: null,
     images: [],
     isNegotiable: true,
@@ -86,7 +88,7 @@ Page({
       { value: 2, label: '两校区' }
     ],
     // 图片限制
-    maxImages: 6,
+    maxImages: 9,
     // 提交状态
     submitting: false
   },
@@ -155,6 +157,7 @@ Page({
 
   onShow() {
     const app = getApp();
+    syncTabBar(this, 2);
 
     // 用户切换检测：tabBar 页面实例会复用，换账号后清空上个用户残留的表单并恢复本人草稿
     const curUid = app.getUserId();
@@ -220,6 +223,7 @@ Page({
           category: detail.category || 0,
           conditionLevel: detail.conditionLevel || 0,
           campusArea: detail.campusArea || 0,
+          deliveryPoint: detail.deliveryPoint || '',
           targetCollege: collegeValue,
           images: detail.images || [],
           isNegotiable: detail.isNegotiable !== false,
@@ -263,22 +267,37 @@ Page({
       return;
     }
     wx.showLoading({ title: 'AI 生成中', mask: true });
+    let toastTitle = '';
     try {
       const res = await itemsApi.aiDescribe({
         title: form.title.trim(),
         category: form.category,
         conditionLevel: form.conditionLevel,
         keywords: form.description.trim() || '',
-        images: form.images || []
+        images: form.images || [],
+        campusArea: form.campusArea,
+        supportCrossCampus: !!form.supportCrossCampus,
+        isNegotiable: !!form.isNegotiable,
+        isFree: !!form.isFree,
+        isRental: !!form.isRental,
+        rentalRate: form.rentalRate || '',
+        deposit: form.deposit ? Number(form.deposit) : null
       });
       if (res && res.description) {
         this.setDataAndSaveDraft({ 'form.description': res.description });
-        wx.showToast({ title: '已生成，可继续编辑', icon: 'none' });
+        toastTitle = '已生成，可继续编辑';
       }
     } catch (error) {
       console.error('[Publish] aiDescribe error:', error);
+      const errMsg = error && error.errMsg ? error.errMsg : '';
+      toastTitle = errMsg.includes('timeout')
+        ? 'AI生成超时，请重试'
+        : (error.message || 'AI生成失败，请稍后重试');
     } finally {
       wx.hideLoading();
+    }
+    if (toastTitle) {
+      wx.showToast({ title: toastTitle, icon: 'none' });
     }
   },
 
@@ -366,6 +385,10 @@ Page({
     });
   },
 
+  onDeliveryPointInput(e) {
+    this.setDataAndSaveDraft({ 'form.deliveryPoint': e.detail.value });
+  },
+
   onCollegeChange(e) {
     const index = Number(e.detail.value);
     this.setDataAndSaveDraft({
@@ -384,7 +407,8 @@ Page({
    * 选择图片
    */
   onChooseImage() {
-    const { images, maxImages } = this.data.form;
+    const { images } = this.data.form;
+    const { maxImages } = this.data;
     const remain = maxImages - images.length;
 
     if (remain <= 0) {
@@ -493,8 +517,6 @@ Page({
       return false;
     }
 
-    // 商品图片为可选项（不强制上传）
-
     return true;
   },
 
@@ -521,6 +543,7 @@ Page({
         category: form.category,
         conditionLevel: form.conditionLevel,
         campusArea: form.campusArea,
+        deliveryPoint: form.deliveryPoint.trim() || null,
         targetCollege: form.targetCollege,
         supportCrossCampus: form.supportCrossCampus,
         images: form.images,

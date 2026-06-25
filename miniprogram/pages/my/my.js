@@ -7,6 +7,7 @@ const authApi = require('../../api/auth');
 const profileApi = require('../../api/profile');
 const { AUTH_LEVEL_MAP, CAMPUS_AREA_MAP } = require('../../utils/constants');
 const securityPrefs = require('../../utils/security');
+const { syncTabBar } = require('../../utils/tabbar');
 
 Page({
   data: {
@@ -31,6 +32,7 @@ Page({
   onShow() {
     // 个人中心页面访问埋点（DDD 6.15 页面点击量统计）
     require('../../api/events').track('PAGE_VIEW', 'profile');
+    syncTabBar(this, 4);
     this.refreshUserData();
   },
 

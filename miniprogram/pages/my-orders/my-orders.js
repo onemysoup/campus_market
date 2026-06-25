@@ -8,6 +8,7 @@ const securityPrefs = require('../../utils/security');
 const {
   ITEM_STATUS_MAP,
   TRANSACTION_TYPE,
+  RENTAL_STATUS,
   formatPrice,
   formatTime
 } = require('../../utils/constants');
@@ -26,6 +27,16 @@ function formatPriceDisplay(item) {
   const isRental = item.isRental || item.transactionType === TRANSACTION_TYPE.RENTAL;
   if (isRental) return item.rentalRate || '租金面议';
   return Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`;
+}
+
+function getRentalStatusInfo(status) {
+  const map = {
+    [RENTAL_STATUS.NOT_APPLICABLE]: { label: '待借出', color: '#f59e0b', bg: '#fef3c7' },
+    [RENTAL_STATUS.RENTING]: { label: '租赁中', color: '#0f766e', bg: '#ccfbf1' },
+    [RENTAL_STATUS.OVERDUE]: { label: '已逾期', color: '#dc2626', bg: '#fee2e2' },
+    [RENTAL_STATUS.RETURNED]: { label: '已归还', color: '#22c55e', bg: '#dcfce7' }
+  };
+  return map[status] || map[RENTAL_STATUS.NOT_APPLICABLE];
 }
 
 Page({
@@ -164,19 +175,27 @@ Page({
   formatTransaction(item) {
     const status = item.status || 0;
     const statusInfo = TX_STATUS_MAP[status] || TX_STATUS_MAP[0];
+    const isRental = item.isRental || item.transactionType === TRANSACTION_TYPE.RENTAL;
+    const rentalStatus = Number(item.rentalStatus || RENTAL_STATUS.NOT_APPLICABLE);
+    const rentalStatusInfo = getRentalStatusInfo(rentalStatus);
+    const displayStatusInfo = isRental && status === 0 ? rentalStatusInfo : statusInfo;
 
     return {
       ...item,
       title: item.title || item.itemTitle || '商品',
       firstImage: item.firstImage || '',
-      pickupCode: item.secureToken || "",
+      isRental,
+      rentalStatus,
+      rentalStatusText: rentalStatusInfo.label,
+      rentalReturnCode: item.rentalReturnCode || '',
+      pickupCode: isRental && rentalStatus !== RENTAL_STATUS.NOT_APPLICABLE ? '' : (item.secureToken || ""),
       priceText: formatPrice(item.price),
       priceDisplay: formatPriceDisplay(item),
       timeText: formatTime(item.createdAt),
       status,
-      statusText: statusInfo.label,
-      statusColor: statusInfo.color,
-      statusBg: statusInfo.bg,
+      statusText: displayStatusInfo.label,
+      statusColor: displayStatusInfo.color,
+      statusBg: displayStatusInfo.bg,
       transactionTypeText: item.transactionType === 1 ? '租赁' : '出售',
       otherNickname: this.data.mainTab === 'buyer'
         ? (item.sellerNickname || '卖家')
@@ -278,6 +297,101 @@ Page({
         }
       }
     });
+  },
+
+  promptInput(title, placeholderText, content = '') {
+    return new Promise(resolve => {
+      wx.showModal({
+        title,
+        content,
+        editable: true,
+        placeholderText,
+        success: (res) => {
+          if (!res.confirm) {
+            resolve(null);
+            return;
+          }
+          resolve((res.content || '').trim());
+        },
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  buildExpectedReturnTime(days) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toISOString();
+  },
+
+  /**
+   * 租赁借出核销（卖家）
+   */
+  async onStartRental(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    const daysText = await this.promptInput(
+      '设置租期',
+      '请输入租期天数，如 7'
+    );
+    if (daysText === null) return;
+
+    const days = daysText === '' ? 7 : Number(daysText);
+    if (!Number.isInteger(days) || days <= 0 || days > 365) {
+      wx.showToast({ title: '租期需为1-365天', icon: 'none' });
+      return;
+    }
+
+    const pickupCode = await this.promptInput('借出核销', '请输入买家提供的借出核销码');
+    if (pickupCode === null) return;
+    if (!pickupCode) {
+      wx.showToast({ title: '请填写借出核销码', icon: 'none' });
+      return;
+    }
+
+    try {
+      const securityPassword = await securityPrefs.maybePromptSecurityPassword('verifyPickup', '借出安全验证');
+      if (securityPassword === null) return;
+      const result = await transactionsApi.startRental(
+        transactionid,
+        this.buildExpectedReturnTime(days),
+        pickupCode,
+        securityPassword
+      );
+      const returnCode = result && result.returnCode ? result.returnCode : '';
+      wx.showModal({
+        title: '租赁已开始',
+        content: returnCode
+          ? `归还确认码：${returnCode}\n归还时请出示给买家。`
+          : '租赁已开始，归还时请在订单中查看归还确认码。',
+        showCancel: false
+      });
+      this.fetchList(true);
+    } catch (error) {
+      console.error('[MyOrders] startRental error:', error);
+    }
+  },
+
+  /**
+   * 租赁归还核销（买家）
+   */
+  async onCompleteRentalReturn(e) {
+    const { transactionid } = e.currentTarget.dataset;
+    const returnCode = await this.promptInput('归还核销', '请输入卖家提供的归还确认码');
+    if (returnCode === null) return;
+    if (!returnCode) {
+      wx.showToast({ title: '请填写归还确认码', icon: 'none' });
+      return;
+    }
+
+    try {
+      const securityPassword = await securityPrefs.maybePromptSecurityPassword('verifyPickup', '归还安全验证');
+      if (securityPassword === null) return;
+      await transactionsApi.completeReturn(transactionid, returnCode, securityPassword);
+      wx.showToast({ title: '归还成功', icon: 'success' });
+      this.fetchList(true);
+    } catch (error) {
+      console.error('[MyOrders] completeRentalReturn error:', error);
+    }
   },
 
   /**

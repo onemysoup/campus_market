@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="我的订单" showBack />
   <!-- 主 Tab：买入/卖出 -->
   <view class="main-tabs">
     <view
@@ -64,7 +65,8 @@
 
       <!-- 卡片主体：商品信息 -->
       <view class="order-body" data-itemid="{{item.itemId}}" bindtap="onTapOrder">
-        <image class="order-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <image wx:if="{{item.firstImage}}" class="order-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+        <view wx:else class="order-thumb thumb-placeholder">暂无图片</view>
         <view class="order-meta">
           <view class="order-title">{{item.title}}</view>
           <view class="order-info">
@@ -76,9 +78,16 @@
 
       <!-- 取货码区域（仅买家可见，交易中状态） -->
       <view class="pickup-code-section" wx:if="{{mainTab === 'buyer' && item.pickupCode && item.status === 0}}">
-        <view class="pickup-label">🔑 取货码（请出示给卖家）</view>
+        <view class="pickup-label">{{item.isRental ? '🔑 借出核销码（请出示给卖家）' : '🔑 取货码（请出示给卖家）'}}</view>
         <view class="pickup-code">{{item.pickupCode}}</view>
-        <view class="pickup-tip">交易时请将此码提供给卖家核销</view>
+        <view class="pickup-tip">{{item.isRental ? '线下交押金/租金后，卖家输入此码开始租期' : '交易时请将此码提供给卖家核销'}}</view>
+      </view>
+
+      <!-- 租赁归还码区域（仅卖家可见，租赁中状态） -->
+      <view class="pickup-code-section return-code-section" wx:if="{{mainTab === 'seller' && item.isRental && item.rentalStatus === 1 && item.rentalReturnCode && item.status === 0}}">
+        <view class="pickup-label">🔁 归还确认码（归还时出示给买家）</view>
+        <view class="pickup-code">{{item.rentalReturnCode}}</view>
+        <view class="pickup-tip">买家归还物品时输入此码，订单完成</view>
       </view>
 
       <!-- 卡片底部：操作按钮 -->
@@ -108,10 +117,26 @@
             <button
               class="btn-action btn-verify"
               size="mini"
-              wx:if="{{mainTab === 'seller'}}"
+              wx:if="{{mainTab === 'seller' && !item.isRental}}"
               data-transactionid="{{item.transactionId}}"
               catchtap="onVerifyPickup"
             >核销取货码</button>
+            <!-- 租赁：卖家借出核销 -->
+            <button
+              class="btn-action btn-verify"
+              size="mini"
+              wx:if="{{mainTab === 'seller' && item.isRental && item.rentalStatus === 0}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onStartRental"
+            >借出核销</button>
+            <!-- 租赁：买家归还核销 -->
+            <button
+              class="btn-action btn-verify"
+              size="mini"
+              wx:if="{{mainTab === 'buyer' && item.isRental && (item.rentalStatus === 1 || item.rentalStatus === 2)}}"
+              data-transactionid="{{item.transactionId}}"
+              catchtap="onCompleteRentalReturn"
+            >归还核销</button>
             <!-- 买家取货凭证（可截图代领） -->
             <button
               class="btn-action btn-contact"

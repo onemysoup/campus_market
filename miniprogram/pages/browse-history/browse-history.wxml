@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="浏览历史" showBack />
   <!-- 顶部操作 -->
   <view class="top-bar" wx:if="{{list.length > 0}}">
     <text class="count">共 {{list.length}} 条</text>

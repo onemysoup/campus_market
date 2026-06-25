@@ -1,5 +1,6 @@
 .container {
   padding: 24rpx;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   background: #f8fafc;
 }

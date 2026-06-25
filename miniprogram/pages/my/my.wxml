@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="我的" />
   <!-- 已登录 -->
   <block wx:if="{{isLoggedIn}}">
     <!-- 用户卡片 -->

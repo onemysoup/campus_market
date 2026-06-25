@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="商品列表" />
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input-wrap">
@@ -140,7 +141,8 @@
       bindtap="goDetail"
       data-id="{{item.itemId}}"
     >
-      <image class="goods-thumb" src="{{item.firstImage || defaultImage}}" mode="aspectFill" />
+      <image wx:if="{{item.firstImage}}" class="goods-thumb" src="{{item.firstImage}}" mode="aspectFill" />
+      <view wx:else class="goods-thumb thumb-placeholder">暂无图片</view>
       <view class="goods-meta">
         <view class="goods-title">{{item.title}}</view>
         <view class="goods-info">

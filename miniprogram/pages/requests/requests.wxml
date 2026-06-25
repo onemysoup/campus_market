@@ -1,7 +1,7 @@
 <view class="page">
+  <app-nav title="求购大厅" showBack />
   <!-- 顶部发布按钮 -->
   <view class="header">
-    <text class="header-title">求购大厅</text>
     <button class="btn-publish" size="mini" bindtap="openPublish">＋ 发布求购</button>
   </view>
 
@@ -86,5 +86,30 @@
       <button class="sheet-btn cancel" bindtap="closePublish">取消</button>
       <button class="sheet-btn confirm" loading="{{submitting}}" bindtap="onSubmit">发布</button>
     </view>
+  </view>
+
+  <!-- 商品选择弹窗：替代系统 ActionSheet，支持大量商品滚动选择 -->
+  <view class="picker-mask" wx:if="{{showItemPicker}}" bindtap="closeItemPicker"></view>
+  <view class="item-picker {{showItemPicker ? 'show' : ''}}">
+    <view class="picker-head">
+      <text class="picker-title">{{pickerTitle}}</text>
+      <text class="picker-close" bindtap="closeItemPicker">×</text>
+    </view>
+    <scroll-view class="picker-list" scroll-y>
+      <view
+        class="picker-item"
+        wx:for="{{pickerItems}}"
+        wx:key="itemId"
+        data-index="{{index}}"
+        bindtap="onPickItem"
+      >
+        <image class="picker-thumb" src="{{item.image}}" mode="aspectFill" wx:if="{{item.image}}" />
+        <view class="picker-thumb empty-thumb" wx:else></view>
+        <view class="picker-meta">
+          <text class="picker-name">{{item.title}}</text>
+          <text class="picker-price">{{item.priceText}}</text>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 </view>

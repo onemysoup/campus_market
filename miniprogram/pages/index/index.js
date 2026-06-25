@@ -5,6 +5,7 @@
 
 const itemsApi = require('../../api/items');
 const { CATEGORY_LIST, formatPrice, formatTime } = require('../../utils/constants');
+const { syncTabBar } = require('../../utils/tabbar');
 
 Page({
   data: {
@@ -15,21 +16,38 @@ Page({
     latestGoods: [],
     // 状态
     loading: true,
-    defaultImage: ''
+    defaultImage: '',
+    statusBarHeight: 20,
+    navBarHeight: 44
   },
 
   onLoad() {
+    this.initNavigationMetrics();
     this.loadData();
   },
 
   onShow() {
     // 首页访问埋点（DDD 6.15 页面点击量统计）
     require('../../api/events').track('PAGE_VIEW', 'home');
+    syncTabBar(this, 0);
     // 每次显示时刷新（可能从详情页返回时商品状态变了）
   },
 
   onPullDownRefresh() {
     this.loadData().finally(() => wx.stopPullDownRefresh());
+  },
+
+  initNavigationMetrics() {
+    const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+    const statusBarHeight = info.statusBarHeight || 20;
+    let navBarHeight = 44;
+    if (wx.getMenuButtonBoundingClientRect) {
+      const menu = wx.getMenuButtonBoundingClientRect();
+      if (menu && menu.height && menu.top) {
+        navBarHeight = (menu.top - statusBarHeight) * 2 + menu.height;
+      }
+    }
+    this.setData({ statusBarHeight, navBarHeight });
   },
 
   /**

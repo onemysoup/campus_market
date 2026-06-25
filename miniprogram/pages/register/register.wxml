@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="注册与改密" showBack />
   <!-- 模式切换 -->
   <view class="switcher">
     <view class="{{mode==='email'?'active':''}}" bindtap="switchMode" data-mode="email">邮箱验证</view>

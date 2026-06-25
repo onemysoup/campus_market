@@ -13,9 +13,9 @@ public sealed record VerifyTokenRequest(string PickupCode, string? SecurityPassw
 
 public sealed record CancelTransactionRequest(string? Reason, string? SecurityPassword = null);
 
-public sealed record RentStartRequest(DateTime ExpectedReturnTime, string? SecurityPassword = null);
+public sealed record RentStartRequest(DateTime ExpectedReturnTime, string? PickupCode = null, string? SecurityPassword = null);
 
-public sealed record CompleteReturnRequest(string? SecurityPassword = null);
+public sealed record CompleteReturnRequest(string? ReturnCode = null, string? SecurityPassword = null);
 
 public sealed record TransactionVO
 {
@@ -39,6 +39,7 @@ public sealed record TransactionVO
     public string? RentalRate { get; init; }
     public decimal? Deposit { get; init; }
     public string? SecureToken { get; init; }
+    public string? RentalReturnCode { get; init; }
     public int Status => TokenStatus switch
     {
         TokenStatus.Unused => 0,
@@ -50,7 +51,7 @@ public sealed record TransactionVO
     public static TransactionVO FromEntity(Transaction transaction, decimal price = 0,
         string? itemTitle = null, string? secureToken = null, bool isRental = false,
         string? rentalRate = null, decimal? deposit = null, string? firstImage = null,
-        string? buyerNickname = null, string? sellerNickname = null) => new()
+        string? buyerNickname = null, string? sellerNickname = null, string? rentalReturnCode = null) => new()
         {
             TransactionId = transaction.Id,
             ItemId = transaction.ItemId,
@@ -71,7 +72,8 @@ public sealed record TransactionVO
             IsRental = isRental || transaction.TransactionType == TransactionType.Rental,
             RentalRate = rentalRate,
             Deposit = deposit,
-            SecureToken = secureToken
+            SecureToken = secureToken,
+            RentalReturnCode = rentalReturnCode
         };
 }
 

@@ -112,6 +112,7 @@ public sealed record ItemPublishDTO(
     bool IsRental = false,
     string? RentalRate = null,
     decimal? Deposit = null,
+    string? DeliveryPoint = null,
     CollegeTag? TargetCollege = null,
     bool SupportCrossCampus = false);
 
@@ -140,7 +141,14 @@ public sealed record AiDescribeDTO(
     ItemCategory Category,
     ConditionLevel ConditionLevel,
     string? Keywords,
-    List<string>? Images = null);
+    List<string>? Images = null,
+    CampusArea CampusArea = CampusArea.East,
+    bool SupportCrossCampus = false,
+    bool IsNegotiable = false,
+    bool IsFree = false,
+    bool IsRental = false,
+    string? RentalRate = null,
+    decimal? Deposit = null);
 
 public sealed record ItemQuery(
     string? Keyword,

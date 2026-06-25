@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="我的收藏" showBack />
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && list.length === 0}}">
     <view class="skeleton-item" wx:for="{{[1,2,3]}}" wx:key="*this">

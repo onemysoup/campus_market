@@ -63,7 +63,7 @@ const itemsApi = {
    * @param {string} [data.keywords]     - 关键词/卖点（选填）
    */
   aiDescribe(data) {
-    return post('/api/v1/items/ai-describe', data);
+    return post('/api/v1/items/ai-describe', data, { timeout: 60000, showError: false });
   },
 
   /**

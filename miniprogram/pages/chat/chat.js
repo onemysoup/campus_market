@@ -5,6 +5,7 @@
 
 const chatApi = require('../../api/chat');
 const { formatPrice, formatTime } = require('../../utils/constants');
+const { syncTabBar } = require('../../utils/tabbar');
 
 function formatItemPrice(session) {
   if (session.itemIsRental) return session.itemRentalRate || '租金面议';
@@ -31,6 +32,8 @@ Page({
   },
 
   onShow() {
+    syncTabBar(this, 3);
+
     // 检查是否从其他页面跳转过来
     const app = getApp();
     if (app.globalData.chatParams) {

@@ -1,4 +1,5 @@
 <view class="container" wx:if="{{isAdmin}}">
+  <app-nav title="管理员后台" showBack />
   <!-- Tab 栏 -->
   <view class="tabs">
     <view
@@ -49,6 +50,19 @@
       <view class="today-item">
         <text class="today-value">{{dashboard.todayTransactions || 0}}</text>
         <text class="today-label">今日交易</text>
+      </view>
+    </view>
+
+    <view class="report-block">
+      <view class="report-title">认证转化漏斗</view>
+      <view class="funnel-row" wx:for="{{dashboard.authFunnel}}" wx:key="level">
+        <view class="funnel-head">
+          <text class="funnel-label">{{item.label}}</text>
+          <text class="funnel-value">{{item.value}} 人 · {{item.percentText}}</text>
+        </view>
+        <view class="funnel-track">
+          <view class="funnel-fill level-{{item.level}}" style="width: {{item.width}}%;"></view>
+        </view>
       </view>
     </view>
 
@@ -109,6 +123,33 @@
           <text class="metric-value">{{analytics.summary.activeUsers || 0}}</text>
           <text class="metric-label">活跃用户</text>
         </view>
+      </view>
+
+      <view class="report-block">
+        <view class="report-title">近几日趋势</view>
+        <view class="trend-list">
+          <view class="trend-row" wx:for="{{analytics.daily}}" wx:key="date">
+            <text class="trend-date">{{item.dateLabel}}</text>
+            <view class="trend-bars">
+              <view class="trend-line">
+                <text class="trend-name">用户</text>
+                <view class="trend-track"><view class="trend-fill users" style="width: {{item.newUsersWidth}}%;"></view></view>
+                <text class="trend-count">{{item.newUsers}}</text>
+              </view>
+              <view class="trend-line">
+                <text class="trend-name">发布</text>
+                <view class="trend-track"><view class="trend-fill items" style="width: {{item.newItemsWidth}}%;"></view></view>
+                <text class="trend-count">{{item.newItems}}</text>
+              </view>
+              <view class="trend-line">
+                <text class="trend-name">交易</text>
+                <view class="trend-track"><view class="trend-fill deals" style="width: {{item.completedWidth}}%;"></view></view>
+                <text class="trend-count">{{item.completedTransactions}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="empty compact" wx:if="{{analytics.daily.length === 0}}">暂无趋势数据</view>
       </view>
 
       <view class="report-block">
@@ -375,6 +416,9 @@
 
 <!-- 无权限 -->
 <view class="no-permission" wx:if="{{!isAdmin && !loading}}">
-  <text class="lock-icon">🔒</text>
-  <text class="no-perm-text">仅管理员可访问</text>
+  <app-nav title="管理员后台" showBack />
+  <view class="no-perm-content">
+    <text class="lock-icon">🔒</text>
+    <text class="no-perm-text">仅管理员可访问</text>
+  </view>
 </view>

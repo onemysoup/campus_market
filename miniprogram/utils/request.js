@@ -44,6 +44,7 @@ const BASE_URL = getBaseURL();
  * @param {boolean} options.showLoading - 是否显示 loading，默认 false
  * @param {boolean} options.showError   - 是否自动弹出错误提示，默认 true
  * @param {boolean} options.raw         - 是否直接返回原始响应体，默认 false
+ * @param {number} options.timeout      - 请求超时时间，默认 15000ms
  * @param {Object} options.header  - 自定义 header
  */
 function request(options = {}) {
@@ -54,6 +55,7 @@ function request(options = {}) {
     showLoading = false,
     showError = true,
     raw = false,
+    timeout = 15000,
     header = {}
   } = options;
 
@@ -82,7 +84,7 @@ function request(options = {}) {
       method,
       data,
       header: requestHeader,
-      timeout: 15000,
+      timeout,
       success: (res) => {
         const statusCode = res.statusCode;
         const result = res.data || {};

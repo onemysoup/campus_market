@@ -112,5 +112,40 @@ ON DUPLICATE KEY UPDATE
     `PageClicksJson` = VALUES(`PageClicksJson`),
     `UpdatedAt` = VALUES(`UpdatedAt`);", context.CancellationToken);
         }
+
+        await RewardUsersWithCleanSevenDaysAsync(db, context.CancellationToken);
+    }
+
+    private static async Task RewardUsersWithCleanSevenDaysAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        const string rewardReason = "连续7天无违规加分";
+        var todayStart = DateTime.UtcNow.Date;
+        var sevenDaysAgo = todayStart.AddDays(-7);
+
+        var rewardedToday = await db.CreditLogs
+            .Where(l => l.Reason == rewardReason && l.CreatedAt >= todayStart)
+            .Select(l => l.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var penalizedRecently = await db.CreditLogs
+            .Where(l => l.ChangeAmount < 0 && l.CreatedAt >= sevenDaysAgo)
+            .Select(l => l.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var users = await db.Users
+            .Where(u => !u.IsBanned
+                && u.AuthLevel != AuthLevel.L0
+                && u.CreditScore < 100
+                && !rewardedToday.Contains(u.Id)
+                && !penalizedRecently.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var user in users)
+            db.CreditLogs.Add(user.RecordCreditChange(1, rewardReason));
+
+        if (users.Count > 0)
+            await db.SaveChangesAsync(cancellationToken);
     }
 }

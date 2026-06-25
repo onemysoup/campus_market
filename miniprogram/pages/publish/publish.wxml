@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="{{editMode ? '编辑商品' : '发布商品'}}" />
   <!-- 基本信息 -->
   <view class="section">
     <view class="section-title">基本信息</view>
@@ -101,6 +102,18 @@
       </picker>
     </view>
 
+    <!-- 交付点 -->
+    <view class="form-item">
+      <text class="label">交付点</text>
+      <input
+        class="input"
+        placeholder="如：东区主楼门口 / 西区图书馆"
+        maxlength="64"
+        value="{{form.deliveryPoint}}"
+        bindinput="onDeliveryPointInput"
+      />
+    </view>
+
     <!-- 学院标签（可选） -->
     <view class="form-item">
       <text class="label">关联学院</text>
@@ -139,7 +152,7 @@
   <view class="section">
     <view class="section-title">
       商品图片
-      <text class="optional-hint">（选填）</text>
+      <text class="optional-hint">（选填，最多9张）</text>
       <text class="image-count">{{form.images.length}}/{{maxImages}}</text>
     </view>
 

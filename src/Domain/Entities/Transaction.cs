@@ -91,6 +91,12 @@ public sealed class Transaction
     {
         if (!IsRental())
             return Result.Failure("非租赁交易");
+        if (RentalStatus == Enums.RentalStatus.Renting)
+            return Result.Failure("租赁已开始");
+        if (RentalStatus == Enums.RentalStatus.Returned)
+            return Result.Failure("租赁已归还");
+        if (TokenStatus != TokenStatus.Unused)
+            return Result.Failure("取货码状态异常");
 
         RentalStatus = Enums.RentalStatus.Renting;
         ExpectedReturnTime = expectedReturnTime;
@@ -103,8 +109,11 @@ public sealed class Transaction
     {
         if (!IsRental())
             return Result.Failure("非租赁交易");
+        if (RentalStatus != Enums.RentalStatus.Renting)
+            return Result.Failure("租赁尚未开始或已完成");
 
         RentalStatus = Enums.RentalStatus.Returned;
+        TokenStatus = TokenStatus.Verified;
         FinishTime = DateTime.UtcNow;
         return Result.Success();
     }

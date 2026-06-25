@@ -354,6 +354,14 @@ Page({
     }
   },
 
+  onReportUser() {
+    const { targetUserId } = this.data;
+    if (!targetUserId) return;
+    wx.navigateTo({
+      url: `/pages/report/report?targetId=${targetUserId}`
+    });
+  },
+
   // 拉黑当前聊天对象（SRS F5.3.1 个人黑名单）
   onBlockUser() {
     const { targetUserId, targetNickname } = this.data;

@@ -40,16 +40,16 @@ const transactionsApi = {
    * @param {string} id               - 交易 GUID
    * @param {string} expectedReturnTime - 预计归还时间（ISO 格式）
    */
-  startRental(id, expectedReturnTime, securityPassword) {
-    return post(`/api/v1/transactions/${id}/rent-start`, { expectedReturnTime, securityPassword });
+  startRental(id, expectedReturnTime, pickupCode, securityPassword) {
+    return post(`/api/v1/transactions/${id}/rent-start`, { expectedReturnTime, pickupCode, securityPassword });
   },
 
   /**
    * 完成归还
    * @param {string} id - 交易 GUID
    */
-  completeReturn(id, securityPassword) {
-    return post(`/api/v1/transactions/${id}/rent-return`, { securityPassword });
+  completeReturn(id, returnCode, securityPassword) {
+    return post(`/api/v1/transactions/${id}/rent-return`, { returnCode, securityPassword });
   },
 
   /**

@@ -1,8 +1,7 @@
 <view class="container">
-  <!-- 顶部标题 -->
-  <view class="header">
-    <text class="header-title">消息</text>
-    <view class="header-action" bindtap="onClearAll" wx:if="{{sessions.length > 0}}">
+  <app-nav title="消息" />
+  <view class="session-toolbar" wx:if="{{sessions.length > 0}}">
+    <view class="header-action" bindtap="onClearAll">
       <text>清空</text>
     </view>
   </view>

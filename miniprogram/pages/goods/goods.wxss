@@ -1,6 +1,7 @@
 .container {
   min-height: 100vh;
   background: #f8fafc;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
 }
 
 /* ==================== 搜索栏 ==================== */
@@ -11,9 +12,8 @@
   padding: 16rpx 24rpx;
   background: #fff;
   border-bottom: 1rpx solid #f1f5f9;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: relative;
+  z-index: 10;
 }
 
 .search-input-wrap {
@@ -194,6 +194,14 @@
   border-radius: 12rpx;
   background: #f1f5f9;
   flex-shrink: 0;
+}
+
+.thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 24rpx;
 }
 
 .goods-meta {

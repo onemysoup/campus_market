@@ -1,4 +1,5 @@
 using CAUSecondHand.Infrastructure.Data;
+using CAUSecondHand.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
@@ -25,6 +26,14 @@ public sealed class GraduationDegradationJob(IServiceScopeFactory scopeFactory) 
 
         foreach (var user in graduatedUsers)
             user.DegradeToL0();
+
+        var graduatedUserIds = graduatedUsers.Select(u => u.Id).ToList();
+        var activeItems = await db.Items
+            .Where(i => graduatedUserIds.Contains(i.SellerId)
+                && (i.Status == ItemStatus.Active || i.Status == ItemStatus.Reserved))
+            .ToListAsync(context.CancellationToken);
+        foreach (var item in activeItems)
+            item.TransitionTo(ItemStatus.Inactive);
 
         if (graduatedUsers.Count > 0)
             await db.SaveChangesAsync(context.CancellationToken);

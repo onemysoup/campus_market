@@ -186,7 +186,7 @@ Page({
         adminApi.getStatsReport(this.buildStatsParams())
       ]);
       this.setData({
-        dashboard: dashboard || {},
+        dashboard: this.formatDashboard(dashboard || {}),
         analytics: this.formatAnalytics(analytics || {}),
         loading: false
       });
@@ -194,6 +194,32 @@ Page({
       console.error('[Admin] loadDashboard error:', error);
       this.setData({ loading: false });
     }
+  },
+
+  formatDashboard(dashboard) {
+    const authCounts = dashboard.authCounts || [];
+    const countOf = (level) => {
+      const item = authCounts.find(row => Number(row.authLevel) === level);
+      return item ? Number(item.count || 0) : 0;
+    };
+    const total = Number(dashboard.totalUsers || 0) || 1;
+    const levels = [
+      { level: 0, label: 'L0 游客', value: countOf(0) },
+      { level: 1, label: 'L1 邮箱认证', value: countOf(1) },
+      { level: 2, label: 'L2 完全认证', value: countOf(2) }
+    ];
+
+    return {
+      ...dashboard,
+      authFunnel: levels.map(item => {
+        const percent = Math.round((item.value / total) * 100);
+        return {
+          ...item,
+          percentText: `${percent}%`,
+          width: Math.max(percent, item.value > 0 ? 6 : 0)
+        };
+      })
+    };
   },
 
   buildStatsParams() {
@@ -242,9 +268,24 @@ Page({
         campusText: campusInfo ? campusInfo.label : '未知校区'
       };
     });
-    const daily = (report.daily || []).map(item => ({
+    const rawDaily = report.daily || [];
+    const maxDailyValue = rawDaily.reduce((max, item) => Math.max(
+      max,
+      Number(item.newUsers || 0),
+      Number(item.newItems || 0),
+      Number(item.completedTransactions || 0)
+    ), 1);
+    const toBarWidth = value => {
+      const percent = Math.round((Number(value || 0) / maxDailyValue) * 100);
+      return Math.max(percent, value > 0 ? 6 : 0);
+    };
+    const daily = rawDaily.map(item => ({
       ...item,
-      turnoverText: formatPrice(item.turnoverAmount)
+      dateLabel: String(item.date || '').slice(5),
+      turnoverText: formatPrice(item.turnoverAmount),
+      newUsersWidth: toBarWidth(item.newUsers),
+      newItemsWidth: toBarWidth(item.newItems),
+      completedWidth: toBarWidth(item.completedTransactions)
     }));
 
     // 页面编码 → 中文标签（DDD 6.15 页面点击量）

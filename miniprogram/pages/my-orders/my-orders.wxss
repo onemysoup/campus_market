@@ -124,6 +124,14 @@
   flex-shrink: 0;
 }
 
+.thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 22rpx;
+}
+
 .order-meta {
   flex: 1;
   margin-left: 20rpx;
@@ -231,6 +239,11 @@
   padding: 20rpx;
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   border-top: 1rpx solid #fcd34d;
+}
+
+.return-code-section {
+  background: linear-gradient(135deg, #ccfbf1, #a7f3d0);
+  border-top-color: #5eead4;
 }
 
 .pickup-label {

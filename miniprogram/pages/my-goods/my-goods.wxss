@@ -31,6 +31,14 @@
   flex-shrink: 0;
 }
 
+.thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 22rpx;
+}
+
 .goods-meta {
   flex: 1;
   margin-left: 20rpx;

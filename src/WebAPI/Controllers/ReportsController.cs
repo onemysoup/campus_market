@@ -29,6 +29,14 @@ public class ReportsController(AppDbContext db) : ControllerBase
         if (hasPending)
             return BadRequest(new { code = 4000, message = "你已举报过该用户，请勿重复举报，我们会尽快处理" });
 
+        var recentStart = DateTime.UtcNow.AddHours(-1);
+        var recentTargetReports = await db.ReportLogs.CountAsync(r =>
+            r.TargetId == dto.TargetId
+            && r.Status == ReportStatus.Pending
+            && r.CreatedAt >= recentStart);
+        if (recentTargetReports >= 5)
+            return BadRequest(new { code = 4000, message = "该用户近期举报较多，管理员正在处理中，请稍后再试" });
+
         var report = new ReportLog(reporterId, dto.TargetId, dto.ReasonType,
             dto.EvidenceImages ?? [], dto.Description);
 

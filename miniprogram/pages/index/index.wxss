@@ -1,5 +1,31 @@
+.custom-nav {
+  background: #0f766e;
+  color: #fff;
+}
+
+.custom-nav-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 180rpx;
+  box-sizing: border-box;
+}
+
+.custom-nav-title {
+  max-width: 100%;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .container {
   padding: 24rpx;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   background: #f8fafc;
 }

@@ -33,7 +33,9 @@ public class ItemsController(
             return BadRequest(new { code = 4000, message = "请先填写商品标题" });
 
         var description = await aiGenerator.GenerateAsync(
-            new AiDescribeInput(dto.Title, dto.Category, dto.ConditionLevel, dto.Keywords, dto.Images ?? []),
+            new AiDescribeInput(dto.Title, dto.Category, dto.ConditionLevel, dto.Keywords, dto.Images ?? [],
+                dto.CampusArea, dto.SupportCrossCampus, dto.IsNegotiable, dto.IsFree,
+                dto.IsRental, dto.RentalRate, dto.Deposit),
             HttpContext.RequestAborted);
 
         return Ok(new { code = 0, data = new { description } });
@@ -52,7 +54,10 @@ public class ItemsController(
                 .Any(b => b.UserId == i.SellerId && b.BlockedId == viewerId));
 
         if (!string.IsNullOrWhiteSpace(query.Keyword))
-            itemsQuery = itemsQuery.Where(i => i.Title.Contains(query.Keyword));
+        {
+            var searchKeyword = query.Keyword.Trim();
+            itemsQuery = itemsQuery.Where(i => i.Title.Contains(searchKeyword) || i.Description.Contains(searchKeyword));
+        }
         if (query.Category.HasValue)
             itemsQuery = itemsQuery.Where(i => i.Category == query.Category.Value);
         if (query.ConditionLevel.HasValue)
@@ -183,6 +188,11 @@ public class ItemsController(
     [HttpPost]
     public async Task<IActionResult> CreateItem([FromBody] ItemPublishDTO dto)
     {
+        var fieldValidation = ValidateItemFields(dto.Title, dto.Description, dto.Images,
+            textRequired: true);
+        if (fieldValidation is not null)
+            return BadRequest(new { code = 4000, message = fieldValidation });
+
         var banned = await FindBannedAsync("商品发布", dto.Title, dto.Description);
         if (banned is not null)
             return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
@@ -216,7 +226,8 @@ public class ItemsController(
 
         var item = new Item(userId, dto.Title, dto.Description, dto.Price,
             dto.Category, dto.ConditionLevel, dto.Images, dto.CampusArea,
-            dto.IsNegotiable, dto.IsRental, normalizedRentalRate, dto.Deposit, dto.TargetCollege,
+            dto.IsNegotiable, dto.IsRental, normalizedRentalRate, dto.Deposit, dto.DeliveryPoint,
+            dto.TargetCollege,
             dto.SupportCrossCampus);
 
         item.TransitionTo(ItemStatus.Active);
@@ -238,6 +249,11 @@ public class ItemsController(
             return NotFound(new { code = 4004, message = "商品不存在" });
         if (!item.CanBeEditedBy(userId))
             return Forbid();
+        var fieldValidation = ValidateItemFields(dto.Title, dto.Description, dto.Images,
+            textRequired: false);
+        if (fieldValidation is not null)
+            return BadRequest(new { code = 4000, message = fieldValidation });
+
         var banned = await FindBannedAsync("商品编辑", dto.Title, dto.Description);
         if (banned is not null)
             return BadRequest(new { code = 4000, message = $"内容包含违规词「{banned}」，请修改后重试" });
@@ -401,6 +417,27 @@ public class ItemsController(
         return await contentModerator.FindViolationAsync(
             new ContentModerationInput(scene, candidates),
             HttpContext.RequestAborted);
+    }
+
+    private static string? ValidateItemFields(string? title, string? description, List<string>? images,
+        bool textRequired)
+    {
+        var normalizedTitle = title?.Trim();
+        if (textRequired && string.IsNullOrWhiteSpace(normalizedTitle))
+            return "请填写商品标题";
+        if (normalizedTitle is not null && normalizedTitle.Length is < 1 or > 40)
+            return "商品标题需为 1 到 40 个字";
+
+        var normalizedDescription = description?.Trim();
+        if (textRequired && string.IsNullOrWhiteSpace(normalizedDescription))
+            return "请填写商品描述";
+        if (normalizedDescription is not null && normalizedDescription.Length is < 1 or > 2000)
+            return "商品描述需为 1 到 2000 个字";
+
+        if (images is { Count: > 9 })
+            return "商品图片最多上传 9 张";
+
+        return null;
     }
 
     private static string? ValidateRentalFields(bool isRental, string? rentalRate, decimal? deposit,

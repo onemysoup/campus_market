@@ -262,7 +262,19 @@
   font-weight: 600;
 }
 
+.report-btn {
+  flex-shrink: 0;
+  padding: 12rpx 8rpx 12rpx 20rpx;
+  color: #b91c1c;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
 .block-btn:active {
+  opacity: 0.6;
+}
+
+.report-btn:active {
   opacity: 0.6;
 }
 

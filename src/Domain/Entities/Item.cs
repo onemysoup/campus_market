@@ -12,7 +12,7 @@ public sealed class Item
     public Item(Guid sellerId, string title, string description, decimal price,
         ItemCategory category, ConditionLevel condition, List<string> images,
         CampusArea campusArea, bool isNegotiable = true, bool isRental = false,
-        string? rentalRate = null, decimal? deposit = null,
+        string? rentalRate = null, decimal? deposit = null, string? deliveryPoint = null,
         CollegeTag? targetCollege = null, bool supportCrossCampus = false)
     {
         Id = Guid.NewGuid();
@@ -29,6 +29,7 @@ public sealed class Item
         IsRental = isRental;
         RentalRate = rentalRate;
         Deposit = deposit;
+        DeliveryPoint = deliveryPoint;
         SupportCrossCampus = supportCrossCampus;
         Status = ItemStatus.Draft;
         ViewCount = 0;

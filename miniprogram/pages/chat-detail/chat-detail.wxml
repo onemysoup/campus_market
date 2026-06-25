@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="{{targetNickname || '聊天'}}" showBack />
   <!-- 吸顶商品信息条 -->
   <view class="item-bar" wx:if="{{itemInfo}}" bindtap="onTapItem">
     <image class="item-thumb" src="{{itemInfo.image}}" mode="aspectFill" />
@@ -15,6 +16,7 @@
   <!-- 安全交易贴士（F4.5.1） + 拉黑入口 -->
   <view class="tip-row">
     <view class="safety-tip">🔔 本校仅限面交，公共场合交易，切勿提前转账！</view>
+    <text class="report-btn" bindtap="onReportUser">举报</text>
     <text class="block-btn" bindtap="onBlockUser">🚫 拉黑</text>
   </view>
 

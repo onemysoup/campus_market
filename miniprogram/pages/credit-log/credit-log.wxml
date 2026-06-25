@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="信用记录" showBack />
   <!-- 当前信用分 -->
   <view class="score-card">
     <text class="score-label">当前诚信分</text>

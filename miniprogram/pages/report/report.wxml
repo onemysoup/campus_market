@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="举报" showBack />
   <view class="card">
     <view class="title">举报原因</view>
     <view class="reason-tag">{{reasonText}}</view>

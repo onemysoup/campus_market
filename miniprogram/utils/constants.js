@@ -188,9 +188,10 @@ const TOKEN_STATUS = {
  * RentalStatus 租赁状态
  */
 const RENTAL_STATUS = {
-  NONE: 0,
-  ACTIVE: 1,
-  RETURNED: 2
+  NOT_APPLICABLE: 0,
+  RENTING: 1,
+  OVERDUE: 2,
+  RETURNED: 3
 };
 
 // ==================== 后端错误码 ====================

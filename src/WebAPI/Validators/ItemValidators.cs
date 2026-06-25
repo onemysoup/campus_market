@@ -10,7 +10,9 @@ public sealed class ItemPublishDTOValidator : AbstractValidator<ItemPublishDTO>
         RuleFor(x => x.Title).Length(1, 40);
         RuleFor(x => x.Description).Length(1, 2000);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.Images).NotEmpty().Must(x => x.Count <= 9);
+        RuleFor(x => x.Images)
+            .Must(x => x is null || x.Count <= 9)
+            .WithMessage("商品图片最多上传 9 张");
     }
 }
 

@@ -5,6 +5,7 @@
 
 const itemsApi = require('../../api/items');
 const { track } = require('../../api/events');
+const { syncTabBar } = require('../../utils/tabbar');
 const {
   CATEGORY_LIST,
   CAMPUS_AREA_MAP,
@@ -75,6 +76,7 @@ Page({
   onShow() {
     // 闲置广场页面访问埋点（DDD 6.15 页面点击量统计）
     track('PAGE_VIEW', 'goods');
+    syncTabBar(this, 1);
     // 商品页是 Tab 页，从首页再次点分类切回时只会触发 onShow（不会重新 onLoad）
     // 因此这里也要读取预设分类，发现有新预设就重新拉取列表
     if (this.applyPresetCategory()) {

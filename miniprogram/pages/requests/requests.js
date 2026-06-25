@@ -5,7 +5,7 @@
 
 const requestsApi = require('../../api/requests');
 const itemsApi = require('../../api/items');
-const { RESOURCE_TYPE, COLLEGE_LIST, formatTime } = require('../../utils/constants');
+const { RESOURCE_TYPE, COLLEGE_LIST, formatPrice, formatTime } = require('../../utils/constants');
 const { requestSubscribe } = require('../../utils/subscribe');
 
 // 学院可选，列表首位为「不关联学院」(id=null)
@@ -38,7 +38,12 @@ Page({
       resourceIndex: 0,
       campusIndex: 0,
       collegeIndex: 0
-    }
+    },
+    showItemPicker: false,
+    pickerTitle: '',
+    pickerMode: '',
+    pickerRequestId: '',
+    pickerItems: []
   },
 
   onLoad() {
@@ -202,19 +207,11 @@ Page({
       return;
     }
 
-    // 弹出商品选择列表
-    wx.showActionSheet({
-      itemList: activeItems.map(i => `${i.title}（¥${i.price}）`),
-      success: async (res) => {
-        const item = activeItems[res.tapIndex];
-        try {
-          const r = await requestsApi.respondRequest(id, item.itemId);
-          wx.showToast({ title: r.message || '已响应', icon: 'none' });
-          this.fetchList(true);
-        } catch (error) {
-          console.error('[Requests] respond error:', error);
-        }
-      }
+    this.openItemPicker({
+      title: '选择响应商品',
+      mode: 'respond',
+      requestId: id,
+      items: activeItems
     });
   },
 
@@ -232,17 +229,73 @@ Page({
         wx.showToast({ title: '还没有人响应', icon: 'none' });
         return;
       }
-      wx.showActionSheet({
-        itemList: items.map(i => `${i.title}（¥${i.price}）`),
-        success: (res) => {
-          const item = items[res.tapIndex];
-          // 进商品详情，那里有“联系卖家”
-          wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${item.itemId}` });
-        }
+      this.openItemPicker({
+        title: '查看响应商品',
+        mode: 'viewResponses',
+        requestId: id,
+        items
       });
     } catch (error) {
       wx.hideLoading();
       console.error('[Requests] getResponses error:', error);
+    }
+  },
+
+  openItemPicker({ title, mode, requestId, items }) {
+    this.setData({
+      showItemPicker: true,
+      pickerTitle: title,
+      pickerMode: mode,
+      pickerRequestId: requestId,
+      pickerItems: (items || []).map(this.formatPickerItem)
+    });
+  },
+
+  closeItemPicker() {
+    this.setData({
+      showItemPicker: false,
+      pickerTitle: '',
+      pickerMode: '',
+      pickerRequestId: '',
+      pickerItems: []
+    });
+  },
+
+  formatPickerItem(item) {
+    const priceText = item.priceDisplay
+      || (item.isRental
+        ? (item.rentalRate || '租金面议')
+        : (Number(item.price) === 0 ? '免费' : `¥${formatPrice(item.price)}`));
+    return {
+      ...item,
+      priceText,
+      image: item.firstImage || (item.images && item.images[0]) || ''
+    };
+  },
+
+  async onPickItem(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const item = this.data.pickerItems[index];
+    if (!item) return;
+
+    if (this.data.pickerMode === 'viewResponses') {
+      this.closeItemPicker();
+      wx.navigateTo({ url: `/pages/goods-detail/goods-detail?id=${item.itemId}` });
+      return;
+    }
+
+    if (this.data.pickerMode === 'respond') {
+      wx.showLoading({ title: '提交响应', mask: true });
+      try {
+        const r = await requestsApi.respondRequest(this.data.pickerRequestId, item.itemId);
+        wx.hideLoading();
+        this.closeItemPicker();
+        wx.showToast({ title: r.message || '已响应', icon: 'none' });
+        this.fetchList(true);
+      } catch (error) {
+        wx.hideLoading();
+        console.error('[Requests] respond error:', error);
+      }
     }
   },
 

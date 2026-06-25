@@ -220,6 +220,129 @@
   margin-bottom: 14rpx;
 }
 
+.funnel-row {
+  padding: 14rpx 0;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.funnel-row:first-of-type {
+  border-top: 0;
+}
+
+.funnel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.funnel-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.funnel-value {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.funnel-track {
+  height: 16rpx;
+  border-radius: 999rpx;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.funnel-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #0f766e;
+}
+
+.funnel-fill.level-0 {
+  background: #94a3b8;
+}
+
+.funnel-fill.level-1 {
+  background: #14b8a6;
+}
+
+.funnel-fill.level-2 {
+  background: #22c55e;
+}
+
+.trend-row {
+  display: flex;
+  gap: 14rpx;
+  padding: 14rpx 0;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.trend-row:first-of-type {
+  border-top: 0;
+}
+
+.trend-date {
+  width: 72rpx;
+  padding-top: 2rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.trend-bars {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.trend-line {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.trend-name {
+  width: 48rpx;
+  font-size: 21rpx;
+  color: #475569;
+}
+
+.trend-track {
+  flex: 1;
+  height: 14rpx;
+  border-radius: 999rpx;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.trend-fill {
+  height: 100%;
+  border-radius: 999rpx;
+}
+
+.trend-fill.users {
+  background: #0f766e;
+}
+
+.trend-fill.items {
+  background: #3b82f6;
+}
+
+.trend-fill.deals {
+  background: #f97316;
+}
+
+.trend-count {
+  width: 42rpx;
+  text-align: right;
+  font-size: 21rpx;
+  color: #64748b;
+}
+
 /* 搜索热词云 */
 .keyword-cloud {
   display: flex;
@@ -564,6 +687,11 @@
 
 /* ==================== 无权限 ==================== */
 .no-permission {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.no-perm-content {
   display: flex;
   flex-direction: column;
   align-items: center;

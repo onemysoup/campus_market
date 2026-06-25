@@ -204,6 +204,10 @@ Page({
       // 设置校区
       const campusArea = campusOptions[campusIndex].value;
       await authApi.setCampus(campusArea);
+      await authApi.updateProfile({
+        nickname: guideNickname.trim(),
+        avatarUrl: guideAvatar
+      });
 
       // 构造登录数据（后端暂无更新昵称接口，使用本地数据）
       const loginData = {

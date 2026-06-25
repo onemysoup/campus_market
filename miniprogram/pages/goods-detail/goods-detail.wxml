@@ -1,4 +1,5 @@
 <view class="container">
+  <app-nav title="商品详情" showBack />
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading}}">
     <view class="skeleton-image"></view>
@@ -14,6 +15,7 @@
     <!-- 图片轮播 -->
     <view class="image-section">
       <swiper
+        wx:if="{{goods.images.length > 0}}"
         class="image-swiper"
         indicator-dots="{{goods.images.length > 1}}"
         indicator-color="rgba(255,255,255,0.5)"
@@ -31,6 +33,9 @@
           />
         </swiper-item>
       </swiper>
+      <view class="image-placeholder" wx:else>
+        <text>暂无图片</text>
+      </view>
       <!-- 状态角标 -->
       <view class="status-badge" style="background: {{statusColor}};" wx:if="{{statusText}}">
         {{statusText}}
